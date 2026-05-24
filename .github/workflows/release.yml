@@ -39,12 +39,30 @@ jobs:
         run: test -f "build/libs/lock-end-${{ steps.version.outputs.version }}.jar"
 
       - name: Prepare release body
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          sed \
-            -e "s/@VERSION@/${{ steps.version.outputs.version }}/g" \
-            -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
-            -e "s/@BUILD_DATE@/$(date -u +"%Y-%m-%d %H:%M UTC")/g" \
-            .github/RELEASE_TEMPLATE.md > release-body.md
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          if [ -f .github/RELEASE_TEMPLATE.md ]; then
+            sed \
+              -e "s/@VERSION@/${VERSION}/g" \
+              -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
+              -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
+              .github/RELEASE_TEMPLATE.md > release-body.md
+          else
+            cat > release-body.md <<EOF
+          ## 🔒 Lock-End ${VERSION}
+
+          **Requirements:** Paper 26.1.2+, Java 25
+
+          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
+
+          See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
+
+          ---
+          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
+          EOF
+          fi
 
       - name: Point release tag at this commit
         run: |
