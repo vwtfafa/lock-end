@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
+
+      - name: Build with Gradle
+        run: chmod +x gradlew && ./gradlew build --no-daemon
+
+      - name: Verify JAR exists
+        run: test -f "build/libs/lock-end-${{ steps.version.outputs.version }}.jar"
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.version }}
+          name: EndLock ${{ steps.version.outputs.version }}
+          body: |
+            ## EndLock ${{ steps.version.outputs.version }}
+
+            **Requirements:** Paper 26.1.2+, Java 25
+
+            Download `lock-end-${{ steps.version.outputs.version }}.jar` below and place it in your server's `plugins/` folder.
+
+            See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
+          artifacts: build/libs/lock-end-${{ steps.version.outputs.version }}.jar
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}

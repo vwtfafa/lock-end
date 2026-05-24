@@ -66,6 +66,17 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 
 Output: `build/libs/lock-end-1.1.0.jar`
 
+## Automatic releases (GitHub Actions)
+
+On every push to **`master`** or **`main`**, GitHub Actions will:
+
+1. Build the plugin with Java 25
+2. Read the version from `build.gradle`
+3. Create or update a GitHub Release tagged **`v{version}`** (e.g. `v1.1.0`)
+4. Attach `lock-end-{version}.jar` to that release
+
+**Before merging:** bump `version` in `build.gradle` (and `plugin.yml` if you set it manually) when you want a new release. Repeated pushes with the same version update the existing release instead of creating a duplicate tag.
+
 Run a local test server (downloads Paper 26.1.2):
 
 ```bash
