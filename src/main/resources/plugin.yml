@@ -13,3 +13,7 @@ commands:
   lock:
     description: Alias for /endlock
     usage: /lock [status]
+permissions:
+  endlock.toggle:
+    description: Allows locking or unlocking the End
+    default: op
