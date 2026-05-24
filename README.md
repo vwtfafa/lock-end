@@ -72,10 +72,16 @@ On every push to **`master`** or **`main`**, GitHub Actions will:
 
 1. Build the plugin with Java 25
 2. Read the version from `build.gradle`
-3. Create or update a GitHub Release tagged **`v{version}`** (e.g. `v1.1.0`)
-4. Attach `lock-end-{version}.jar` to that release
+3. Create or **fully overwrite** the GitHub Release tagged **`v{version}`**
+4. Replace the release text from [`.github/RELEASE_TEMPLATE.md`](.github/RELEASE_TEMPLATE.md)
+5. Remove old JAR assets and upload the new `lock-end-{version}.jar`
+6. Move the tag to the latest commit
 
-**Before merging:** bump `version` in `build.gradle` (and `plugin.yml` if you set it manually) when you want a new release. Repeated pushes with the same version update the existing release instead of creating a duplicate tag.
+**Same version, new push?** Title, description, JAR, and tag are replaced automatically — you do not need to edit anything on GitHub.
+
+**New release version:** bump `version` in `build.gradle` (and `plugin.yml`).
+
+**Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
 Run a local test server (downloads Paper 26.1.2):
 
