@@ -1,0 +1,6 @@
+locked: "ジ・エンドはロックされています！"
+toggle: "ジ・エンドは現在%status%です。"
+status: "ジ・エンドは現在%status%です。"
+permission: "§cジ・エンドのロック/解除の権限がありません。"
+open: "§a開放"
+closed: "§cロック中"

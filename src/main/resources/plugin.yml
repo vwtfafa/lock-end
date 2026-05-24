@@ -1,0 +1,15 @@
+name: EndLock
+version: '1.1.0'
+author: vwtfafa
+main: org.vwtfafa.lockEnd.LockEnd
+api-version: '26.1'
+description: >
+  EndLock globally locks access to the End dimension via command (blocks /execute, /tp, plugins, etc.),
+  is multilingual, permission-protected, and reload-safe. Requires Paper 26.1+.
+commands:
+  endlock:
+    description: Globally locks or unlocks access to the End dimension
+    usage: /endlock [status]
+  lock:
+    description: Alias for /endlock
+    usage: /lock [status]
