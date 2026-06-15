@@ -20,12 +20,7 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.2.1")
 }
 
-tasks.named('jar') {
-    enabled = false
-}
-
 tasks.named('shadowJar') {
-    archiveClassifier.set('')
     configurations = [project.configurations.runtimeClasspath]
 
     dependencies {
@@ -35,10 +30,6 @@ tasks.named('shadowJar') {
 
     // Relocate bStats into the plugin's package to avoid conflicts with other plugins using bStats
     relocate("org.bstats", project.group.toString())
-}
-
-tasks.named('assemble') {
-    dependsOn tasks.named('shadowJar')
 }
 
 tasks {
