@@ -1,0 +1,7 @@
+locked: "L'End est verrouillé !"
+toggle: "L'End est maintenant %status%."
+status: "L'End est actuellement %status%."
+permission: "§cVous n'avez pas la permission de verrouiller ou déverrouiller l'End."
+open: "§aouvert"
+closed: "§cverrouillé"
+

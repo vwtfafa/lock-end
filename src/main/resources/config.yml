@@ -1,0 +1,15 @@
+# EndLock Plugin Configuration
+locked: false
+language: en
+
+# Update Checker: Notifications for available updates
+# (Ops will be notified when an update is available)
+update-checker:
+  enabled: true
+  notify-ops: true
+
+# bStats Metrics
+# Disable this only if you don't want to collect anonymous data
+# bStats helps developers understand plugin usage and compatibility
+metrics:
+  enabled: true

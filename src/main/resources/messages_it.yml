@@ -1,0 +1,7 @@
+locked: "La End è bloccata!"
+toggle: "La End è ora %status%."
+status: "La End è attualmente %status%."
+permission: "§cNon hai il permesso di bloccare o sbloccare la End."
+open: "§aaperta"
+closed: "§cbloccata"
+

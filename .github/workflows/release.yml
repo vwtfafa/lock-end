@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version $VERSION"
+
+      - name: Build with Gradle
+        run: chmod +x gradlew && ./gradlew build --no-daemon
+
+      - name: Verify JAR exists
+        run: test -f "build/libs/lock-end-${{ steps.version.outputs.version }}.jar"
+
+      - name: Prepare release body
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          if [ -f .github/RELEASE_TEMPLATE.md ]; then
+            sed \
+              -e "s/@VERSION@/${VERSION}/g" \
+              -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
+              -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
+              .github/RELEASE_TEMPLATE.md > release-body.md
+          else
+            cat > release-body.md <<EOF
+          ## 🔒 Lock-End ${VERSION}
+
+          **Requirements:** Paper 26.1.2+, Java 25
+
+          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
+
+          See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
+
+          ---
+          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
+          EOF
+          fi
+
+      - name: Point release tag at this commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          TAG="v${{ steps.version.outputs.version }}"
+          git tag -fa "$TAG" -m "Release $TAG"
+          git push origin "$TAG" --force
+
+      - name: Create or fully overwrite GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.version }}
+          commit: ${{ github.sha }}
+          name: Lock-End ${{ steps.version.outputs.version }}
+          bodyFile: release-body.md
+          artifacts: build/libs/lock-end-${{ steps.version.outputs.version }}.jar
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
+          omitBodyDuringUpdate: false
+          omitNameDuringUpdate: false
+          generateReleaseNotes: false
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
