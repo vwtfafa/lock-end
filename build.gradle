@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("com.gradleup.shadow") version "9.3.1"
 }
 
 group = 'org.vwtfafa'
@@ -16,6 +17,19 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    implementation("org.bstats:bstats-bukkit:3.2.1")
+}
+
+tasks.named('shadowJar') {
+    configurations = [project.configurations.runtimeClasspath]
+
+    dependencies {
+        // Only merge bStats into the final jar, no other dependencies
+        exclude { it.moduleGroup != "org.bstats" }
+    }
+
+    // Relocate bStats into the plugin's package to avoid conflicts with other plugins using bStats
+    relocate("org.bstats", project.group.toString())
 }
 
 tasks {
