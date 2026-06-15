@@ -1,5 +1,5 @@
 name: EndLock
-version: '1.1.0'
+version: '${version}'
 author: vwtfafa
 main: org.vwtfafa.lockEnd.LockEnd
 api-version: '26.1'

@@ -12,6 +12,8 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.entity.Player;
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.SimplePie;
 
 import java.io.File;
 import java.io.InputStream;
@@ -30,8 +32,16 @@ public final class LockEnd extends JavaPlugin implements Listener {
         langCode = getConfig().getString("language", "de").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
         Bukkit.getPluginManager().registerEvents(this, this);
+        setupMetrics();
         if (getCommand("endlock") != null) getCommand("endlock").setExecutor(this);
         if (getCommand("lock") != null) getCommand("lock").setExecutor(this);
+    }
+
+    private void setupMetrics() {
+        int pluginId = 32010;
+        Metrics metrics = new Metrics(this, pluginId);
+        metrics.addCustomChart(new SimplePie("language", () -> langCode));
+        metrics.addCustomChart(new SimplePie("end_locked", () -> Boolean.toString(locked)));
     }
 
     @Override
