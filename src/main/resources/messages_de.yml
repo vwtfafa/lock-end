@@ -5,3 +5,15 @@ permission: "§cDu hast keine Berechtigung, das End zu sperren oder zu entsperre
 open: "§aoffen"
 closed: "§cgesperrt"
 
+# Broadcast messages
+broadcast-locked: "§6[§cEndLock§6] End wurde von §b%player% §cgesperrt"
+broadcast-unlocked: "§6[§cEndLock§6] End wurde von §b%player% §aentsperrt"
+actionbar-locked: "§c✗ End ist gesperrt"
+actionbar-unlocked: "§a✓ End ist frei"
+
+# Test command
+test-success: "§a[TEST] Portalblocker funktioniert korrekt!"
+test-info: "§6[TEST] Aktueller End-Status: %status%"
+
+# Logging
+log-player-name: "Konsole"

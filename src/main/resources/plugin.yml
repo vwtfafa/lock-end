@@ -17,3 +17,6 @@ permissions:
   endlock.toggle:
     description: Allows locking or unlocking the End
     default: op
+  endlock.admin:
+    description: Receive broadcast notifications and use test command
+    default: op

@@ -13,3 +13,19 @@ update-checker:
 # bStats helps developers understand plugin usage and compatibility
 metrics:
   enabled: true
+
+# Broadcast: Send alerts to all players when End is locked/unlocked
+broadcast:
+  enabled: true
+  use-actionbar: true  # Send as action bar instead of chat
+  notify-all: true     # Notify all players (if false, only Ops)
+
+# Logging: Track who locked/unlocked and when
+logging:
+  enabled: true
+  log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
+  log-attempts: true       # Log attempted access to locked End
+
+# Test Command: Allow /endlock test for Ops to verify blocking works
+test-command:
+  enabled: true

@@ -16,8 +16,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +32,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private String langCode = "de";
     private UpdateChecker updateChecker;
     private MetricsManager metricsManager;
+    private File logDir;
+    private File logFile;
 
     @Override
     public void onEnable() {
@@ -43,6 +49,15 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (getCommand("lock") != null) {
             getCommand("lock").setExecutor(this);
             getCommand("lock").setTabCompleter(this);
+        }
+
+        // Initialisiere Logging
+        if (getConfig().getBoolean("logging.enabled", true)) {
+            logDir = new File(getDataFolder(), "logs");
+            if (!logDir.exists()) {
+                logDir.mkdirs();
+            }
+            logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
         }
 
         // Initialisiere bStats Metriken
@@ -94,11 +109,64 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         return langConfig.getString(key, key);
     }
 
+    private void broadcastMessage(String key, String playerName) {
+        if (!getConfig().getBoolean("broadcast.enabled", true)) {
+            return;
+        }
+
+        boolean notifyAll = getConfig().getBoolean("broadcast.notify-all", true);
+        boolean useActionbar = getConfig().getBoolean("broadcast.use-actionbar", true);
+        String message = msg(key).replace("%player%", playerName);
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
+                if (useActionbar) {
+                    sendActionBar(player, locked ? msg("actionbar-locked") : msg("actionbar-unlocked"));
+                } else {
+                    player.sendMessage(message);
+                }
+            }
+        }
+    }
+
+    private void sendActionBar(Player player, String message) {
+        try {
+            player.sendActionBar(net.kyori.adventure.text.Component.text(message));
+        } catch (Exception e) {
+            player.sendMessage(message);
+        }
+    }
+
+    private void logAction(String player, String action) {
+        if (!getConfig().getBoolean("logging.enabled", true)) {
+            return;
+        }
+
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String timestamp = now.format(formatter);
+            String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
+                timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
+
+            if (logFile != null && !logFile.exists()) {
+                logFile.createNewFile();
+            }
+
+            try (FileWriter writer = new FileWriter(logFile, true)) {
+                writer.append(logMessage);
+                writer.flush();
+            }
+        } catch (IOException e) {
+            getLogger().warning("Fehler beim Schreiben in Log-Datei: " + e.getMessage());
+        }
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock");
+            List<String> options = List.of("status", "lock", "unlock", "test");
             StringUtil.copyPartialMatches(args[0], options, completions);
         }
         return completions;
@@ -119,8 +187,12 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         locked = true;
                         getConfig().set("locked", true);
                         saveConfig();
+                        sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
+                        broadcastMessage("broadcast-locked", sender.getName());
+                        logAction(sender.getName(), "LOCK");
+                    } else {
+                        sender.sendMessage("§cThe End is already locked!");
                     }
-                    sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
                     return true;
                 }
                 case "unlock" -> {
@@ -128,9 +200,25 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         locked = false;
                         getConfig().set("locked", false);
                         saveConfig();
+                        sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
+                        broadcastMessage("broadcast-unlocked", sender.getName());
+                        logAction(sender.getName(), "UNLOCK");
+                    } else {
+                        sender.sendMessage("§cThe End is already unlocked!");
                     }
-                    sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
                     return true;
+                }
+                case "test" -> {
+                    if (getConfig().getBoolean("test-command.enabled", true)) {
+                        String status = locked ? msg("closed") : msg("open");
+                        sender.sendMessage(msg("test-success"));
+                        sender.sendMessage(msg("test-info").replace("%status%", status));
+                        logAction(sender.getName(), "TEST");
+                        return true;
+                    } else {
+                        sender.sendMessage("§cTest command is disabled!");
+                        return false;
+                    }
                 }
             }
         }
@@ -141,6 +229,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             sender.sendMessage(msg("toggle").replace("%status%", status));
             getConfig().set("locked", locked);
             saveConfig();
+            broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", sender.getName());
+            logAction(sender.getName(), locked ? "LOCK" : "UNLOCK");
             return true;
         } else {
             sender.sendMessage(msg("permission"));
@@ -155,6 +245,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             event.setCancelled(true);
             if (event.getPlayer() != null) {
                 event.getPlayer().sendMessage(msg("locked"));
+                if (getConfig().getBoolean("logging.log-attempts", true)) {
+                    logAction(event.getPlayer().getName(), "BLOCKED_PORTAL");
+                }
             }
         }
     }
@@ -166,6 +259,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             event.setCancelled(true);
             if (event.getPlayer() != null) {
                 event.getPlayer().sendMessage(msg("locked"));
+                if (getConfig().getBoolean("logging.log-attempts", true)) {
+                    logAction(event.getPlayer().getName(), "BLOCKED_TELEPORT");
+                }
             }
         }
     }
