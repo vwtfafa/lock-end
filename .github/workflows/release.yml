@@ -72,6 +72,33 @@ jobs:
           git tag -fa "$TAG" -m "Release $TAG"
           git push origin "$TAG" --force
 
+      - name: Delete all beta tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Fetch all tags from remote
+          git fetch origin --tags --force
+          
+          # Find and delete all beta tags
+          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+')
+          
+          if [ -z "$BETA_TAGS" ]; then
+            echo "✓ No beta tags found to delete"
+            exit 0
+          fi
+          
+          echo "Found beta tags to delete:"
+          echo "$BETA_TAGS"
+          
+          # Delete locally and remotely
+          echo "$BETA_TAGS" | while read TAG; do
+            git tag -d "$TAG"
+            git push origin --delete "$TAG" || echo "Note: Tag $TAG may not exist on remote"
+          done
+          
+          echo "✓ All beta tags have been deleted"
+
       - name: Create or fully overwrite GitHub Release
         uses: ncipollo/release-action@v1
         with:
