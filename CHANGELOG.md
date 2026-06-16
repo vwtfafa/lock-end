@@ -49,11 +49,24 @@ test-command:
   enabled: true
 ```
 
+### CI/CD & Automation
+- **GitHub Actions Workflows** configured for automated releases:
+  - `release.yml`: Stable releases on push to `master`/`main`
+    - Automatically builds JAR with Gradle
+    - Creates GitHub Release with tag `v1.3`
+    - **Cleans up all beta tags** (`v1.3-beta.*`) when stable release is created
+    - Sets as "Latest Release" on GitHub
+  - `beta-release.yml`: Pre-releases on push to `beta` branch
+    - Creates pre-releases with tags `v1.3-beta.1`, `v1.3-beta.2`, etc.
+    - Useful for testing before stable release
+  - Both workflows automatically upload the plugin JAR
+
 ### Notes
 - Build the release JAR with `./gradlew shadowJar` and upload the resulting
   `build/libs/lock-end-1.3.jar` to GitHub Releases or Modrinth.
 - **Backward Compatibility**: Toggle command (no arguments) still works as before.
 - All new features are opt-in via `config.yml`
+- **Automated Releases**: Just push to `master` or `beta` branch – GitHub Actions handles the rest!
 
 ---
 
