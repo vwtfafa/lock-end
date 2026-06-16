@@ -5,3 +5,15 @@ permission: "§cYou do not have permission to lock or unlock the End."
 open: "§aopen"
 closed: "§clocked"
 
+# Broadcast messages
+broadcast-locked: "§6[§cEndLock§6] End has been §clocked§6 by §b%player%"
+broadcast-unlocked: "§6[§cEndLock§6] End has been §aunlocked§6 by §b%player%"
+actionbar-locked: "§c✗ End is locked"
+actionbar-unlocked: "§a✓ End is unlocked"
+
+# Test command
+test-success: "§a[TEST] Portal blocking is working correctly!"
+test-info: "§6[TEST] Current End status: %status%"
+
+# Logging
+log-player-name: "Console"

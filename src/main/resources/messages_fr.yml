@@ -5,3 +5,15 @@ permission: "§cVous n'avez pas la permission de verrouiller ou déverrouiller l
 open: "§aouvert"
 closed: "§cverrouillé"
 
+# Messages de diffusion
+broadcast-locked: "§6[§cEndLock§6] End a été §cverrouillé§6 par §b%player%"
+broadcast-unlocked: "§6[§cEndLock§6] End a été §adéverrouillé§6 par §b%player%"
+actionbar-locked: "§c✗ End est verrouillé"
+actionbar-unlocked: "§a✓ End est ouvert"
+
+# Commande de test
+test-success: "§a[TEST] Le blocage des portails fonctionne correctement !"
+test-info: "§6[TEST] État actuel de l'End : %status%"
+
+# Journalisation
+log-player-name: "Console"

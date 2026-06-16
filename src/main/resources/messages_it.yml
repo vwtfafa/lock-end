@@ -5,3 +5,15 @@ permission: "§cNon hai il permesso di bloccare o sbloccare la End."
 open: "§aaperta"
 closed: "§cbloccata"
 
+# Messaggi di trasmissione
+broadcast-locked: "§6[§cEndLock§6] La End è stata §cblocata§6 da §b%player%"
+broadcast-unlocked: "§6[§cEndLock§6] La End è stata §asbloccata§6 da §b%player%"
+actionbar-locked: "§c✗ La End è bloccata"
+actionbar-unlocked: "§a✓ La End è aperta"
+
+# Comando di test
+test-success: "§a[TEST] Il blocco dei portali funziona correttamente!"
+test-info: "§6[TEST] Stato attuale della End: %status%"
+
+# Registrazione
+log-player-name: "Console"

@@ -6,15 +6,15 @@
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.1.2** or newer |
-| Minecraft | **26.1.2** |
+| Server | [Paper](https://papermc.io/) **26.2** or newer |
+| Minecraft | **26.2** |
 | Java | **25** |
 
-> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.1`.
+> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.2`.
 
 ## Installation
 
-1. Download the latest `lock-end-1.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-1.3.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker, metrics).
@@ -22,10 +22,13 @@
 ## Commands
 
 | Command | Description | Permission |
-|---------|-------------|------------|
+|---------|-------------|----------|
 | `/endlock` | Toggle End access (locked ↔ open) | `endlock.toggle` |
-| `/lock` | Alias for `/endlock` | `endlock.toggle` |
+| `/endlock lock` | Explicitly lock the End | `endlock.toggle` |
+| `/endlock unlock` | Explicitly unlock the End | `endlock.toggle` |
 | `/endlock status` | Show whether the End is locked or open | *(none)* |
+| `/endlock test` | Test if portal blocking works | *(Ops only, configurable)* |
+| `/lock` | Alias for `/endlock` | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
@@ -34,16 +37,40 @@
 
 | Permission | Default | Description |
 |------------|---------|-------------|
-| `endlock.toggle` | `op` | Lock or unlock the End via command |
+| `endlock.toggle` | `op` | Lock or unlock the End via command || `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
 
+### LuckPerms Setup
+
+If you use **LuckPerms**, add permissions like this:
+
+```yaml
+# Give a group the toggle permission
+/luckperms group <groupname> permission set endlock.toggle true
+
+# Give a group admin notifications
+/luckperms group <groupname> permission set endlock.admin true
+```
+
+Or edit your `luckperms/groups/default.conf`:
+
+```yaml
+permissions:
+  endlock.toggle: true
+  endlock.admin: true
+```
 ## Features
 
 - Blocks player travel into the End (portals, `/tp`, `/execute`, and most plugin teleports)
 - Lock state persists in `config.yml` across restarts
 - Eight built-in languages (configurable)
+- **Tab Completion**: Full command completion support for all subcommands
+- **Explicit Subcommands**: `lock`, `unlock`, `status`, `test`
+- **Broadcast System**: Optional alerts when End is locked/unlocked (actionbar or chat)
+- **Logging & History**: Automatic log file tracking lock/unlock events and access attempts
+- **Test Command**: Verify portal blocking works correctly
 - **Update Checker**: Automatically notifies Ops when updates are available (optional)
 - **bStats Integration**: Anonymous usage statistics to help developers improve the plugin (optional)
-- No dependencies (bStats is shaded), small JAR (~50 KB)
+- No dependencies (bStats is shaded), small JAR (~40 KB)
 
 ## Configuration
 
@@ -54,15 +81,28 @@ locked: false      # true = End is locked on startup
 language: en       # en, de, fr, es, it, ru, zh, ja
 
 # Update Checker: Notifies Ops when updates are available
-# (Optional, set to false to disable)
 update-checker:
   enabled: true
   notify-ops: true
 
-# bStats Metriken: Anonymous usage statistics
-# Helps developers understand plugin usage and compatibility
-# (Optional, set to false to opt-out)
+# bStats: Anonymous usage statistics
 metrics:
+  enabled: true
+
+# Broadcast: Send alerts when End is locked/unlocked
+broadcast:
+  enabled: true
+  use-actionbar: true     # Send as action bar (or chat if false)
+  notify-all: true        # Notify all players (if false, only Ops)
+
+# Logging: Track lock/unlock events in a log file
+logging:
+  enabled: true
+  log-file: "EndLock.log"    # Created in plugins/EndLock/logs/
+  log-attempts: true          # Log blocked access attempts
+
+# Test Command: Allow /endlock test for Ops
+test-command:
   enabled: true
 ```
 
@@ -78,7 +118,7 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-1.2.jar`
+Output: `build/libs/lock-end-1.3.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -97,7 +137,7 @@ On every push to **`master`** or **`main`**, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads Paper 26.1.2):
+Run a local test server (downloads Paper 26.2):
 
 ```bash
 ./gradlew runServer
