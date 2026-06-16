@@ -5,3 +5,15 @@ permission: "§c你没有权限锁定或解锁末地。"
 open: "§a开放"
 closed: "§c已锁定"
 
+# 广播消息
+broadcast-locked: "§6[§c末地Lock§6] 末地已被 §b%player% §c锁定"
+broadcast-unlocked: "§6[§c末地Lock§6] 末地已被 §b%player% §a解锁"
+actionbar-locked: "§c✗ 末地已锁定"
+actionbar-unlocked: "§a✓ 末地已开放"
+
+# 测试命令
+test-success: "§a[测试] 传送门阻止正常工作！"
+test-info: "§6[测试] 末地当前状态: %status%"
+
+# 日志
+log-player-name: "控制台"

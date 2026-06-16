@@ -5,3 +5,15 @@ permission: "§cУ вас нет прав для блокировки или р�
 open: "§aоткрыт"
 closed: "§cзаблокирован"
 
+# Сообщения трансляции
+broadcast-locked: "§6[§cEndLock§6] Край был §cзаблокирован§6 игроком §b%player%"
+broadcast-unlocked: "§6[§cEndLock§6] Край был §aразблокирован§6 игроком §b%player%"
+actionbar-locked: "§c✗ Край заблокирован"
+actionbar-unlocked: "§a✓ Край открыт"
+
+# Команда тестирования
+test-success: "§a[ТЕСТ] Блокировка портала работает правильно!"
+test-info: "§6[ТЕСТ] Текущий статус Края: %status%"
+
+# Логирование
+log-player-name: "Консоль"
