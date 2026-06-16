@@ -6,15 +6,15 @@
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.1.2** or newer |
-| Minecraft | **26.1.2** |
+| Server | [Paper](https://papermc.io/) **26.2** or newer |
+| Minecraft | **26.2** |
 | Java | **25** |
 
-> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.1`.
+> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.2`.
 
 ## Installation
 
-1. Download the latest `lock-end-1.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-1.3.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker, metrics).
@@ -22,10 +22,12 @@
 ## Commands
 
 | Command | Description | Permission |
-|---------|-------------|------------|
+|---------|-------------|----------|
 | `/endlock` | Toggle End access (locked ↔ open) | `endlock.toggle` |
-| `/lock` | Alias for `/endlock` | `endlock.toggle` |
+| `/endlock lock` | Lock the End | `endlock.toggle` |
+| `/endlock unlock` | Unlock the End | `endlock.toggle` |
 | `/endlock status` | Show whether the End is locked or open | *(none)* |
+| `/lock` | Alias for `/endlock` | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.

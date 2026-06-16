@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
@@ -12,13 +13,16 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
-public final class LockEnd extends JavaPlugin implements Listener {
+public final class LockEnd extends JavaPlugin implements Listener, TabCompleter {
     private boolean locked = false;
     private FileConfiguration langConfig;
     private String langCode = "de";
@@ -32,8 +36,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
         langCode = getConfig().getString("language", "de").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
         Bukkit.getPluginManager().registerEvents(this, this);
-        if (getCommand("endlock") != null) getCommand("endlock").setExecutor(this);
-        if (getCommand("lock") != null) getCommand("lock").setExecutor(this);
+        if (getCommand("endlock") != null) {
+            getCommand("endlock").setExecutor(this);
+            getCommand("endlock").setTabCompleter(this);
+        }
+        if (getCommand("lock") != null) {
+            getCommand("lock").setExecutor(this);
+            getCommand("lock").setTabCompleter(this);
+        }
 
         // Initialisiere bStats Metriken
         if (getConfig().getBoolean("metrics.enabled", true)) {
@@ -85,12 +95,46 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 1 && args[0].equalsIgnoreCase("status")) {
-            String status = locked ? msg("closed") : msg("open");
-            sender.sendMessage(msg("status").replace("%status%", status));
-            return true;
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> options = List.of("status", "lock", "unlock");
+            StringUtil.copyPartialMatches(args[0], options, completions);
         }
+        return completions;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length == 1) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            switch (sub) {
+                case "status" -> {
+                    String status = locked ? msg("closed") : msg("open");
+                    sender.sendMessage(msg("status").replace("%status%", status));
+                    return true;
+                }
+                case "lock" -> {
+                    if (!locked) {
+                        locked = true;
+                        getConfig().set("locked", true);
+                        saveConfig();
+                    }
+                    sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
+                    return true;
+                }
+                case "unlock" -> {
+                    if (locked) {
+                        locked = false;
+                        getConfig().set("locked", false);
+                        saveConfig();
+                    }
+                    sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
+                    return true;
+                }
+            }
+        }
+
         if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {
             locked = !locked;
             String status = locked ? msg("closed") : msg("open");
