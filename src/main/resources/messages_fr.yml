@@ -1,19 +1,44 @@
-locked: "L'End est verrouillé !"
+locked: "<red>L'End est verrouillé !"
 toggle: "L'End est maintenant %status%."
 status: "L'End est actuellement %status%."
-permission: "§cVous n'avez pas la permission de verrouiller ou déverrouiller l'End."
-open: "§aouvert"
-closed: "§cverrouillé"
+status-scheduled: "<gray>Déverrouillage prévu dans <yellow>%remaining%</yellow>."
+permission: "<red>Vous n'avez pas la permission."
+open: "<green>ouvert"
+closed: "<red>verrouillé"
+already-locked: "<red>L'End est déjà verrouillé."
+already-unlocked: "<red>L'End est déjà ouvert."
 
-# Messages de diffusion
-broadcast-locked: "§6[§cEndLock§6] End a été §cverrouillé§6 par §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] End a été §adéverrouillé§6 par §b%player%"
-actionbar-locked: "§c✗ End est verrouillé"
-actionbar-unlocked: "§a✓ End est ouvert"
+broadcast-locked: "<gold>[<red>EndLock<gold>] End verrouillé par <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] End ouvert par <aqua>%player%"
+actionbar-locked: "<red>End verrouillé"
+actionbar-unlocked: "<green>End ouvert"
 
-# Commande de test
-test-success: "§a[TEST] Le blocage des portails fonctionne correctement !"
-test-info: "§6[TEST] État actuel de l'End : %status%"
+join-locked: "<gray>L'End est actuellement <red>verrouillé</red>."
+join-scheduled: "<gray>L'End est verrouillé. Déverrouillage dans <yellow>%remaining%</yellow>."
 
-# Journalisation
+unlockin-usage: "<gray>Usage: <white>/endlock unlockin <durée></white>"
+unlockin-success: "<green>End verrouillé — déverrouillage dans <yellow>%duration%</yellow>."
+unlockin-invalid: "<red>Durée invalide. Ex: 7d, 12h."
+unlockat-usage: "<gray>Usage: <white>/endlock unlockat AAAA-MM-JJ HH:mm</white>"
+unlockat-success: "<green>Déverrouillage le <yellow>%datetime%</yellow>."
+unlockat-invalid: "<red>Date invalide."
+
+stats: "<gold>Stats: verrouillages <white>%locks%</white> · bloqués <white>%blocked%</white> · déverrouillages <white>%unlocks%</white>"
+export-success: "<green>Export: <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>Aucun log JSON disponible."
+test-success: "<green>[TEST] Blocage du portail OK."
+test-info: "<gold>[TEST] Statut: %status%"
+test-disabled: "<red>Commande test désactivée."
+
+remaining-none: "—"
+remaining-days: "%days%j %hours%h"
+remaining-hours: "%hours%h %minutes%m"
+remaining-minutes: "%minutes%m"
+
+placeholder-locked: "Verrouillé"
+placeholder-unlocked: "Ouvert"
+
+discord-locked: "**End verrouillé** par `%player%`"
+discord-unlocked: "**End ouvert** par `%player%`"
+
 log-player-name: "Console"

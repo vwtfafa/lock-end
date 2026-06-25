@@ -1,19 +1,44 @@
-locked: "Das End ist gesperrt!"
+locked: "<red>Das End ist gesperrt!"
 toggle: "Das End ist jetzt %status%."
 status: "Das End ist aktuell %status%."
-permission: "§cDu hast keine Berechtigung, das End zu sperren oder zu entsperren."
-open: "§aoffen"
-closed: "§cgesperrt"
+status-scheduled: "<gray>Geplantes Freischalten in <yellow>%remaining%</yellow>."
+permission: "<red>Du hast keine Berechtigung dafür."
+open: "<green>offen"
+closed: "<red>gesperrt"
+already-locked: "<red>Das End ist bereits gesperrt."
+already-unlocked: "<red>Das End ist bereits frei."
 
-# Broadcast messages
-broadcast-locked: "§6[§cEndLock§6] End wurde von §b%player% §cgesperrt"
-broadcast-unlocked: "§6[§cEndLock§6] End wurde von §b%player% §aentsperrt"
-actionbar-locked: "§c✗ End ist gesperrt"
-actionbar-unlocked: "§a✓ End ist frei"
+broadcast-locked: "<gold>[<red>EndLock<gold>] End gesperrt von <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] End frei von <aqua>%player%"
+actionbar-locked: "<red>End ist gesperrt"
+actionbar-unlocked: "<green>End ist frei"
 
-# Test command
-test-success: "§a[TEST] Portalblocker funktioniert korrekt!"
-test-info: "§6[TEST] Aktueller End-Status: %status%"
+join-locked: "<gray>Das End ist aktuell <red>gesperrt</red>."
+join-scheduled: "<gray>Das End ist gesperrt. Freischaltung in <yellow>%remaining%</yellow>."
 
-# Logging
+unlockin-usage: "<gray>Usage: <white>/endlock unlockin <dauer></white> <dark_gray>(z.B. 7d, 3h)"
+unlockin-success: "<green>End gesperrt bis Freischaltung in <yellow>%duration%</yellow> (<white>%remaining%</white>)."
+unlockin-invalid: "<red>Ungültige Dauer. z.B. 7d, 12h, 30m."
+unlockat-usage: "<gray>Usage: <white>/endlock unlockat YYYY-MM-DD HH:mm</white>"
+unlockat-success: "<green>End wird frei am <yellow>%datetime%</yellow> (<white>%remaining%</white>)."
+unlockat-invalid: "<red>Ungültiges Datum. Format: 2026-07-01 18:00 (muss in der Zukunft liegen)."
+
+stats: "<gold>EndLock Statistik: <gray>Sperrungen <white>%locks%</white> · Blockiert <white>%blocked%</white> · Freischaltungen <white>%unlocks%</white>"
+export-success: "<green>Log exportiert nach <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>Kein JSON-Log zum Exportieren vorhanden."
+test-success: "<green>[TEST] Portalblocker funktioniert."
+test-info: "<gold>[TEST] Aktueller Status: %status%"
+test-disabled: "<red>Test-Befehl ist deaktiviert."
+
+remaining-none: "—"
+remaining-days: "%days%d %hours%h"
+remaining-hours: "%hours%h %minutes%m"
+remaining-minutes: "%minutes%m"
+
+placeholder-locked: "Gesperrt"
+placeholder-unlocked: "Frei"
+
+discord-locked: "**End gesperrt** von `%player%`"
+discord-unlocked: "**End frei** von `%player%`"
+
 log-player-name: "Konsole"

@@ -1,19 +1,44 @@
-locked: "La End è bloccata!"
-toggle: "La End è ora %status%."
-status: "La End è attualmente %status%."
-permission: "§cNon hai il permesso di bloccare o sbloccare la End."
-open: "§aaperta"
-closed: "§cbloccata"
+locked: "<red>L'End è bloccato!"
+toggle: "L'End è ora %status%."
+status: "L'End è attualmente %status%."
+status-scheduled: "<gray>Sblocco programmato tra <yellow>%remaining%</yellow>."
+permission: "<red>Non hai il permesso."
+open: "<green>aperto"
+closed: "<red>bloccato"
+already-locked: "<red>L'End è già bloccato."
+already-unlocked: "<red>L'End è già aperto."
 
-# Messaggi di trasmissione
-broadcast-locked: "§6[§cEndLock§6] La End è stata §cblocata§6 da §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] La End è stata §asbloccata§6 da §b%player%"
-actionbar-locked: "§c✗ La End è bloccata"
-actionbar-unlocked: "§a✓ La End è aperta"
+broadcast-locked: "<gold>[<red>EndLock<gold>] End bloccato da <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] End aperto da <aqua>%player%"
+actionbar-locked: "<red>End bloccato"
+actionbar-unlocked: "<green>End aperto"
 
-# Comando di test
-test-success: "§a[TEST] Il blocco dei portali funziona correttamente!"
-test-info: "§6[TEST] Stato attuale della End: %status%"
+join-locked: "<gray>L'End è attualmente <red>bloccato</red>."
+join-scheduled: "<gray>L'End è bloccato. Si apre tra <yellow>%remaining%</yellow>."
 
-# Registrazione
+unlockin-usage: "<gray>Usage: <white>/endlock unlockin <durata></white>"
+unlockin-success: "<green>End bloccato — sblocco tra <yellow>%duration%</yellow>."
+unlockin-invalid: "<red>Durata non valida."
+unlockat-usage: "<gray>Usage: <white>/endlock unlockat AAAA-MM-GG HH:mm</white>"
+unlockat-success: "<green>Sblocco il <yellow>%datetime%</yellow>."
+unlockat-invalid: "<red>Data non valida."
+
+stats: "<gold>Stats: blocchi <white>%locks%</white> · bloccati <white>%blocked%</white> · sblocchi <white>%unlocks%</white>"
+export-success: "<green>Export in <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>Nessun log JSON."
+test-success: "<green>[TEST] Blocco portale OK."
+test-info: "<gold>[TEST] Stato: %status%"
+test-disabled: "<red>Comando test disabilitato."
+
+remaining-none: "—"
+remaining-days: "%days%g %hours%h"
+remaining-hours: "%hours%h %minutes%m"
+remaining-minutes: "%minutes%m"
+
+placeholder-locked: "Bloccato"
+placeholder-unlocked: "Aperto"
+
+discord-locked: "**End bloccato** da `%player%`"
+discord-unlocked: "**End aperto** da `%player%`"
+
 log-player-name: "Console"

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EndLock — Paper plugin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>EndLock</h1>
+      <p class="tagline">Lock the End dimension on your Paper server.</p>
+      <nav>
+        <a href="https://github.com/vwtfafa/lock-end/releases">Download</a>
+        <a href="https://github.com/vwtfafa/lock-end/blob/master/README.md">Docs</a>
+        <a href="https://github.com/vwtfafa/lock-end/blob/master/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/vwtfafa/lock-end/issues">Issues</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h2>What it does</h2>
+      <p>One command locks or unlocks travel into the End — portals, teleports, and most plugin-driven travel included. Useful for progression servers, events, or seasons where the End should stay closed until you say otherwise.</p>
+    </section>
+
+    <section class="grid">
+      <article>
+        <h3>Requirements</h3>
+        <ul>
+          <li>Paper 26.2+</li>
+          <li>Java 25</li>
+          <li>No required dependencies</li>
+        </ul>
+      </article>
+      <article>
+        <h3>Quick start</h3>
+        <ol>
+          <li>Download the JAR from Releases</li>
+          <li>Drop it into <code>plugins/</code></li>
+          <li>Restart the server</li>
+          <li>Run <code>/endlock lock</code></li>
+        </ol>
+      </article>
+    </section>
+
+    <section>
+      <h2>Commands</h2>
+      <table>
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/endlock lock</code></td><td>Lock the End</td></tr>
+          <tr><td><code>/endlock unlock</code></td><td>Unlock the End</td></tr>
+          <tr><td><code>/endlock status</code></td><td>Show current state</td></tr>
+          <tr><td><code>/endlock unlockin 7d</code></td><td>Lock and auto-unlock after duration</td></tr>
+          <tr><td><code>/endlock unlockat 2026-07-01 18:00</code></td><td>Lock until a date/time</td></tr>
+          <tr><td><code>/endlock stats</code></td><td>Lock / block counters</td></tr>
+          <tr><td><code>/endlock export</code></td><td>Export JSON logs</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Integrations</h2>
+      <ul>
+        <li><strong>PlaceholderAPI</strong> — <code>%lockend_status%</code>, <code>%lockend_remaining%</code>, <code>%lockend_blocked_count%</code></li>
+        <li><strong>LuckPerms</strong> — context <code>lockend_locked=true/false</code></li>
+        <li><strong>DiscordSRV</strong> — optional channel notifications (set channel ID in config)</li>
+        <li><strong>MiniMessage</strong> — colored messages in language files</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Releases</h2>
+      <p>Stable builds come from <code>master</code>. One experimental beta build is published from the <code>beta</code> branch and replaced on each push.</p>
+      <p><a class="btn" href="https://github.com/vwtfafa/lock-end/releases/latest">Latest release</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Made by <a href="https://github.com/vwtfafa">vwtfafa</a> · <a href="https://github.com/vwtfafa/lock-end">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>

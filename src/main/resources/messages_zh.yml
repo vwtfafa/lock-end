@@ -1,19 +1,44 @@
-locked: "末地已被锁定！"
-toggle: "末地现在是%status%。"
-status: "末地当前是%status%。"
-permission: "§c你没有权限锁定或解锁末地。"
-open: "§a开放"
-closed: "§c已锁定"
+locked: "<red>末地已锁定！"
+toggle: "末地现在是 %status%。"
+status: "末地当前 %status%。"
+status-scheduled: "<gray>计划解锁时间：<yellow>%remaining%</yellow>"
+permission: "<red>你没有权限。"
+open: "<green>开放"
+closed: "<red>锁定"
+already-locked: "<red>末地已经锁定。"
+already-unlocked: "<red>末地已经开放。"
 
-# 广播消息
-broadcast-locked: "§6[§c末地Lock§6] 末地已被 §b%player% §c锁定"
-broadcast-unlocked: "§6[§c末地Lock§6] 末地已被 §b%player% §a解锁"
-actionbar-locked: "§c✗ 末地已锁定"
-actionbar-unlocked: "§a✓ 末地已开放"
+broadcast-locked: "<gold>[<red>EndLock<gold>] <aqua>%player% <gold>锁定了末地"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] <aqua>%player% <gold>解锁了末地"
+actionbar-locked: "<red>末地已锁定"
+actionbar-unlocked: "<green>末地已开放"
 
-# 测试命令
-test-success: "§a[测试] 传送门阻止正常工作！"
-test-info: "§6[测试] 末地当前状态: %status%"
+join-locked: "<gray>末地当前<red>已锁定</red>。"
+join-scheduled: "<gray>末地已锁定，<yellow>%remaining%</yellow> 后解锁。"
 
-# 日志
+unlockin-usage: "<gray>用法：<white>/endlock unlockin <时长></white>"
+unlockin-success: "<green>末地已锁定，<yellow>%duration%</yellow> 后解锁。"
+unlockin-invalid: "<red>无效的时长。"
+unlockat-usage: "<gray>用法：<white>/endlock unlockat YYYY-MM-DD HH:mm</white>"
+unlockat-success: "<green>将在 <yellow>%datetime%</yellow> 解锁。"
+unlockat-invalid: "<red>无效的日期。"
+
+stats: "<gold>统计：锁定 <white>%locks%</white> · 拦截 <white>%blocked%</white> · 解锁 <white>%unlocks%</white>"
+export-success: "<green>已导出到 <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>没有可导出的 JSON 日志。"
+test-success: "<green>[测试] 传送门拦截正常。"
+test-info: "<gold>[测试] 当前状态：%status%"
+test-disabled: "<red>测试命令已禁用。"
+
+remaining-none: "—"
+remaining-days: "%days%天 %hours%小时"
+remaining-hours: "%hours%小时 %minutes%分钟"
+remaining-minutes: "%minutes%分钟"
+
+placeholder-locked: "锁定"
+placeholder-unlocked: "开放"
+
+discord-locked: "**末地已锁定** — `%player%`"
+discord-unlocked: "**末地已解锁** — `%player%`"
+
 log-player-name: "控制台"

@@ -24,23 +24,29 @@ jobs:
           distribution: "temurin"
           cache: gradle
 
-      - name: Extract version and create beta tag
+      - name: Extract version
         id: version
         run: |
           VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
+          BETA_TAG="v${VERSION}-beta"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          
-          # Erstelle Beta-Tag mit Datum/Commit-Count
-          COMMIT_COUNT=$(git rev-list --count HEAD)
-          BETA_TAG="v${VERSION}-beta.${COMMIT_COUNT}"
           echo "beta_tag=$BETA_TAG" >> "$GITHUB_OUTPUT"
-          echo "Building beta version $BETA_TAG"
 
       - name: Build with Gradle
         run: chmod +x gradlew && ./gradlew build --no-daemon
 
       - name: Verify JAR exists
         run: test -f "build/libs/lock-end-${{ steps.version.outputs.version }}.jar"
+
+      - name: Generate changelog since last stable release
+        run: |
+          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v beta | head -n 1)
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "## Changes since ${PREV_TAG}" > changelog-section.md
+          echo "" >> changelog-section.md
+          git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges >> changelog-section.md
 
       - name: Prepare beta release body
         env:
@@ -49,29 +55,36 @@ jobs:
         run: |
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
           cat > release-body.md <<EOF
-          ## 🔒 Lock-End ${BETA_TAG} (Beta)
+          ## Lock-End ${BETA_TAG}
 
-          ⚠️ **This is a BETA / DEVELOPMENT release** — Use at your own risk!
+          **Experimental build** — not recommended for production.
 
           **Requirements:** Paper 26.2+, Java 25
 
-          ### Download
+          Download \`lock-end-${VERSION}.jar\` below.
 
-          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
-
-          ### Changes
-
-          See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/beta/CHANGELOG.md) for new features and fixes in this beta.
-
-          ### Testing & Feedback
-
-          Found a bug? Please [open an issue](https://github.com/${{ github.repository }}/issues/new).
+          EOF
+          cat changelog-section.md >> release-body.md
+          cat >> release-body.md <<EOF
 
           ---
-          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
+
+          [Full changelog](https://github.com/${{ github.repository }}/blob/beta/CHANGELOG.md) · [Report issues](https://github.com/${{ github.repository }}/issues/new/choose)
+
+          *Built from \`${{ github.sha }}\` on ${BUILD_DATE}.*
           EOF
 
-      - name: Create or update GitHub Pre-Release
+      - name: Delete old numbered beta tags
+        run: |
+          git fetch origin --tags --force
+          OLD_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+$' || true)
+          if [ -n "$OLD_TAGS" ]; then
+            echo "$OLD_TAGS" | while read TAG; do
+              git push origin --delete "$TAG" 2>/dev/null || true
+            done
+          fi
+
+      - name: Create or replace single beta pre-release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.version.outputs.beta_tag }}

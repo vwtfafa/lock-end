@@ -38,6 +38,18 @@ jobs:
       - name: Verify JAR exists
         run: test -f "build/libs/lock-end-${{ steps.version.outputs.version }}.jar"
 
+      - name: Generate changelog since last release
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -v beta | sed -n '2p')
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "## Changes since ${PREV_TAG}" > changelog-section.md
+          echo "" >> changelog-section.md
+          git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges >> changelog-section.md || echo "- Initial release" >> changelog-section.md
+          echo "" >> changelog-section.md
+
       - name: Prepare release body
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -50,19 +62,10 @@ jobs:
               -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
               .github/RELEASE_TEMPLATE.md > release-body.md
           else
-            cat > release-body.md <<EOF
-          ## 🔒 Lock-End ${VERSION}
-
-          **Requirements:** Paper 26.1.2+, Java 25
-
-          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
-
-          See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
-
-          ---
-          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
-          EOF
+            echo "## Lock-End ${VERSION}" > release-body.md
           fi
+          echo "" >> release-body.md
+          cat changelog-section.md >> release-body.md
 
       - name: Point release tag at this commit
         run: |
@@ -74,30 +77,14 @@ jobs:
 
       - name: Delete all beta tags
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Fetch all tags from remote
           git fetch origin --tags --force
-          
-          # Find and delete all beta tags
-          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+')
-          
-          if [ -z "$BETA_TAGS" ]; then
-            echo "✓ No beta tags found to delete"
-            exit 0
+          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta(\.[0-9]+)?$' || true)
+          if [ -n "$BETA_TAGS" ]; then
+            echo "$BETA_TAGS" | while read TAG; do
+              git tag -d "$TAG" 2>/dev/null || true
+              git push origin --delete "$TAG" 2>/dev/null || true
+            done
           fi
-          
-          echo "Found beta tags to delete:"
-          echo "$BETA_TAGS"
-          
-          # Delete locally and remotely
-          echo "$BETA_TAGS" | while read TAG; do
-            git tag -d "$TAG"
-            git push origin --delete "$TAG" || echo "Note: Tag $TAG may not exist on remote"
-          done
-          
-          echo "✓ All beta tags have been deleted"
 
       - name: Create or fully overwrite GitHub Release
         uses: ncipollo/release-action@v1

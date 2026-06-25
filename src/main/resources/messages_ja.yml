@@ -1,19 +1,44 @@
-locked: "ジ・エンドはロックされています！"
-toggle: "ジ・エンドは現在%status%です。"
-status: "ジ・エンドは現在%status%です。"
-permission: "§cジ・エンドのロック/解除の権限がありません。"
-open: "§a開放"
-closed: "§cロック中"
+locked: "<red>エンドはロックされています！"
+toggle: "エンドは現在 %status% です。"
+status: "エンドは現在 %status% です。"
+status-scheduled: "<gray>解除予定：<yellow>%remaining%</yellow>"
+permission: "<red>権限がありません。"
+open: "<green>開放"
+closed: "<red>ロック"
+already-locked: "<red>エンドは既にロックされています。"
+already-unlocked: "<red>エンドは既に開放されています。"
 
-# ブロードキャストメッセージ
-broadcast-locked: "§6[§cEndLock§6] ジ・エンドが §b%player% §cによってロックされました"
-broadcast-unlocked: "§6[§cEndLock§6] ジ・エンドが §b%player% §aによってロック解除されました"
-actionbar-locked: "§c✗ ジ・エンドはロックされています"
-actionbar-unlocked: "§a✓ ジ・エンドは開放されています"
+broadcast-locked: "<gold>[<red>EndLock<gold>] <aqua>%player%<gold> がエンドをロック"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] <aqua>%player%<gold> がエンドを解除"
+actionbar-locked: "<red>エンドはロック中"
+actionbar-unlocked: "<green>エンドは開放中"
 
-# テストコマンド
-test-success: "§a[テスト] ポータルブロッキングが正常に機能しています！"
-test-info: "§6[テスト] ジ・エンドの現在の状態: %status%"
+join-locked: "<gray>エンドは現在<red>ロック</red>されています。"
+join-scheduled: "<gray>エンドはロック中。<yellow>%remaining%</yellow> 後に解除。"
 
-# ロギング
+unlockin-usage: "<gray>使い方：<white>/endlock unlockin <時間></white>"
+unlockin-success: "<green>エンドをロック — <yellow>%duration%</yellow> 後に解除。"
+unlockin-invalid: "<red>無効な時間です。"
+unlockat-usage: "<gray>使い方：<white>/endlock unlockat YYYY-MM-DD HH:mm</white>"
+unlockat-success: "<green><yellow>%datetime%</yellow> に解除されます。"
+unlockat-invalid: "<red>無効な日時です。"
+
+stats: "<gold>統計：ロック <white>%locks%</white> · ブロック <white>%blocked%</white> · 解除 <white>%unlocks%</white>"
+export-success: "<green>エクスポート：<white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>JSONログがありません。"
+test-success: "<green>[TEST] ポータルブロック正常。"
+test-info: "<gold>[TEST] 状態：%status%"
+test-disabled: "<red>テストコマンド無効。"
+
+remaining-none: "—"
+remaining-days: "%days%日 %hours%時間"
+remaining-hours: "%hours%時間 %minutes%分"
+remaining-minutes: "%minutes%分"
+
+placeholder-locked: "ロック"
+placeholder-unlocked: "開放"
+
+discord-locked: "**エンドロック** — `%player%`"
+discord-unlocked: "**エンド解除** — `%player%`"
+
 log-player-name: "コンソール"

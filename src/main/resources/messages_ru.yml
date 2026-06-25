@@ -1,19 +1,44 @@
-locked: "Край заблокирован!"
-toggle: "Край теперь %status%."
-status: "Край сейчас %status%."
-permission: "§cУ вас нет прав для блокировки или разблокировки Края."
-open: "§aоткрыт"
-closed: "§cзаблокирован"
+locked: "<red>Энд заблокирован!"
+toggle: "Энд теперь %status%."
+status: "Энд сейчас %status%."
+status-scheduled: "<gray>Разблокировка через <yellow>%remaining%</yellow>."
+permission: "<red>Нет прав."
+open: "<green>открыт"
+closed: "<red>заблокирован"
+already-locked: "<red>Энд уже заблокирован."
+already-unlocked: "<red>Энд уже открыт."
 
-# Сообщения трансляции
-broadcast-locked: "§6[§cEndLock§6] Край был §cзаблокирован§6 игроком §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] Край был §aразблокирован§6 игроком §b%player%"
-actionbar-locked: "§c✗ Край заблокирован"
-actionbar-unlocked: "§a✓ Край открыт"
+broadcast-locked: "<gold>[<red>EndLock<gold>] Энд заблокирован: <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] Энд открыт: <aqua>%player%"
+actionbar-locked: "<red>Энд заблокирован"
+actionbar-unlocked: "<green>Энд открыт"
 
-# Команда тестирования
-test-success: "§a[ТЕСТ] Блокировка портала работает правильно!"
-test-info: "§6[ТЕСТ] Текущий статус Края: %status%"
+join-locked: "<gray>Энд сейчас <red>заблокирован</red>."
+join-scheduled: "<gray>Энд заблокирован. Откроется через <yellow>%remaining%</yellow>."
 
-# Логирование
+unlockin-usage: "<gray>Использование: <white>/endlock unlockin <время></white>"
+unlockin-success: "<green>Энд заблокирован — откроется через <yellow>%duration%</yellow>."
+unlockin-invalid: "<red>Неверная длительность."
+unlockat-usage: "<gray>Использование: <white>/endlock unlockat ГГГГ-ММ-ДД ЧЧ:мм</white>"
+unlockat-success: "<green>Откроется <yellow>%datetime%</yellow>."
+unlockat-invalid: "<red>Неверная дата."
+
+stats: "<gold>Статистика: блокировок <white>%locks%</white> · заблокировано <white>%blocked%</white> · разблокировок <white>%unlocks%</white>"
+export-success: "<green>Экспорт: <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>JSON-лог недоступен."
+test-success: "<green>[TEST] Блокировка портала работает."
+test-info: "<gold>[TEST] Статус: %status%"
+test-disabled: "<red>Тест отключён."
+
+remaining-none: "—"
+remaining-days: "%days%д %hours%ч"
+remaining-hours: "%hours%ч %minutes%м"
+remaining-minutes: "%minutes%м"
+
+placeholder-locked: "Заблокирован"
+placeholder-unlocked: "Открыт"
+
+discord-locked: "**Энд заблокирован** — `%player%`"
+discord-unlocked: "**Энд открыт** — `%player%`"
+
 log-player-name: "Консоль"

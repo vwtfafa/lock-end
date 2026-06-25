@@ -1,19 +1,44 @@
-locked: "The End is locked!"
+locked: "<red>The End is locked!"
 toggle: "The End is now %status%."
 status: "The End is currently %status%."
-permission: "§cYou do not have permission to lock or unlock the End."
-open: "§aopen"
-closed: "§clocked"
+status-scheduled: "<gray>Scheduled unlock in <yellow>%remaining%</yellow>."
+permission: "<red>You do not have permission to do that."
+open: "<green>open"
+closed: "<red>locked"
+already-locked: "<red>The End is already locked."
+already-unlocked: "<red>The End is already unlocked."
 
-# Broadcast messages
-broadcast-locked: "§6[§cEndLock§6] End has been §clocked§6 by §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] End has been §aunlocked§6 by §b%player%"
-actionbar-locked: "§c✗ End is locked"
-actionbar-unlocked: "§a✓ End is unlocked"
+broadcast-locked: "<gold>[<red>EndLock<gold>] End locked by <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] End unlocked by <aqua>%player%"
+actionbar-locked: "<red>End is locked"
+actionbar-unlocked: "<green>End is unlocked"
 
-# Test command
-test-success: "§a[TEST] Portal blocking is working correctly!"
-test-info: "§6[TEST] Current End status: %status%"
+join-locked: "<gray>The End is currently <red>locked</red>."
+join-scheduled: "<gray>The End is locked. Unlocks in <yellow>%remaining%</yellow>."
 
-# Logging
+unlockin-usage: "<gray>Usage: <white>/endlock unlockin <duration></white> <dark_gray>(e.g. 7d, 3h, 2d12h)"
+unlockin-success: "<green>End locked until unlock in <yellow>%duration%</yellow> (<white>%remaining%</white>)."
+unlockin-invalid: "<red>Invalid duration. Use e.g. 7d, 12h, 30m."
+unlockat-usage: "<gray>Usage: <white>/endlock unlockat YYYY-MM-DD HH:mm</white>"
+unlockat-success: "<green>End will unlock at <yellow>%datetime%</yellow> (<white>%remaining%</white>)."
+unlockat-invalid: "<red>Invalid date. Use format: 2026-07-01 18:00 (must be in the future)."
+
+stats: "<gold>EndLock stats: <gray>Locks <white>%locks%</white> · Blocked <white>%blocked%</white> · Unlocks <white>%unlocks%</white>"
+export-success: "<green>Log exported to <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>No JSON log available to export."
+test-success: "<green>[TEST] Portal blocking works."
+test-info: "<gold>[TEST] Current status: %status%"
+test-disabled: "<red>Test command is disabled."
+
+remaining-none: "—"
+remaining-days: "%days%d %hours%h"
+remaining-hours: "%hours%h %minutes%m"
+remaining-minutes: "%minutes%m"
+
+placeholder-locked: "Locked"
+placeholder-unlocked: "Unlocked"
+
+discord-locked: "**End locked** by `%player%`"
+discord-unlocked: "**End unlocked** by `%player%`"
+
 log-player-name: "Console"
