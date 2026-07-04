@@ -54,13 +54,13 @@ public class UpdateChecker {
 
                     if (updateAvailable) {
                         plugin.getLogger().info("========================================");
-                        plugin.getLogger().info("EndLock Update verfügbar!");
-                        plugin.getLogger().info("Aktuelle Version: " + currentVersion);
-                        plugin.getLogger().info("Neue Version: " + latestVersion);
-                        plugin.getLogger().info("Download: https://github.com/vwtfafa/lock-end/releases");
+                        plugin.getLogger().info("EndLock update available!");
+                        plugin.getLogger().info("Current version: " + currentVersion);
+                        plugin.getLogger().info("New version: " + latestVersion);
+                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
                         plugin.getLogger().info("========================================");
 
-                        // Benachrichtige online Ops
+                        // Notify online operators
                         notifyOps();
                     }
                 }
@@ -71,14 +71,22 @@ public class UpdateChecker {
     }
 
     /**
-     * Sendet eine Nachricht an alle online Ops über verfügbare Updates
+     * Sends a chat notification to online operators about available updates
      */
     private void notifyOps() {
+        boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
+        boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
+
+        if (!notifyOps || !notifyChat) {
+            return;
+        }
+
         Bukkit.getScheduler().runTask(plugin, () -> {
-            Component message = Component.text("[EndLock] Update available: " + latestVersion)
+            String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
+            Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
                 .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
-                .clickEvent(ClickEvent.openUrl("https://github.com/vwtfafa/lock-end/releases"))
-                .hoverEvent(HoverEvent.showText(Component.text("Open the latest release")));
+                .clickEvent(ClickEvent.openUrl(releaseUrl))
+                .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
                     player.sendMessage(message);
