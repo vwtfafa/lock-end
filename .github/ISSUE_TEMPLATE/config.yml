@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/vwtfafa/lock-end/blob/master/README.md
+    about: Commands, config, and setup
+  - name: Changelog
+    url: https://github.com/vwtfafa/lock-end/blob/master/CHANGELOG.md
+    about: Version history

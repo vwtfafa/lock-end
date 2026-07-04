@@ -6,63 +6,32 @@ import org.bstats.charts.SingleLineChart;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class MetricsManager {
-    private final JavaPlugin plugin;
-    private final Metrics metrics;
-
-    // bStats Plugin ID for EndLock - https://bstats.org/what-is-my-plugin-id
     private static final int PLUGIN_ID = 32010;
 
-    public MetricsManager(JavaPlugin plugin) {
+    private final JavaPlugin plugin;
+    private final StatsService stats;
+
+    public MetricsManager(JavaPlugin plugin, StatsService stats) {
         this.plugin = plugin;
-        this.metrics = new Metrics(plugin, PLUGIN_ID);
-        initializeCharts();
+        this.stats = stats;
+        Metrics metrics = new Metrics(plugin, PLUGIN_ID);
+        initializeCharts(metrics);
+        plugin.getLogger().info("bStats metrics enabled (ID: " + PLUGIN_ID + ")");
     }
 
-    /**
-     * Initialisiert benutzerdefinierte Charts für Metriken
-     */
-    private void initializeCharts() {
-        metrics.addCustomChart(new SimplePie("lock_state", () -> {
-            boolean locked = plugin.getConfig().getBoolean("locked", false);
-            return locked ? "Locked" : "Unlocked";
-        }));
+    private void initializeCharts(Metrics metrics) {
+        metrics.addCustomChart(new SimplePie("lock_state", () ->
+                plugin.getConfig().getBoolean("locked", false) ? "Locked" : "Unlocked"));
 
         metrics.addCustomChart(new SimplePie("language", () -> {
             String lang = plugin.getConfig().getString("language", "en");
             return lang != null ? lang.toUpperCase() : "Unknown";
         }));
 
-        metrics.addCustomChart(new SimplePie("update_checker_enabled", () -> {
-            boolean enabled = plugin.getConfig().getBoolean("update-checker.enabled", true);
-            return enabled ? "Enabled" : "Disabled";
-        }));
+        metrics.addCustomChart(new SimplePie("update_checker_enabled", () ->
+                plugin.getConfig().getBoolean("update-checker.enabled", true) ? "Enabled" : "Disabled"));
 
-        metrics.addCustomChart(new SimplePie("join_notifications_enabled", () -> {
-            boolean enabled = plugin.getConfig().getBoolean("join-notifications.enabled", false);
-            return enabled ? "Enabled" : "Disabled";
-        }));
-
-        metrics.addCustomChart(new SimplePie("scheduled_unlock_enabled", () -> {
-            boolean enabled = plugin.getConfig().getBoolean("scheduled-unlock.enabled", false);
-            return enabled ? "Enabled" : "Disabled";
-        }));
-
-        metrics.addCustomChart(new SimplePie("stats_enabled", () -> {
-            boolean enabled = plugin.getConfig().getBoolean("stats.enabled", true);
-            return enabled ? "Enabled" : "Disabled";
-        }));
-
-        metrics.addCustomChart(new SingleLineChart("lock_count", () -> plugin.getConfig().getInt("stats.lock-count", 0)));
-        metrics.addCustomChart(new SingleLineChart("blocked_count", () -> plugin.getConfig().getInt("stats.blocked-count", 0)));
-        metrics.addCustomChart(new SimplePie("metrics_enabled", () -> "Enabled"));
-
-        plugin.getLogger().info("bStats Metriken aktiviert (ID: " + PLUGIN_ID + ")");
-    }
-
-    /**
-     * Gibt die Metrics-Instanz zurück (für erweiterte Nutzung)
-     */
-    public Metrics getMetrics() {
-        return metrics;
+        metrics.addCustomChart(new SingleLineChart("total_locks", stats::getLockCount));
+        metrics.addCustomChart(new SingleLineChart("total_blocked", stats::getBlockedCount));
     }
 }

@@ -1,19 +1,44 @@
-locked: "¡El End está bloqueado!"
-toggle: "El End está ahora %status%."
+locked: "<red>¡El End está bloqueado!"
+toggle: "El End ahora está %status%."
 status: "El End está actualmente %status%."
-permission: "§cNo tienes permiso para bloquear o desbloquear el End."
-open: "§aabierto"
-closed: "§cbloqueado"
+status-scheduled: "<gray>Desbloqueo programado en <yellow>%remaining%</yellow>."
+permission: "<red>No tienes permiso."
+open: "<green>abierto"
+closed: "<red>bloqueado"
+already-locked: "<red>El End ya está bloqueado."
+already-unlocked: "<red>El End ya está abierto."
 
-# Mensajes de transmisión
-broadcast-locked: "§6[§cEndLock§6] El End ha sido §cbloqueado§6 por §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] El End ha sido §adesbloqueado§6 por §b%player%"
-actionbar-locked: "§c✗ El End está bloqueado"
-actionbar-unlocked: "§a✓ El End está abierto"
+broadcast-locked: "<gold>[<red>EndLock<gold>] End bloqueado por <aqua>%player%"
+broadcast-unlocked: "<gold>[<red>EndLock<gold>] End abierto por <aqua>%player%"
+actionbar-locked: "<red>End bloqueado"
+actionbar-unlocked: "<green>End abierto"
 
-# Comando de prueba
-test-success: "§a[PRUEBA] ¡El bloqueo de portales funciona correctamente!"
-test-info: "§6[PRUEBA] Estado actual del End: %status%"
+join-locked: "<gray>El End está <red>bloqueado</red>."
+join-scheduled: "<gray>El End está bloqueado. Se abre en <yellow>%remaining%</yellow>."
 
-# Registro
+unlockin-usage: "<gray>Uso: <white>/endlock unlockin <duración></white>"
+unlockin-success: "<green>End bloqueado — se abre en <yellow>%duration%</yellow>."
+unlockin-invalid: "<red>Duración inválida. Ej: 7d, 12h."
+unlockat-usage: "<gray>Uso: <white>/endlock unlockat AAAA-MM-DD HH:mm</white>"
+unlockat-success: "<green>Se abrirá el <yellow>%datetime%</yellow>."
+unlockat-invalid: "<red>Fecha inválida."
+
+stats: "<gold>Stats: bloqueos <white>%locks%</white> · bloqueados <white>%blocked%</white> · desbloqueos <white>%unlocks%</white>"
+export-success: "<green>Exportado a <white>plugins/EndLock/logs/%file%</white>"
+export-failed: "<red>No hay log JSON."
+test-success: "<green>[TEST] Bloqueo de portal OK."
+test-info: "<gold>[TEST] Estado: %status%"
+test-disabled: "<red>Comando test desactivado."
+
+remaining-none: "—"
+remaining-days: "%days%d %hours%h"
+remaining-hours: "%hours%h %minutes%m"
+remaining-minutes: "%minutes%m"
+
+placeholder-locked: "Bloqueado"
+placeholder-unlocked: "Abierto"
+
+discord-locked: "**End bloqueado** por `%player%`"
+discord-unlocked: "**End abierto** por `%player%`"
+
 log-player-name: "Consola"

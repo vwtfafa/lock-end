@@ -3,6 +3,8 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,80 +15,69 @@ import java.net.URL;
 import java.net.URLConnection;
 
 public class UpdateChecker {
+    private static final String RELEASES_URL = "https://github.com/vwtfafa/lock-end/releases";
+    private static final String API_URL = "https://api.github.com/repos/vwtfafa/lock-end/releases/latest";
+
     private final JavaPlugin plugin;
     private final String currentVersion;
-    private String latestVersion = null;
-    private boolean updateAvailable = false;
+    private String latestVersion;
+    private String downloadUrl = RELEASES_URL;
+    private boolean updateAvailable;
 
     public UpdateChecker(JavaPlugin plugin) {
         this.plugin = plugin;
         this.currentVersion = plugin.getDescription().getVersion();
     }
 
-    /**
-     * Lädt die neueste Version von GitHub asynchron und benachrichtigt Ops
-     */
     public void checkForUpdates() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                // Abrufen der neuesten Version von GitHub API
-                URL url = new URL("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
-                URLConnection connection = url.openConnection();
+                URLConnection connection = new URL(API_URL).openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
+                connection.setRequestProperty("Accept", "application/vnd.github+json");
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String line;
                 StringBuilder response = new StringBuilder();
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                // Parse die Version aus der JSON-Antwort
-                String json = response.toString();
-                int tagIndex = json.indexOf("\"tag_name\":\"");
-                if (tagIndex != -1) {
-                    int startIndex = tagIndex + 12;
-                    int endIndex = json.indexOf("\"", startIndex);
-                    latestVersion = json.substring(startIndex, endIndex);
-                    updateAvailable = isNewerVersion(latestVersion, currentVersion);
-
-                    if (updateAvailable) {
-                        plugin.getLogger().info("========================================");
-                        plugin.getLogger().info("EndLock update available!");
-                        plugin.getLogger().info("Current version: " + currentVersion);
-                        plugin.getLogger().info("New version: " + latestVersion);
-                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
-                        plugin.getLogger().info("========================================");
-
-                        // Notify online operators
-                        notifyOps();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
                     }
                 }
+
+                String json = response.toString();
+                latestVersion = extractJsonValue(json, "tag_name");
+                String htmlUrl = extractJsonValue(json, "html_url");
+                if (htmlUrl != null && !htmlUrl.isBlank()) {
+                    downloadUrl = htmlUrl;
+                }
+                updateAvailable = isNewerVersion(latestVersion, currentVersion);
+
+                if (updateAvailable) {
+                    plugin.getLogger().info("EndLock update available: " + currentVersion + " -> " + latestVersion);
+                    plugin.getLogger().info("Download: " + downloadUrl);
+                    notifyOps();
+                }
             } catch (Exception e) {
-                plugin.getLogger().warning("Update-Check fehlgeschlagen: " + e.getMessage());
+                plugin.getLogger().warning("Update check failed: " + e.getMessage());
             }
         });
     }
 
-    /**
-     * Sends a chat notification to online operators about available updates
-     */
     private void notifyOps() {
-        boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
-        boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
-
-        if (!notifyOps || !notifyChat) {
+        if (!plugin.getConfig().getBoolean("update-checker.notify-ops", true)) {
             return;
         }
-
         Bukkit.getScheduler().runTask(plugin, () -> {
-            String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
-            Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
-                .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
-                .clickEvent(ClickEvent.openUrl(releaseUrl))
-                .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
+            Component prefix = Component.text("[EndLock] ", NamedTextColor.GOLD);
+            Component text = Component.text("Update available: ", NamedTextColor.GRAY)
+                    .append(Component.text(latestVersion, NamedTextColor.YELLOW))
+                    .append(Component.text(" — ", NamedTextColor.GRAY));
+            Component link = Component.text("Download", NamedTextColor.AQUA, TextDecoration.UNDERLINED)
+                    .clickEvent(ClickEvent.openUrl(downloadUrl))
+                    .hoverEvent(HoverEvent.showText(Component.text(downloadUrl, NamedTextColor.WHITE)));
+
+            Component message = prefix.append(text).append(link);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
                     player.sendMessage(message);
@@ -95,24 +86,35 @@ public class UpdateChecker {
         });
     }
 
-    /**
-     * Vergleicht zwei Versionsnummern
-     */
+    private String extractJsonValue(String json, String key) {
+        String needle = "\"" + key + "\":\"";
+        int start = json.indexOf(needle);
+        if (start == -1) {
+            return null;
+        }
+        start += needle.length();
+        int end = json.indexOf("\"", start);
+        return end == -1 ? null : json.substring(start, end);
+    }
+
     private boolean isNewerVersion(String newVersion, String currentVersion) {
+        if (newVersion == null || currentVersion == null) {
+            return false;
+        }
         try {
-            // Entferne 'v' Prefix wenn vorhanden
             newVersion = newVersion.replaceFirst("^v", "");
             currentVersion = currentVersion.replaceFirst("^v", "");
-
             String[] newParts = newVersion.split("\\.");
             String[] currentParts = currentVersion.split("\\.");
-
             for (int i = 0; i < Math.max(newParts.length, currentParts.length); i++) {
-                int newNum = i < newParts.length ? Integer.parseInt(newParts[i]) : 0;
-                int currentNum = i < currentParts.length ? Integer.parseInt(currentParts[i]) : 0;
-
-                if (newNum > currentNum) return true;
-                if (newNum < currentNum) return false;
+                int newNum = i < newParts.length ? Integer.parseInt(newParts[i].replaceAll("[^0-9].*", "")) : 0;
+                int currentNum = i < currentParts.length ? Integer.parseInt(currentParts[i].replaceAll("[^0-9].*", "")) : 0;
+                if (newNum > currentNum) {
+                    return true;
+                }
+                if (newNum < currentNum) {
+                    return false;
+                }
             }
             return false;
         } catch (Exception e) {

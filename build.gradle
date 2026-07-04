@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.vwtfafa'
-version = '1.4.0'
+version = '4.0'
 
 repositories {
     mavenCentral()
@@ -22,6 +22,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly("net.luckperms:api:5.4")
     implementation("org.bstats:bstats-bukkit:3.2.1")
 }
 
@@ -35,12 +36,9 @@ tasks {
         configurations = [project.configurations.runtimeClasspath]
 
         dependencies {
-            // Only merge bStats into the final jar, no other dependencies
             exclude { it.moduleGroup != "org.bstats" }
         }
 
-        // Relocate bStats into the plugin's package to avoid conflicts with other
-        // plugins using bStats
         relocate("org.bstats", project.group.toString())
     }
 }

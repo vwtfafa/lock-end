@@ -1,21 +1,36 @@
-name: Feature request
-description: Suggest a new feature for EndLock
+name: Feature Request
+description: Suggest an idea for EndLock
+title: "[Feature]: "
+labels: ["enhancement"]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for helping improve EndLock.
   - type: textarea
-    id: idea
+    id: problem
     attributes:
-      label: Feature idea
-      placeholder: Describe the feature you would like to see.
+      label: What problem does this solve?
+      placeholder: e.g. I want to notify Discord when someone tries to enter the End while locked
     validations:
       required: true
+
   - type: textarea
-    id: usecase
+    id: solution
     attributes:
-      label: Why would this be useful?
-      placeholder: Explain the use case and benefit.
+      label: Proposed solution
     validations:
       required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional — other ways you've thought about solving this
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Commands / gameplay
+        - Integrations (PlaceholderAPI, Discord, etc.)
+        - Configuration / messages
+        - Logging / statistics
+        - Other
