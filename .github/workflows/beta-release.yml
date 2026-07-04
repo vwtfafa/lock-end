@@ -69,19 +69,19 @@ jobs:
           EOF
 
       - name: Create or update GitHub Pre-Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.version.outputs.beta_tag }}
-          commit: ${{ github.sha }}
-          name: Lock-End ${{ steps.version.outputs.beta_tag }} (Beta)
-          bodyFile: release-body.md
-          artifacts: build/libs/lock-end-${{ steps.version.outputs.version }}.jar
-          allowUpdates: true
-          removeArtifacts: true
-          replacesArtifacts: true
-          omitBodyDuringUpdate: false
-          omitNameDuringUpdate: false
-          prerelease: true
-          makeLatest: false
-          generateReleaseNotes: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BETA_TAG: ${{ steps.version.outputs.beta_tag }}
+        run: |
+          ARTIFACT=$(find build/libs -maxdepth 1 -type f -name 'lock-end-*.jar' | head -n 1)
+          if [ -z "$ARTIFACT" ]; then
+            echo "No plugin jar found in build/libs"
+            exit 1
+          fi
+          if gh release view "$BETA_TAG" >/dev/null 2>&1; then
+            gh release upload "$BETA_TAG" "$ARTIFACT" --clobber
+            gh release edit "$BETA_TAG" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --latest false
+          else
+            gh release create "$BETA_TAG" "$ARTIFACT" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --latest false
+          fi

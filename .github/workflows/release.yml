@@ -115,19 +115,20 @@ jobs:
           
           echo "✓ All beta tags have been deleted"
 
-      - name: Create or fully overwrite GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: v${{ steps.version.outputs.version }}
-          commit: ${{ github.sha }}
-          name: Lock-End ${{ steps.version.outputs.version }}
-          bodyFile: release-body.md
-          artifacts: build/libs/lock-end-${{ steps.version.outputs.version }}.jar
-          allowUpdates: true
-          removeArtifacts: true
-          replacesArtifacts: true
-          omitBodyDuringUpdate: false
-          omitNameDuringUpdate: false
-          generateReleaseNotes: false
-          makeLatest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          ARTIFACT=$(find build/libs -maxdepth 1 -type f -name 'lock-end-*.jar' | head -n 1)
+          if [ -z "$ARTIFACT" ]; then
+            echo "No plugin jar found in build/libs"
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ARTIFACT" --clobber
+            gh release edit "$TAG" --title "Lock-End ${VERSION}" --notes-file release-body.md --latest
+          else
+            gh release create "$TAG" "$ARTIFACT" --title "Lock-End ${VERSION}" --notes-file release-body.md --latest
+          fi
