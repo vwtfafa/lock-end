@@ -2,6 +2,14 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## What's new in 1.4.0
+
+- Optional join notifications for players entering while the End is locked
+- Optional scheduled unlocks with `/endlock unlockin` and `/endlock unlockat`
+- Basic plugin statistics via `/endlock stats`
+- Better update notifications with a clickable link
+- Cleaner GitHub release pages and improved release automation
+
 ## Requirements
 
 | Requirement | Version |

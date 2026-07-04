@@ -3,14 +3,12 @@ locked: false
 language: en
 
 # Update Checker: Notifications for available updates
-# (Ops will be notified when an update is available)
 update-checker:
   enabled: true
   notify-ops: true
+  notify-chat: true
 
 # bStats Metrics
-# Disable this only if you don't want to collect anonymous data
-# bStats helps developers understand plugin usage and compatibility
 metrics:
   enabled: true
 
@@ -29,3 +27,27 @@ logging:
 # Test Command: Allow /endlock test for Ops to verify blocking works
 test-command:
   enabled: true
+
+# Optional statistics collection
+stats:
+  enabled: true
+  lock-count: 0
+  blocked-count: 0
+
+# Optional join notifications for players joining while the End is locked
+join-notifications:
+  enabled: false
+  show-remaining: true
+
+# Optional scheduled unlock
+scheduled-unlock:
+  enabled: false
+  mode: "days"        # days or datetime
+  days: 7
+  datetime: ""
+
+# Optional integrations and formatting
+hooks:
+  mini-message: true
+  placeholderapi: true
+  discordsrv: false

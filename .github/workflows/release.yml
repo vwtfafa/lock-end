@@ -43,17 +43,24 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" ${LAST_TAG}..HEAD)
+          else
+            CHANGELOG="- Initial release"
+          fi
           if [ -f .github/RELEASE_TEMPLATE.md ]; then
             sed \
               -e "s/@VERSION@/${VERSION}/g" \
               -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
               -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
+              -e "s|@CHANGELOG@|${CHANGELOG}|g" \
               .github/RELEASE_TEMPLATE.md > release-body.md
           else
             cat > release-body.md <<EOF
           ## 🔒 Lock-End ${VERSION}
 
-          **Requirements:** Paper 26.1.2+, Java 25
+          **Requirements:** Paper 26.2+, Java 25
 
           Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
 

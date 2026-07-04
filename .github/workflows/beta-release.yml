@@ -29,10 +29,7 @@ jobs:
         run: |
           VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          
-          # Erstelle Beta-Tag mit Datum/Commit-Count
-          COMMIT_COUNT=$(git rev-list --count HEAD)
-          BETA_TAG="v${VERSION}-beta.${COMMIT_COUNT}"
+          BETA_TAG="v${VERSION}-beta"
           echo "beta_tag=$BETA_TAG" >> "$GITHUB_OUTPUT"
           echo "Building beta version $BETA_TAG"
 

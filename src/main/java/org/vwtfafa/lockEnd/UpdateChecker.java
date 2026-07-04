@@ -1,8 +1,11 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -72,10 +75,13 @@ public class UpdateChecker {
      */
     private void notifyOps() {
         Bukkit.getScheduler().runTask(plugin, () -> {
+            Component message = Component.text("[EndLock] Update available: " + latestVersion)
+                .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
+                .clickEvent(ClickEvent.openUrl("https://github.com/vwtfafa/lock-end/releases"))
+                .hoverEvent(HoverEvent.showText(Component.text("Open the latest release")));
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
-                    player.sendMessage("§6[§cEndLock§6] §7Update verfügbar: §e" + latestVersion);
-                    player.sendMessage("§7Download: §bhttps://github.com/vwtfafa/lock-end/releases");
+                    player.sendMessage(message);
                 }
             }
         });

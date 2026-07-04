@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a new feature for EndLock
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve EndLock.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Feature idea
+      placeholder: Describe the feature you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Why would this be useful?
+      placeholder: Explain the use case and benefit.
+    validations:
+      required: true

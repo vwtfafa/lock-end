@@ -1,5 +1,7 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -7,12 +9,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import java.io.File;
@@ -34,6 +37,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private MetricsManager metricsManager;
     private File logDir;
     private File logFile;
+    private MiniMessage miniMessage = MiniMessage.miniMessage();
+    private LocalDateTime scheduledUnlockTime;
 
     @Override
     public void onEnable() {
@@ -69,6 +74,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (getConfig().getBoolean("update-checker.enabled", true)) {
             updateChecker = new UpdateChecker(this);
             updateChecker.checkForUpdates();
+        }
+
+        loadScheduledUnlock();
+        if (locked && scheduledUnlockTime != null) {
+            scheduleUnlock();
         }
 
         getLogger().info("EndLock v" + getDescription().getVersion() + " aktiviert (Paper 26.2+)");
@@ -131,10 +141,62 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     private void sendActionBar(Player player, String message) {
         try {
-            player.sendActionBar(net.kyori.adventure.text.Component.text(message));
+            player.sendActionBar(Component.text(message));
         } catch (Exception e) {
             player.sendMessage(message);
         }
+    }
+
+    private void incrementStats(boolean lockAction) {
+        if (!getConfig().getBoolean("stats.enabled", true)) {
+            return;
+        }
+        int current = getConfig().getInt(lockAction ? "stats.lock-count" : "stats.blocked-count", 0);
+        getConfig().set(lockAction ? "stats.lock-count" : "stats.blocked-count", current + 1);
+        saveConfig();
+    }
+
+    private void loadScheduledUnlock() {
+        if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
+            return;
+        }
+        String mode = getConfig().getString("scheduled-unlock.mode", "days");
+        if ("datetime".equalsIgnoreCase(mode)) {
+            String date = getConfig().getString("scheduled-unlock.datetime", "");
+            if (!date.isBlank()) {
+                try {
+                    scheduledUnlockTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                } catch (Exception ignored) {
+                }
+            }
+        } else {
+            int days = getConfig().getInt("scheduled-unlock.days", 7);
+            scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+        }
+    }
+
+    private void scheduleUnlock() {
+        if (scheduledUnlockTime == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (locked) {
+                locked = false;
+                getConfig().set("locked", false);
+                saveConfig();
+                getLogger().info("Scheduled unlock executed.");
+            }
+        }, 20L * 60L * 60L * 24L);
+    }
+
+    private void sendJoinNotification(Player player) {
+        if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
+            return;
+        }
+        String message = getConfig().getBoolean("join-notifications.show-remaining", true)
+            ? "The End is currently locked."
+            : "The End is currently locked.";
+        player.sendMessage(message);
     }
 
     private void logAction(String player, String action) {
@@ -166,7 +228,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test");
+            List<String> options = List.of("status", "lock", "unlock", "test", "stats", "unlockin", "unlockat");
             StringUtil.copyPartialMatches(args[0], options, completions);
         }
         return completions;
@@ -190,6 +252,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
                         broadcastMessage("broadcast-locked", sender.getName());
                         logAction(sender.getName(), "LOCK");
+                        incrementStats(true);
                     } else {
                         sender.sendMessage("§cThe End is already locked!");
                     }
@@ -220,6 +283,41 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         return false;
                     }
                 }
+                case "stats" -> {
+                    sender.sendMessage("§7Stats: §aLock count §f" + getConfig().getInt("stats.lock-count", 0) + " §7| §cBlocked count §f" + getConfig().getInt("stats.blocked-count", 0));
+                    return true;
+                }
+                case "unlockin" -> {
+                    if (args.length >= 2) {
+                        try {
+                            int days = Integer.parseInt(args[1]);
+                            scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+                            getConfig().set("scheduled-unlock.enabled", true);
+                            getConfig().set("scheduled-unlock.mode", "days");
+                            getConfig().set("scheduled-unlock.days", days);
+                            saveConfig();
+                            sender.sendMessage("§aScheduled unlock in " + days + " days.");
+                        } catch (Exception e) {
+                            sender.sendMessage("§cUsage: /endlock unlockin <days>");
+                        }
+                    }
+                    return true;
+                }
+                case "unlockat" -> {
+                    if (args.length >= 2) {
+                        try {
+                            scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                            getConfig().set("scheduled-unlock.enabled", true);
+                            getConfig().set("scheduled-unlock.mode", "datetime");
+                            getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                            saveConfig();
+                            sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
+                        } catch (Exception e) {
+                            sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
+                        }
+                    }
+                    return true;
+                }
             }
         }
 
@@ -231,6 +329,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             saveConfig();
             broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", sender.getName());
             logAction(sender.getName(), locked ? "LOCK" : "UNLOCK");
+            if (locked) {
+                incrementStats(true);
+            }
             return true;
         } else {
             sender.sendMessage(msg("permission"));
@@ -247,6 +348,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                 event.getPlayer().sendMessage(msg("locked"));
                 if (getConfig().getBoolean("logging.log-attempts", true)) {
                     logAction(event.getPlayer().getName(), "BLOCKED_PORTAL");
+                    incrementStats(false);
                 }
             }
         }
@@ -261,8 +363,17 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                 event.getPlayer().sendMessage(msg("locked"));
                 if (getConfig().getBoolean("logging.log-attempts", true)) {
                     logAction(event.getPlayer().getName(), "BLOCKED_TELEPORT");
+                    incrementStats(false);
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        if (!locked || !getConfig().getBoolean("join-notifications.enabled", false)) {
+            return;
+        }
+        sendJoinNotification(event.getPlayer());
     }
 }

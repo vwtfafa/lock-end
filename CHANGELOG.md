@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-07-04
+### Added
+- Optional join notifications for players joining while the End is locked
+- Scheduled unlock support with `/endlock unlockin <days>` and `/endlock unlockat <yyyy-MM-dd> <HH:mm>`
+- `/endlock stats` for basic lock and block counters
+- Clickable update notification links in chat for admins
+- Better GitHub release templates and cleaner release pages
+- PlaceholderAPI and MiniMessage preparation for upcoming integration support
+
+### Changed
+- Bumped plugin version to `1.4.0`
+- Release workflow now builds cleaner stable and beta release pages
+- Beta releases keep a single experiment tag (`v1.4.0-beta`) that is updated on every beta push
+
+---
+
 ## [1.3] - 2026-06-16
 ### Added
 - **Tab Completion**: Full tab completion support for `/endlock` and `/lock` commands.
