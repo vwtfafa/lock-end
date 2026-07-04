@@ -27,7 +27,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
+          VERSION=$(grep "^version = " build.gradle | head -n 1 | cut -d"'" -f2)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
 
