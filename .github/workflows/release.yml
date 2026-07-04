@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
 
 permissions:
   contents: write
@@ -27,7 +28,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep "^version = " build.gradle | head -n 1 | cut -d"'" -f2)
+          VERSION=$(awk -F"'" '/^version = /{print $2; exit}' build.gradle)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
 
@@ -56,7 +57,7 @@ jobs:
 
           Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
 
-          See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for commands and configuration.
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for commands and configuration.
 
           ### Changes
           ${CHANGELOG}
@@ -72,7 +73,7 @@ jobs:
 
           Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
 
-          See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for commands and configuration.
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for commands and configuration.
 
           ---
           *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
