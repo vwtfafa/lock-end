@@ -39,6 +39,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private File logFile;
     private MiniMessage miniMessage = MiniMessage.miniMessage();
     private LocalDateTime scheduledUnlockTime;
+    private LockEndExpansion placeholderExpansion;
 
     @Override
     public void onEnable() {
@@ -74,6 +75,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (getConfig().getBoolean("update-checker.enabled", true)) {
             updateChecker = new UpdateChecker(this);
             updateChecker.checkForUpdates();
+        }
+
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
+            placeholderExpansion = new LockEndExpansion(this);
+            placeholderExpansion.register();
         }
 
         loadScheduledUnlock();
@@ -194,9 +200,20 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             return;
         }
         String message = getConfig().getBoolean("join-notifications.show-remaining", true)
-            ? "The End is currently locked."
-            : "The End is currently locked.";
+            ? msg("join-notification")
+            : msg("join-notification");
         player.sendMessage(message);
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public String getRemainingText() {
+        if (!locked) {
+            return "Unlocked";
+        }
+        return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
     }
 
     private void logAction(String player, String action) {
