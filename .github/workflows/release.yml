@@ -81,38 +81,31 @@ jobs:
           fi
 
       - name: Point release tag at this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           TAG="v${{ steps.version.outputs.version }}"
           git tag -fa "$TAG" -m "Release $TAG"
-          git push origin "$TAG" --force
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "$TAG" --force
 
       - name: Delete all beta tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Fetch all tags from remote
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin --tags --force
-          
-          # Find and delete all beta tags
-          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+')
-          
+          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+' || true)
           if [ -z "$BETA_TAGS" ]; then
             echo "✓ No beta tags found to delete"
             exit 0
           fi
-          
-          echo "Found beta tags to delete:"
-          echo "$BETA_TAGS"
-          
-          # Delete locally and remotely
-          echo "$BETA_TAGS" | while read TAG; do
-            git tag -d "$TAG"
-            git push origin --delete "$TAG" || echo "Note: Tag $TAG may not exist on remote"
+          echo "$BETA_TAGS" | while read -r TAG; do
+            git tag -d "$TAG" 2>/dev/null || true
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" --delete "$TAG" 2>/dev/null || true
           done
-          
           echo "✓ All beta tags have been deleted"
 
       - name: Create or update GitHub Release
