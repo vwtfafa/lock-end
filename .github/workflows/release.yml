@@ -49,12 +49,21 @@ jobs:
             CHANGELOG="- Initial release"
           fi
           if [ -f .github/RELEASE_TEMPLATE.md ]; then
-            sed \
-              -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
-              -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
-              -e "s|@CHANGELOG@|${CHANGELOG}|g" \
-              .github/RELEASE_TEMPLATE.md > release-body.md
+            cat > release-body.md <<EOF
+          ## 🔒 Lock-End ${VERSION}
+
+          **Requirements:** Paper 26.2+, Java 25
+
+          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
+
+          See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for commands and configuration.
+
+          ### Changes
+          ${CHANGELOG}
+
+          ---
+          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
+          EOF
           else
             cat > release-body.md <<EOF
           ## 🔒 Lock-End ${VERSION}
