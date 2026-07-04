@@ -17,3 +17,12 @@ test-info: "§6[TEST] Aktueller End-Status: %status%"
 
 # Logging
 log-player-name: "Konsole"
+
+# Stats und geplantes Entsperren
+stats-header: "§7Statistiken: §aSperrungen §f%lockcount% §7| §cBlockierungen §f%blockedcount%"
+stats-empty: "§7Noch keine Statistiken vorhanden."
+scheduled-unlock-set: "§aGeplantes Entsperren gesetzt."
+scheduled-unlock-invalid: "§cVerwendung: /endlock unlockin <Tage> oder /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6Das End ist aktuell gesperrt."
+update-available: "§6[§cEndLock§6] Update verfügbar: §e%version%"
+update-download: "§7Öffnen: §bhttps://github.com/vwtfafa/lock-end/releases"

@@ -17,3 +17,12 @@ test-info: "§6[TEST] Current End status: %status%"
 
 # Logging
 log-player-name: "Console"
+
+# Stats and scheduled unlock
+stats-header: "§7Stats: §aLock count §f%lockcount% §7| §cBlocked count §f%blockedcount%"
+stats-empty: "§7No stats recorded yet."
+scheduled-unlock-set: "§aScheduled unlock set."
+scheduled-unlock-invalid: "§cUsage: /endlock unlockin <days> or /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6The End is currently locked."
+update-available: "§6[§cEndLock§6] Update available: §e%version%"
+update-download: "§7Open: §bhttps://github.com/vwtfafa/lock-end/releases"

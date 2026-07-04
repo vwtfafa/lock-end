@@ -9,6 +9,7 @@
 - Basic plugin statistics via `/endlock stats`
 - Better update notifications with a clickable link
 - Cleaner GitHub release pages and improved release automation
+- Optional bStats charts for lock state, counters and feature usage
 
 ## Requirements
 

@@ -24,9 +24,13 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
 * 🔐 Lock or unlock the End with `/endlock` (alias: `/lock`) — permission: `endlock.toggle`
 * 🧭 Check the current status with `/endlock status` — **no permission required**
-* 🔨 **Explicit Subcommands** (v1.3):
+* 🔨 **Explicit Subcommands** (v1.4.0):
   * `/endlock lock` — Lock the End
   * `/endlock unlock` — Unlock the End
+  * `/endlock status` — Show current state
+  * `/endlock stats` — Show basic lock and block counters
+  * `/endlock unlockin <days>` — Schedule an automatic unlock
+  * `/endlock unlockat <yyyy-MM-dd> <HH:mm>` — Schedule an automatic unlock at a specific time
   * `/endlock test` — Test if portal blocking works (Ops only, configurable)
 * 📋 **Tab Completion** — Full tab completion for all commands
 * 🖥️ **Console** can toggle the End without any permission
@@ -34,15 +38,12 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
   * End portals
   * `/tp` and `/execute`
   * Most plugin teleports
-* 📢 **Broadcast System** (v1.3) — Actionbar + chat notifications when End is locked/unlocked
-  * Customizable via config (on/off, actionbar mode, notify all players or only Ops)
-* 📝 **Logging & History** (v1.3) — Track all lock/unlock events with timestamps
-  * Log file: `plugins/EndLock/logs/EndLock.log`
-  * Optional: Log all attempted portal/teleport access
+* 📢 **Broadcast System** — Actionbar + chat notifications when End is locked/unlocked
+* 🔔 **Optional Join Notifications** — Players joining while the End is locked can be informed
+* 📝 **Logging & History** — Track lock/unlock events with timestamps
+* 📊 **bStats Integration** — Anonymous usage statistics with extra charts for lock counters and feature usage
+* ⬆️ **Update Checker** — Notifies Ops when updates are available and offers a clickable link
 * 🌍 Multi-language support (8 languages: EN, DE, FR, ES, IT, RU, ZH, JA)
-* 💾 Lock status persists in `config.yml` after server restarts
-* 📊 **bStats Integration** — Anonymous usage statistics (optional, configurable)
-* ⬆️ **Update Checker** — Notifies Ops when updates are available (optional, configurable)
 * 📦 Lightweight (~40 KB, bStats shaded)
 
 ---
