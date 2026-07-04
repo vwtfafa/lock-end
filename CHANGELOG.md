@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Bumped plugin version to `1.4.0`
 - Release workflow now builds cleaner stable and beta release pages
 - Beta releases keep a single experiment tag (`v1.4.0-beta`) that is updated on every beta push
+- Operator update notifications are now English, clickable, and link directly to the GitHub release page
 
 ---
 
