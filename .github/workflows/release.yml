@@ -3,7 +3,6 @@ name: Build and Release
 on:
   push:
     branches:
-      - master
       - main
 
 permissions:
@@ -64,7 +63,7 @@ jobs:
 
           Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
 
-          See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
+          See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for commands and configuration.
 
           ---
           *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
