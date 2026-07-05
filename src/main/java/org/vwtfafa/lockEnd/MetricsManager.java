@@ -52,8 +52,18 @@ public class MetricsManager {
             return enabled ? "Enabled" : "Disabled";
         }));
 
-        metrics.addCustomChart(new SingleLineChart("lock_count", () -> plugin.getConfig().getInt("stats.lock-count", 0)));
-        metrics.addCustomChart(new SingleLineChart("blocked_count", () -> plugin.getConfig().getInt("stats.blocked-count", 0)));
+        metrics.addCustomChart(new SingleLineChart("lock_count", () -> {
+            if (plugin instanceof LockEnd lockEndPlugin) {
+                return lockEndPlugin.getLockCount();
+            }
+            return plugin.getConfig().getInt("stats.lock-count", 0);
+        }));
+        metrics.addCustomChart(new SingleLineChart("blocked_count", () -> {
+            if (plugin instanceof LockEnd lockEndPlugin) {
+                return lockEndPlugin.getBlockedCount();
+            }
+            return plugin.getConfig().getInt("stats.blocked-count", 0);
+        }));
         metrics.addCustomChart(new SimplePie("metrics_enabled", () -> "Enabled"));
 
         plugin.getLogger().info("bStats Metriken aktiviert (ID: " + PLUGIN_ID + ")");

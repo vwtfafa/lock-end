@@ -40,11 +40,15 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private MiniMessage miniMessage = MiniMessage.miniMessage();
     private LocalDateTime scheduledUnlockTime;
     private LockEndExpansion placeholderExpansion;
+    private int lockCount = 0;
+    private int blockedCount = 0;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         locked = getConfig().getBoolean("locked", false);
+        lockCount = getConfig().getInt("stats.lock-count", 0);
+        blockedCount = getConfig().getInt("stats.blocked-count", 0);
         langCode = getConfig().getString("language", "de").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
         Bukkit.getPluginManager().registerEvents(this, this);
@@ -157,9 +161,22 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (!getConfig().getBoolean("stats.enabled", true)) {
             return;
         }
-        int current = getConfig().getInt(lockAction ? "stats.lock-count" : "stats.blocked-count", 0);
-        getConfig().set(lockAction ? "stats.lock-count" : "stats.blocked-count", current + 1);
+        if (lockAction) {
+            lockCount++;
+            getConfig().set("stats.lock-count", lockCount);
+        } else {
+            blockedCount++;
+            getConfig().set("stats.blocked-count", blockedCount);
+        }
         saveConfig();
+    }
+
+    public int getLockCount() {
+        return lockCount;
+    }
+
+    public int getBlockedCount() {
+        return blockedCount;
     }
 
     private void loadScheduledUnlock() {

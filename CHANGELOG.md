@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-07-05
+### Changed
+- Bumped plugin version to `1.4.1`
+- Prepared the release for GitHub publishing from the master branch
+
 ## [1.4.0] - 2026-07-04
 ### Added
 - Optional join notifications for players joining while the End is locked

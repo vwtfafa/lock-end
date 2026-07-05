@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.vwtfafa'
-version = '1.4.0'
+version = '1.4.1'
 
 repositories {
     mavenCentral()
@@ -30,7 +30,15 @@ tasks {
         minecraftVersion("26.2")
     }
 
+    jar {
+        archiveBaseName.set("lock-end")
+        archiveVersion.set(project.version.toString())
+        archiveClassifier.set("")
+    }
+
     shadowJar {
+        archiveBaseName.set("lock-end")
+        archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
         configurations = [project.configurations.runtimeClasspath]
 

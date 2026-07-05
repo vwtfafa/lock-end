@@ -74,9 +74,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           BETA_TAG: ${{ steps.version.outputs.beta_tag }}
         run: |
-          ARTIFACT=$(find build/libs -maxdepth 1 -type f -name 'lock-end-*.jar' | head -n 1)
-          if [ -z "$ARTIFACT" ]; then
-            echo "No plugin jar found in build/libs"
+          ARTIFACT="build/libs/lock-end-${VERSION}.jar"
+          if [ ! -f "$ARTIFACT" ]; then
+            echo "Expected plugin jar not found: $ARTIFACT"
+            ls -la build/libs || true
             exit 1
           fi
           if gh release view "$BETA_TAG" >/dev/null 2>&1; then
