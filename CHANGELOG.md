@@ -15,7 +15,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Updated `plugin.yml` usage strings to include `reload` in the command aliases.
 - Updated `messages_en.yml` and `messages_de.yml` with `reload-success` key.
-- Updated build.gradle version to 1.5.0.
 
 ## [1.4.0] - 2026-07-04
 ### Added
