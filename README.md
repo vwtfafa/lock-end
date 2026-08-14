@@ -38,6 +38,7 @@
 | `/endlock unlock` | Explicitly unlock the End | `endlock.toggle` |
 | `/endlock status` | Show whether the End is locked or open | *(none)* |
 | `/endlock test` | Test if portal blocking works | *(Ops only, configurable)* |
+| `/endlock reload` | Reload configuration without restart | `endlock.reload` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
@@ -47,7 +48,9 @@
 
 | Permission | Default | Description |
 |------------|---------|-------------|
-| `endlock.toggle` | `op` | Lock or unlock the End via command || `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
+| `endlock.toggle` | `op` | Lock or unlock the End via command |
+| `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
+| `endlock.reload` | `op` | Reload plugin configuration without restart |
 
 ### LuckPerms Setup
 
