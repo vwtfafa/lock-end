@@ -40,6 +40,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private MiniMessage miniMessage = MiniMessage.miniMessage();
     private LocalDateTime scheduledUnlockTime;
     private LockEndExpansion placeholderExpansion;
+    private int lockCount = 0;
+    private int blockedCount = 0;
 
     @Override
     public void onEnable() {

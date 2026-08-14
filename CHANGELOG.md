@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-08-14
+### Added
+- Reload command: `/endlock reload` (and `/lock reload`) to reload configuration without restart.
+- Permission `endlock.reload` (default: op) for the reload command.
+- Tab completion for the `reload` subcommand.
+- Default language set to English (`en`).
+- All log messages and comments translated to English for consistency.
+- Helper method `miniMsg(String)` for MiniMessage usage.
+- Scheduled unlock now uses exact delay until the configured time (supports both days and datetime).
+
+### Changed
+- Updated `plugin.yml` usage strings to include `reload` in the command aliases.
+- Updated `messages_en.yml` and `messages_de.yml` with `reload-success` key.
+- Updated build.gradle version to 1.5.0.
+
 ## [1.4.0] - 2026-07-04
 ### Added
 - Optional join notifications for players joining while the End is locked
