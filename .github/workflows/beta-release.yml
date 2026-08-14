@@ -27,7 +27,7 @@ jobs:
       - name: Extract version and create beta tag
         id: version
         run: |
-          VERSION=$(grep "^version = " build.gradle | sed "s/version = '//;s/'//")
+          VERSION=$(grep "^version = " build.gradle | cut -d "'" -f2)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           BETA_TAG="v${VERSION}-beta"
           echo "beta_tag=$BETA_TAG" >> "$GITHUB_OUTPUT"
