@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.Locale;
 
 public final class LockEnd extends JavaPlugin implements Listener, TabCompleter {
-    private boolean locked = false;
+    private boolean locked = false; // default state (unlocked)
     private FileConfiguration langConfig;
-    private String langCode = "de";
+    private String langCode = "en"; // default language code (English)
     private UpdateChecker updateChecker;
     private MetricsManager metricsManager;
     private File logDir;
@@ -45,7 +45,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     public void onEnable() {
         saveDefaultConfig();
         locked = getConfig().getBoolean("locked", false);
-        langCode = getConfig().getString("language", "de").toLowerCase(Locale.ROOT);
+        lockCount = getConfig().getInt("stats.lock-count", 0);
+        blockedCount = getConfig().getInt("stats.blocked-count", 0);
+        langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
         Bukkit.getPluginManager().registerEvents(this, this);
         if (getCommand("endlock") != null) {
@@ -57,7 +59,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             getCommand("lock").setTabCompleter(this);
         }
 
-        // Initialisiere Logging
+        // EndLock main plugin class for Paper 26.2+
         if (getConfig().getBoolean("logging.enabled", true)) {
             logDir = new File(getDataFolder(), "logs");
             if (!logDir.exists()) {
@@ -66,7 +68,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
         }
 
-        // Initialisiere bStats Metriken
+        // Initialize bStats metrics
         if (getConfig().getBoolean("metrics.enabled", true)) {
             metricsManager = new MetricsManager(this);
         }
@@ -87,14 +89,14 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             scheduleUnlock();
         }
 
-        getLogger().info("EndLock v" + getDescription().getVersion() + " aktiviert (Paper 26.2+)");
+        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+)");
     }
 
     @Override
     public void onDisable() {
         getConfig().set("locked", locked);
         saveConfig();
-        getLogger().info("EndLock deaktiviert");
+        getLogger().info("EndLock disabled");
     }
 
     private void loadLanguage(String code) {
@@ -123,6 +125,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private String msg(String key) {
         if (langConfig == null) return key;
         return langConfig.getString(key, key);
+    }
+
+    private Component miniMsg(String key) {
+        String raw = msg(key);
+        return miniMessage.deserialize(raw);
     }
 
     private void broadcastMessage(String key, String playerName) {
@@ -185,14 +192,18 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (scheduledUnlockTime == null) {
             return;
         }
+        // Calculate delay in ticks until the scheduled unlock time (1 tick = 50 ms)
+        long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
+        long ticksDelay = Math.max(secondsDelay, 0) * 20L; // 20 ticks per second
         Bukkit.getScheduler().runTaskLater(this, () -> {
             if (locked) {
                 locked = false;
                 getConfig().set("locked", false);
                 saveConfig();
                 getLogger().info("Scheduled unlock executed.");
+                broadcastMessage("broadcast-unlocked", "System");
             }
-        }, 20L * 60L * 60L * 24L);
+        }, ticksDelay);
     }
 
     private void sendJoinNotification(Player player) {
@@ -245,7 +256,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test", "stats", "unlockin", "unlockat");
+            List<String> options = List.of("status", "lock", "unlock", "test", "stats", "unlockin", "unlockat", "reload");
             StringUtil.copyPartialMatches(args[0], options, completions);
         }
         return completions;
@@ -335,7 +346,38 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     }
                     return true;
                 }
+                case "reload" -> {
+                    // Reload configuration and dependent components
+                    reloadConfig();
+                    // Reload language settings
+                    langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
+                    loadLanguage(langCode);
+                    // Reload scheduled unlock settings
+                    loadScheduledUnlock();
+                    if (locked && scheduledUnlockTime != null) {
+                        scheduleUnlock();
+                    }
+                    // Re‑initialize bStats if enabled
+                    if (getConfig().getBoolean("metrics.enabled", true)) {
+                        metricsManager = new MetricsManager(this);
+                    }
+                    // Re‑initialize UpdateChecker if enabled
+                    if (getConfig().getBoolean("update-checker.enabled", true)) {
+                        updateChecker = new UpdateChecker(this);
+                        updateChecker.checkForUpdates();
+                    }
+                    // Re‑register PlaceholderAPI expansion if present
+                    if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
+                        if (placeholderExpansion == null) {
+                            placeholderExpansion = new LockEndExpansion(this);
+                            placeholderExpansion.register();
+                        }
+                    }
+                    sender.sendMessage(msg("reload-success"));
+                    return true;
+                }
             }
+
         }
 
         if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {

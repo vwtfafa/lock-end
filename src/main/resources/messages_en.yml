@@ -26,3 +26,4 @@ scheduled-unlock-invalid: "§cUsage: /endlock unlockin <days> or /endlock unlock
 join-notification: "§6The End is currently locked."
 update-available: "§6[§cEndLock§6] Update available: §e%version%"
 update-download: "§7Open: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§aConfiguration reloaded successfully!"

@@ -9,13 +9,13 @@ description: >
 commands:
   endlock:
     description: Globally locks or unlocks access to the End dimension
-    usage: /endlock [lock|unlock|status|stats|unlockin|unlockat]
+    usage: /endlock [lock|unlock|status|stats|unlockin|unlockat|reload]
   lock:
     description: Alias for /endlock
-    usage: /lock [lock|unlock|status|stats|unlockin|unlockat]
+    usage: /lock [lock|unlock|status|stats|unlockin|unlockat|reload]
 permissions:
-  endlock.toggle:
-    description: Allows locking or unlocking the End
+  endlock.reload:
+    description: Reloads the plugin configuration without a server restart
     default: op
   endlock.admin:
     description: Receive broadcast notifications and use test command
