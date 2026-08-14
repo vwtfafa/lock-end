@@ -5,11 +5,7 @@ plugins {
 }
 
 group = 'org.vwtfafa'
-<<<<<<< Updated upstream
 version = '1.5.0'
-=======
-version = '1.5.0'
->>>>>>> Stashed changes
 
 repositories {
     mavenCentral()
