@@ -1,7 +1,6 @@
 package org.vwtfafa.lockEnd;
 
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -37,17 +36,8 @@ public class SoundEffectPlayer {
         if (!plugin.getConfig().getBoolean("sound-effects.enabled", false)) {
             return;
         }
-        try {
-            Sound sound;
-            try {
-                sound = Sound.valueOf(soundName);
-            } catch (IllegalArgumentException e) {
-                sound = Sound.BLOCK_ANVIL_LAND;
-            }
-            Location location = player.getLocation();
-            player.playSound(location, sound, volume, pitch);
-        } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning("Invalid sound name in config: " + soundName);
-        }
+        Location location = player.getLocation();
+        // Use String overload to avoid deprecated Sound.valueOf()
+        player.playSound(location, soundName, volume, pitch);
     }
 }
