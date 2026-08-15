@@ -1,18 +1,12 @@
 name: EndLock
-version: '1.5.0'
-author: vwtfafa
+version: '${version}'
 main: org.vwtfafa.lockEnd.LockEnd
 api-version: '26.2'
 description: >
   EndLock globally locks access to the End dimension via command (blocks /execute, /tp, plugins, etc.),
   is multilingual, permission-protected, and supports optional notifications, stats, and placeholders.
-commands:
-  endlock:
-    description: Globally locks or unlocks access to the End dimension
-    usage: /endlock [lock|unlock|status|stats|unlockin|unlockat|reload]
-  lock:
-    description: Alias for /endlock
-    usage: /lock [lock|unlock|status|stats|unlockin|unlockat|reload]
+authors: [vwtfafa]
+softdepend: [PlaceholderAPI]
 permissions:
   endlock.reload:
     description: Reloads the plugin configuration without a server restart
@@ -20,3 +14,47 @@ permissions:
   endlock.admin:
     description: Receive broadcast notifications and use test command
     default: op
+  endlock.toggle:
+    description: Toggle lock state (no arguments)
+    default: op
+  endlock.whitelist.bypass:
+    description: Bypass the End lock via whitelist
+    default: op
+  endlock.history:
+    description: View lock history
+    default: op
+  endlock.undo:
+    description: Undo the last lock/unlock action
+    default: op
+  endlock.validate:
+    description: Validate configuration file
+    default: op
+commands:
+  endlock:
+    description: Globally locks or unlocks access to the End dimension
+    usage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    permission: endlock.toggle
+  lock:
+    description: Alias for /endlock
+    usage: /lock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    permission: endlock.toggle
+  el:
+    description: Short alias for /endlock (mobile-friendly)
+    usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    permission: endlock.toggle
+  history:
+    description: View recent lock/unlock history
+    usage: /history
+    permission: endlock.history
+  undo:
+    description: Undo the last lock/unlock action
+    usage: /undo
+    permission: endlock.undo
+  validateconfig:
+    description: Validate configuration file for errors
+    usage: /validateconfig
+    permission: endlock.validate
+  schedules:
+    description: Manage scheduled unlock timers
+    usage: /schedules [pause|resume|status]
+    permission: endlock.admin

@@ -1,4 +1,5 @@
 locked: "末地已被锁定！"
+locked-reason: "末地已被锁定！原因：%reason%"
 toggle: "末地现在是%status%。"
 status: "末地当前是%status%。"
 permission: "§c你没有权限锁定或解锁末地。"

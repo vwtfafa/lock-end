@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,6 +18,11 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.StringUtil;
+import org.vwtfafa.lockEnd.cache.PermissionCache;
+import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
+import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
+import org.vwtfafa.lockEnd.commands.UndoCommand;
+import org.vwtfafa.lockEnd.util.AsyncLogger;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -26,13 +32,16 @@ import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 public final class LockEnd extends JavaPlugin implements Listener, TabCompleter {
-    private boolean locked = false; // default state (unlocked)
+    private boolean locked = false;
     private FileConfiguration langConfig;
-    private String langCode = "en"; // default language code (English)
+    private String langCode = "en";
     private UpdateChecker updateChecker;
     private MetricsManager metricsManager;
     private File logDir;
@@ -43,6 +52,23 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
     private int blockedCount = 0;
+    private String lockReason = "Maintenance";
+
+    // v1.6 new features
+    private LockReasonManager lockReasonManager;
+    private GracePeriodTask gracePeriodTask;
+    private WhitelistChecker whitelistChecker;
+    private LockHistoryCommand historyCommand;
+    private UndoCommand undoCommand;
+    private ConfigValidatorCommand configValidatorCommand;
+    private AsyncLogger asyncLogger;
+
+    // Logging & Analytics
+    private final Map<UUID, Long> lastAttemptTimes = new HashMap<>();
+    private int rateLimitSeconds = 5;
+
+    // Schedule pause/resume
+    private boolean schedulePaused = false;
 
     @Override
     public void onEnable() {
@@ -52,13 +78,41 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
         langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
-        // Load hook flags
+        lockReason = getConfig().getString("lock-reason", "Maintenance");
+
+        // v1.6: Lock reason manager
+        lockReasonManager = new LockReasonManager(getConfig());
+
+        // v1.6: Grace period task
+        gracePeriodTask = new GracePeriodTask(this);
+
+        // v1.6: Whitelist checker
+        whitelistChecker = new WhitelistChecker(getConfig());
+
+        // v1.6: Admin commands
+        historyCommand = new LockHistoryCommand(this);
+        undoCommand = new UndoCommand(this);
+        configValidatorCommand = new ConfigValidatorCommand(this);
+
+        // v1.6: Async logger
+        if (getConfig().getBoolean("logging.enabled", true)) {
+            logDir = new File(getDataFolder(), "logs");
+            if (!logDir.exists()) {
+                logDir.mkdirs();
+            }
+            logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
+            asyncLogger = new AsyncLogger();
+            asyncLogger.initialize(logFile);
+        }
+
         miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
-        // Initialize MiniMessage if enabled
         if (miniMessageEnabled) {
             this.miniMessage = MiniMessage.miniMessage();
         }
+
         Bukkit.getPluginManager().registerEvents(this, this);
+
+        // Register commands
         if (getCommand("endlock") != null) {
             getCommand("endlock").setExecutor(this);
             getCommand("endlock").setTabCompleter(this);
@@ -67,25 +121,26 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             getCommand("lock").setExecutor(this);
             getCommand("lock").setTabCompleter(this);
         }
-
-        // EndLock main plugin class for Paper 26.2+
-        if (getConfig().getBoolean("logging.enabled", true)) {
-            logDir = new File(getDataFolder(), "logs");
-            if (!logDir.exists()) {
-                logDir.mkdirs();
-            }
-            logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
+        if (getCommand("history") != null) {
+            getCommand("history").setExecutor(historyCommand);
+        }
+        if (getCommand("undo") != null) {
+            getCommand("undo").setExecutor(undoCommand);
+        }
+        if (getCommand("validateconfig") != null) {
+            getCommand("validateconfig").setExecutor(configValidatorCommand);
         }
 
-        // Initialize bStats metrics
-        if (getConfig().getBoolean("metrics.enabled", true)) {
-            metricsManager = new MetricsManager(this);
-        }
+        // v1.6: Rate limit config
+        rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
 
-        // Initialisiere Update Checker
-        if (getConfig().getBoolean("update-checker.enabled", true)) {
-            updateChecker = new UpdateChecker(this);
-            updateChecker.checkForUpdates();
+        if (getCommand("endlock") != null) {
+            getCommand("endlock").setExecutor(this);
+            getCommand("endlock").setTabCompleter(this);
+        }
+        if (getCommand("lock") != null) {
+            getCommand("lock").setExecutor(this);
+            getCommand("lock").setTabCompleter(this);
         }
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
@@ -98,28 +153,33 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             scheduleUnlock();
         }
 
-        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+)");
+        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+) [v1.6 features loaded]");
     }
 
     @Override
     public void onDisable() {
         getConfig().set("locked", locked);
         saveConfig();
+        if (asyncLogger != null) {
+            asyncLogger.shutdown();
+        }
         getLogger().info("EndLock disabled");
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
     }
 
     private void loadLanguage(String code) {
         String fileName = "messages_" + code + ".yml";
         File langFile = new File(getDataFolder(), fileName);
         if (!langFile.exists()) {
-            // Lade aus resources, falls nicht im Plugin-Ordner
             try (InputStream in = getResource(fileName)) {
                 if (in != null) {
                     langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
                     return;
                 }
             } catch (Exception ignored) {}
-            // Fallback auf Deutsch
             try (InputStream in = getResource("messages_de.yml")) {
                 if (in != null) {
                     langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
@@ -131,7 +191,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         }
     }
 
-    private String msg(String key) {
+    public String msg(String key) {
         if (langConfig == null) return key;
         return langConfig.getString(key, key);
     }
@@ -198,14 +258,13 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     }
 
     private void scheduleUnlock() {
-        if (scheduledUnlockTime == null) {
+        if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
-        // Calculate delay in ticks until the scheduled unlock time (1 tick = 50 ms)
         long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
-        long ticksDelay = Math.max(secondsDelay, 0) * 20L; // 20 ticks per second
+        long ticksDelay = Math.max(secondsDelay, 0) * 20L;
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (locked) {
+            if (locked && !schedulePaused) {
                 locked = false;
                 getConfig().set("locked", false);
                 saveConfig();
@@ -215,14 +274,28 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         }, ticksDelay);
     }
 
+    public void pauseSchedule() {
+        schedulePaused = true;
+        getLogger().info("Schedule paused by " + "System");
+    }
+
+    public void resumeSchedule() {
+        schedulePaused = false;
+        if (locked && scheduledUnlockTime != null) {
+            scheduleUnlock();
+        }
+        getLogger().info("Schedule resumed by " + "System");
+    }
+
+    public boolean isSchedulePaused() {
+        return schedulePaused;
+    }
+
     private void sendJoinNotification(Player player) {
         if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
             return;
         }
-        String message = getConfig().getBoolean("join-notifications.show-remaining", true)
-                ? msg("join-notification")
-                : msg("join-notification");
-        player.sendMessage(message);
+        player.sendMessage(msg("join-notification"));
     }
 
     public boolean isLocked() {
@@ -236,29 +309,69 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
     }
 
-    
-    /**
-     * Logs lock/unlock actions and optional attempt logs to the configured log file.
-     */
     private void logAction(String player, String action) {
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
         }
-        try {
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String timestamp = now.format(formatter);
-            String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
-                    timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
-            if (logFile != null && !logFile.exists()) {
-                logFile.createNewFile();
+        if (asyncLogger != null) {
+            asyncLogger.log(String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED"));
+        } else {
+            try {
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String timestamp = now.format(formatter);
+                String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
+                        timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
+                if (logFile != null && !logFile.exists()) {
+                    logFile.createNewFile();
+                }
+                try (FileWriter writer = new FileWriter(logFile, true)) {
+                    writer.append(logMessage);
+                    writer.flush();
+                }
+            } catch (IOException e) {
+                getLogger().warning("Error writing to log file: " + e.getMessage());
             }
-            try (FileWriter writer = new FileWriter(logFile, true)) {
-                writer.append(logMessage);
-                writer.flush();
+        }
+    }
+
+    /**
+     * v1.6: Logs attempt with rate limiting and detailed info.
+     */
+    private void logAttempt(Player player, World sourceWorld, String method) {
+        if (!getConfig().getBoolean("logging.log-attempts", true)) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        long now = System.currentTimeMillis();
+
+        // Rate limit check
+        if (lastAttemptTimes.containsKey(playerId)) {
+            long lastAttempt = lastAttemptTimes.get(playerId);
+            if (now - lastAttempt < rateLimitSeconds * 1000L) {
+                return;
             }
-        } catch (IOException e) {
-            getLogger().warning("Fehler beim Schreiben in Log-Datei: " + e.getMessage());
+        }
+        lastAttemptTimes.put(playerId, now);
+
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED\n",
+                timestamp, player.getName(), sourceWorld.getName(), method);
+
+        if (asyncLogger != null) {
+            asyncLogger.log(logMessage.trim());
+        } else {
+            try {
+                if (logFile != null && !logFile.exists()) {
+                    logFile.createNewFile();
+                }
+                try (FileWriter writer = new FileWriter(logFile, true)) {
+                    writer.append(logMessage);
+                    writer.flush();
+                }
+            } catch (IOException e) {
+                getLogger().warning("Error writing attempt log: " + e.getMessage());
+            }
         }
     }
 
@@ -266,7 +379,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test", "stats", "unlockin", "unlockat", "reload");
+            List<String> options = List.of("status", "lock", "unlock", "test", "stats",
+                    "unlockin", "unlockat", "reload", "history", "undo", "validateconfig",
+                    "pause", "resume");
             StringUtil.copyPartialMatches(args[0], options, completions);
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
@@ -276,7 +391,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     StringUtil.copyPartialMatches(args[1], days, completions);
                 }
                 case "unlockat" -> {
-                    // Suggest tomorrow's date as a default hint
                     java.time.LocalDate tomorrow = java.time.LocalDate.now().plusDays(1);
                     String dateHint = tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                     List<String> dates = List.of(dateHint);
@@ -294,7 +408,20 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 1) {
+        // v1.6: history command
+        if (command.getName().equalsIgnoreCase("history")) {
+            return historyCommand.onCommand(sender, command, label, args);
+        }
+        // v1.6: undo command
+        if (command.getName().equalsIgnoreCase("undo")) {
+            return undoCommand.onCommand(sender, command, label, args);
+        }
+        // v1.6: validateconfig command
+        if (command.getName().equalsIgnoreCase("validateconfig")) {
+            return configValidatorCommand.onCommand(sender, command, label, args);
+        }
+
+        if (args.length >= 1) {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
                 case "status" -> {
@@ -310,8 +437,15 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
                         broadcastMessage("broadcast-locked", sender.getName());
                         logAction(sender.getName(), "LOCK");
+                        historyCommand.addEntry("LOCK by " + sender.getName());
                         incrementStats(true);
-                                            } else {
+
+                        // v1.6: Grace period
+                        if (getConfig().getBoolean("grace-period.enabled", false)) {
+                            int duration = getConfig().getInt("grace-period.duration", 10);
+                            gracePeriodTask.startGracePeriod(duration);
+                        }
+                    } else {
                         sender.sendMessage("§cThe End is already locked!");
                     }
                     return true;
@@ -324,7 +458,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
                         broadcastMessage("broadcast-unlocked", sender.getName());
                         logAction(sender.getName(), "UNLOCK");
-                                            } else {
+                        historyCommand.addEntry("UNLOCK by " + sender.getName());
+                    } else {
                         sender.sendMessage("§cThe End is already unlocked!");
                     }
                     return true;
@@ -386,27 +521,37 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     }
                     return true;
                 }
+                case "pause" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    pauseSchedule();
+                    sender.sendMessage(msg("schedule.paused"));
+                    return true;
+                }
+                case "resume" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    resumeSchedule();
+                    sender.sendMessage(msg("schedule.resumed"));
+                    return true;
+                }
                 case "reload" -> {
-                    // Reload configuration and dependent components
                     reloadConfig();
-                    // Reload language settings
                     langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
                     loadLanguage(langCode);
-                    // Reload scheduled unlock settings
+                    lockReason = getConfig().getString("lock-reason", "Maintenance");
+                    // Refresh managers with new config
+                    lockReasonManager = new LockReasonManager(getConfig());
+                    whitelistChecker = new WhitelistChecker(getConfig());
+                    rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
                     loadScheduledUnlock();
                     if (locked && scheduledUnlockTime != null) {
                         scheduleUnlock();
                     }
-                    // Re‑initialize bStats if enabled
-                    if (getConfig().getBoolean("metrics.enabled", true)) {
-                        metricsManager = new MetricsManager(this);
-                    }
-                    // Re‑initialize UpdateChecker if enabled
-                    if (getConfig().getBoolean("update-checker.enabled", true)) {
-                        updateChecker = new UpdateChecker(this);
-                        updateChecker.checkForUpdates();
-                    }
-                    // Re‑register PlaceholderAPI expansion if present
                     if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
                         if (placeholderExpansion == null) {
                             placeholderExpansion = new LockEndExpansion(this);
@@ -417,7 +562,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     return true;
                 }
             }
-
         }
 
         if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {
@@ -430,6 +574,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             logAction(sender.getName(), locked ? "LOCK" : "UNLOCK");
             if (locked) {
                 incrementStats(true);
+                // Grace period on lock
+                if (getConfig().getBoolean("grace-period.enabled", false)) {
+                    int duration = getConfig().getInt("grace-period.duration", 10);
+                    gracePeriodTask.startGracePeriod(duration);
+                }
             }
             return true;
         } else {
@@ -440,31 +589,61 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     @EventHandler
     public void onPlayerPortal(PlayerPortalEvent event) {
+        Player player = event.getPlayer();
         if (!locked) return;
+
+        // v1.6: Check whitelist
+        if (whitelistChecker.canBypass(player)) {
+            return;
+        }
+
         if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
             event.setCancelled(true);
-            if (event.getPlayer() != null) {
-                event.getPlayer().sendMessage(msg("locked"));
-                if (getConfig().getBoolean("logging.log-attempts", true)) {
-                    logAction(event.getPlayer().getName(), "BLOCKED_PORTAL");
-                    incrementStats(false);
-                }
+            // v1.6: Use lock reason
+            String reason = lockReasonManager.getReason("default");
+            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
+
+            // v1.6: Sound effect
+            if (getConfig().getBoolean("sound-effects.enabled", false)) {
+                player.playSound(player.getLocation(),
+                        org.bukkit.Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
             }
+
+            // v1.6: Rate-limited detailed logging
+            if (getConfig().getBoolean("logging.log-attempts", true)) {
+                logAttempt(player, player.getWorld(), "PORTAL");
+            }
+            incrementStats(false);
         }
     }
 
     @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
         if (!locked) return;
+
+        // v1.6: Check whitelist
+        if (whitelistChecker.canBypass(player)) {
+            return;
+        }
+
         if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
             event.setCancelled(true);
-            if (event.getPlayer() != null) {
-                event.getPlayer().sendMessage(msg("locked"));
-                if (getConfig().getBoolean("logging.log-attempts", true)) {
-                    logAction(event.getPlayer().getName(), "BLOCKED_TELEPORT");
-                    incrementStats(false);
-                }
+            // v1.6: Use lock reason
+            String reason = lockReasonManager.getReason("default");
+            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
+
+            // v1.6: Sound effect
+            if (getConfig().getBoolean("sound-effects.enabled", false)) {
+                player.playSound(player.getLocation(),
+                        org.bukkit.Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
             }
+
+            // v1.6: Rate-limited detailed logging
+            if (getConfig().getBoolean("logging.log-attempts", true)) {
+                logAttempt(player, player.getWorld(), "TELEPORT_" + event.getCause().name());
+            }
+            incrementStats(false);
         }
     }
 

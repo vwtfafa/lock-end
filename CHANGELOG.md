@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-08-15
+### Added
+- **Lock reasons**: Customizable reason displayed when blocking (e.g., "Maintenance", "Event in progress")
+- **Grace period**: Temporary unlock after locking to allow players to exit safely
+- **Player/entity whitelists**: Whitelisted players/entities can bypass the lock
+- **Preview notifications**: Warn players X seconds before automatic lock/unlock
+- **Sound effects**: Play custom sounds when attempting to access locked End
+- **Attempt rate limiting**: Prevent log spam from rapid attempts
+- **Detailed attempt logging**: Log player name, source world, method used (portal/command/teleport)
+- **Countdown timers**: Visible countdown before scheduled lock/unlock
+- **Pause/resume schedules**: Temporarily override scheduled events with `/schedules pause` and `/schedules resume`
+- **Lock history**: View recent lock/unlock actions with `/history`
+- **Undo last action**: Quickly reverse the most recent lock/unlock command with `/undo`
+- **Configuration validator**: Check config.yml for errors with `/validateconfig`
+- **Cached permission lookups**: Optimize permission and configuration checks
+- **Asynchronous logging**: Move file I/O off main thread to prevent lag
+- **Mobile-friendly alias**: `/el` as short alias for `/endlock`
+- New permissions: `endlock.whitelist.bypass`, `endlock.history`, `endlock.undo`, `endlock.validate`, `endlock.schedules.pause`, `endlock.schedules.resume`, `endlock.schedules.status`
+
+### Changed
+- Updated `config.yml` with new v1.6 options (preview-notifications, sound-effects, lock-reasons, grace-period, whitelists, logging.rate-limit-seconds, scheduled-unlock.countdown)
+- Updated `messages_en.yml` and `messages_de.yml` with new message keys
+- Updated `plugin.yml` with new commands and permissions
+
 ## [1.5.0] - 2026-08-14
 ### Added
 - Reload command: `/endlock reload` (and `/lock reload`) to reload configuration without restart.

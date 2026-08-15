@@ -1,4 +1,5 @@
 locked: "The End is locked!"
+locked-reason: "The End is locked! Reason: %reason%"
 toggle: "The End is now %status%."
 status: "The End is currently %status%."
 permission: "§cYou do not have permission to lock or unlock the End."
@@ -27,3 +28,33 @@ join-notification: "§6The End is currently locked."
 update-available: "§6[§cEndLock§6] Update available: §e%version%"
 update-download: "§7Open: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguration reloaded successfully!"
+
+# v1.6: Preview notifications
+preview-lock: "§eThe End will be locked in §b%seconds% §eseconds!"
+preview-unlock: "§aThe End will be unlocked in §e%seconds% §aseconds!"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] Scheduled unlock has been §cpaused§6. Use §e/schedules resume§6 to resume."
+schedule-resumed: "§6[§cEndLock§6] Scheduled unlock has been §aresumed§6."
+schedule-not-paused: "§6[§cEndLock§6] The schedule is not currently paused."
+schedule-pause-not-locked: "§6[§cEndLock§6] Cannot pause schedule: the End is not locked."
+schedule-resume-not-paused: "§6[§cEndLock§6] Cannot resume schedule: no schedule is paused."
+schedules-command-info: "§7Schedule commands: §e/schedules pause§7, §e/schedules resume§7, §e/schedules status"
+countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time%§6."
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eLock History (last 10):"
+history.empty: "§6[§cEndLock§6] No lock history recorded."
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] Successfully undone last action. End is now §e%action%§6."
+
+# v1.6: Config validator
+config.valid: "§aConfiguration is valid. No issues found."
+config.issues: "§6[§cEndLock§6] §eConfiguration issues found:"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] Schedule is currently §cpaused§6."
+countdown-status-active: "§6[§cEndLock§6] Schedule is currently §aactive§6. Unlocking in: %time%"

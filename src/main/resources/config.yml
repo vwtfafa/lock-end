@@ -1,6 +1,7 @@
 # EndLock Plugin Configuration
 locked: false
 language: en
+lock-reason: "Maintenance"
 
 # Update Checker: Notifications for available updates
 update-checker:
@@ -18,11 +19,49 @@ broadcast:
   use-actionbar: true  # Send as action bar instead of chat
   notify-all: true     # Notify all players (if false, only Ops)
 
-# Logging: Track who locked/unlocked and when
+# v1.6: Preview notifications - Warn players before automatic lock/unlock
+preview-notifications:
+  enabled: false
+  seconds: 30  # How many seconds before lock/unlock to send preview
+
+# v1.6: Action bar customization
+actionbar:
+  use-alt-char: false  # Use alternate character for overflow handling
+  alt-char: "|"
+
+# v1.6: Sound effects for access denial
+sound-effects:
+  enabled: false
+  sound: "BLOCK_ANVIL_LAND"
+  volume: 1.0
+  pitch: 1.0
+
+# v1.6: Lock reasons
+lock-reasons:
+  default: "Maintenance"
+  maintenance: "Maintenance in progress"
+  event: "Event in progress"
+
+# v1.6: Grace period - Temporary unlock after locking to allow safe exit
+grace-period:
+  enabled: false
+  duration: 10  # seconds
+
+# v1.6: Whitelists
+whitelists:
+  players: []  # Player names that can bypass the lock
+  entities: []  # Entity types that can bypass the lock
+
+# v1.6: Logging & Analytics
 logging:
   enabled: true
   log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
   log-attempts: true       # Log attempted access to locked End
+  rate-limit-seconds: 5    # Minimum seconds between logged attempts per player
+
+# v1.6: Schedule pause/resume
+schedule:
+  paused: false
 
 # Test Command: Allow /endlock test for Ops to verify blocking works
 test-command:
@@ -45,6 +84,11 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
+  # v1.6: Countdown timer
+  countdown:
+    enabled: true
+    interval: 10      # Seconds between countdown updates
+    start-before: 300 # Show countdown N seconds before unlock
 
 # Optional integrations and formatting
 hooks:

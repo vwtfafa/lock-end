@@ -118,5 +118,10 @@ runs/
 # Claude AI
 .claude/
 
+# Feature planning docs
+FEATURE_BRAINSTORMING.md
+FEATURE_ROADMAP.md
+V1_6_PLAN.md
+
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar

@@ -1,4 +1,5 @@
 locked: "¡El End está bloqueado!"
+locked-reason: "¡El End está bloqueado! Razón: %reason%"
 toggle: "El End está ahora %status%."
 status: "El End está actualmente %status%."
 permission: "§cNo tienes permiso para bloquear o desbloquear el End."
