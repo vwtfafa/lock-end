@@ -37,7 +37,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private MetricsManager metricsManager;
     private File logDir;
     private File logFile;
-    private MiniMessage miniMessage = MiniMessage.miniMessage();
+    private MiniMessage miniMessage;
+    private boolean miniMessageEnabled;
     private LocalDateTime scheduledUnlockTime;
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
@@ -51,6 +52,12 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
         langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
+        // Load hook flags
+        miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
+        // Initialize MiniMessage if enabled
+        if (miniMessageEnabled) {
+            this.miniMessage = MiniMessage.miniMessage();
+        }
         Bukkit.getPluginManager().registerEvents(this, this);
         if (getCommand("endlock") != null) {
             getCommand("endlock").setExecutor(this);
@@ -213,8 +220,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             return;
         }
         String message = getConfig().getBoolean("join-notifications.show-remaining", true)
-            ? msg("join-notification")
-            : msg("join-notification");
+                ? msg("join-notification")
+                : msg("join-notification");
         player.sendMessage(message);
     }
 
@@ -229,22 +236,23 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
     }
 
+    
+    /**
+     * Logs lock/unlock actions and optional attempt logs to the configured log file.
+     */
     private void logAction(String player, String action) {
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
         }
-
         try {
             LocalDateTime now = LocalDateTime.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String timestamp = now.format(formatter);
             String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
-                timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
-
+                    timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
             if (logFile != null && !logFile.exists()) {
                 logFile.createNewFile();
             }
-
             try (FileWriter writer = new FileWriter(logFile, true)) {
                 writer.append(logMessage);
                 writer.flush();
@@ -260,6 +268,26 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (args.length == 1) {
             List<String> options = List.of("status", "lock", "unlock", "test", "stats", "unlockin", "unlockat", "reload");
             StringUtil.copyPartialMatches(args[0], options, completions);
+        } else if (args.length == 2) {
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            switch (sub) {
+                case "unlockin" -> {
+                    List<String> days = List.of("1", "7", "30");
+                    StringUtil.copyPartialMatches(args[1], days, completions);
+                }
+                case "unlockat" -> {
+                    // Suggest tomorrow's date as a default hint
+                    java.time.LocalDate tomorrow = java.time.LocalDate.now().plusDays(1);
+                    String dateHint = tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                    List<String> dates = List.of(dateHint);
+                    StringUtil.copyPartialMatches(args[1], dates, completions);
+                }
+            }
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("unlockat")) {
+                List<String> times = List.of("00:00", "12:00", "23:59");
+                StringUtil.copyPartialMatches(args[2], times, completions);
+            }
         }
         return completions;
     }
@@ -283,7 +311,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         broadcastMessage("broadcast-locked", sender.getName());
                         logAction(sender.getName(), "LOCK");
                         incrementStats(true);
-                    } else {
+                                            } else {
                         sender.sendMessage("§cThe End is already locked!");
                     }
                     return true;
@@ -296,7 +324,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
                         broadcastMessage("broadcast-unlocked", sender.getName());
                         logAction(sender.getName(), "UNLOCK");
-                    } else {
+                                            } else {
                         sender.sendMessage("§cThe End is already unlocked!");
                     }
                     return true;
@@ -318,33 +346,43 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     return true;
                 }
                 case "unlockin" -> {
-                    if (args.length >= 2) {
-                        try {
-                            int days = Integer.parseInt(args[1]);
-                            scheduledUnlockTime = LocalDateTime.now().plusDays(days);
-                            getConfig().set("scheduled-unlock.enabled", true);
-                            getConfig().set("scheduled-unlock.mode", "days");
-                            getConfig().set("scheduled-unlock.days", days);
-                            saveConfig();
-                            sender.sendMessage("§aScheduled unlock in " + days + " days.");
-                        } catch (Exception e) {
-                            sender.sendMessage("§cUsage: /endlock unlockin <days>");
+                    if (args.length < 2) {
+                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
+                        return true;
+                    }
+                    try {
+                        int days = Integer.parseInt(args[1]);
+                        scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+                        getConfig().set("scheduled-unlock.enabled", true);
+                        getConfig().set("scheduled-unlock.mode", "days");
+                        getConfig().set("scheduled-unlock.days", days);
+                        saveConfig();
+                        sender.sendMessage("§aScheduled unlock in " + days + " days.");
+                        if (locked) {
+                            scheduleUnlock();
                         }
+                    } catch (Exception e) {
+                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
                     }
                     return true;
                 }
                 case "unlockat" -> {
-                    if (args.length >= 2) {
-                        try {
-                            scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                            getConfig().set("scheduled-unlock.enabled", true);
-                            getConfig().set("scheduled-unlock.mode", "datetime");
-                            getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                            saveConfig();
-                            sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
-                        } catch (Exception e) {
-                            sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
+                    if (args.length < 3) {
+                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
+                        return true;
+                    }
+                    try {
+                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                        getConfig().set("scheduled-unlock.enabled", true);
+                        getConfig().set("scheduled-unlock.mode", "datetime");
+                        getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                        saveConfig();
+                        sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
+                        if (locked) {
+                            scheduleUnlock();
                         }
+                    } catch (Exception e) {
+                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
                     }
                     return true;
                 }
