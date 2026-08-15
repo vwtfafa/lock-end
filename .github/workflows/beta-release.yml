@@ -90,7 +90,7 @@ jobs:
           fi
           if gh release view "$BETA_TAG" >/dev/null 2>&1; then
             gh release upload "$BETA_TAG" "$ARTIFACT" --clobber
-            gh release edit "$BETA_TAG" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --set-latest='false'
+            gh release edit "$BETA_TAG" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --set-latest=false
           else
-            gh release create "$BETA_TAG" "$ARTIFACT" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --set-latest='false'
+            gh release create "$BETA_TAG" "$ARTIFACT" --title "Lock-End ${BETA_TAG} (Beta)" --notes-file release-body.md --prerelease --set-latest=false
           fi
