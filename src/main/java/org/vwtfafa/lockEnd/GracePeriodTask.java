@@ -27,7 +27,7 @@ public class GracePeriodTask {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (plugin.isLocked()) {
                 plugin.setLocked(false);
-                plugin.getLogger().info("Grace period ended, End is now locked.");
+                plugin.getLogger().info("Grace period ended, End is now unlocked.");
             }
             active = false;
         }, durationSeconds * 20L);

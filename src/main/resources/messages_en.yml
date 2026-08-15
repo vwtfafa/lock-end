@@ -5,6 +5,8 @@ status: "The End is currently %status%."
 permission: "§cYou do not have permission to lock or unlock the End."
 open: "§aopen"
 closed: "§clocked"
+already-locked: "§cThe End is already locked!"
+already-unlocked: "§cThe End is already unlocked!"
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End has been §clocked§6 by §b%player%"

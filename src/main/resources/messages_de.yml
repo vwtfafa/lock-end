@@ -5,6 +5,8 @@ status: "Das End ist aktuell %status%."
 permission: "§cDu hast keine Berechtigung, das End zu sperren oder zu entsperren."
 open: "§aoffen"
 closed: "§cgesperrt"
+already-locked: "§cDas End ist bereits gesperrt!"
+already-unlocked: "§cDas End ist bereits entsperrt!"
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End wurde von §b%player% §cgesperrt"

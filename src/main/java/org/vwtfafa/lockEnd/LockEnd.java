@@ -58,13 +58,15 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private LockReasonManager lockReasonManager;
     private GracePeriodTask gracePeriodTask;
     private WhitelistChecker whitelistChecker;
+    private PreviewNotificationManager previewManager;
+    private SoundEffectPlayer soundPlayer;
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
     private ConfigValidatorCommand configValidatorCommand;
     private AsyncLogger asyncLogger;
 
     // Logging & Analytics
-    private final Map<UUID, Long> lastAttemptTimes = new HashMap<>();
+    private final Map<UUID, Long> lastAttemptTimes = new java.util.concurrent.ConcurrentHashMap<>();
     private int rateLimitSeconds = 5;
 
     // Schedule pause/resume
@@ -88,6 +90,12 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
         // v1.6: Whitelist checker
         whitelistChecker = new WhitelistChecker(getConfig());
+
+        // v1.6: Preview notifications
+        previewManager = new PreviewNotificationManager(this);
+
+        // v1.6: Sound effects
+        soundPlayer = new SoundEffectPlayer(this);
 
         // v1.6: Admin commands
         historyCommand = new LockHistoryCommand(this);
@@ -121,6 +129,10 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             getCommand("lock").setExecutor(this);
             getCommand("lock").setTabCompleter(this);
         }
+        if (getCommand("el") != null) {
+            getCommand("el").setExecutor(this);
+            getCommand("el").setTabCompleter(this);
+        }
         if (getCommand("history") != null) {
             getCommand("history").setExecutor(historyCommand);
         }
@@ -130,18 +142,13 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (getCommand("validateconfig") != null) {
             getCommand("validateconfig").setExecutor(configValidatorCommand);
         }
+        if (getCommand("schedules") != null) {
+            getCommand("schedules").setExecutor(this);
+            getCommand("schedules").setTabCompleter(this);
+        }
 
         // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
-
-        if (getCommand("endlock") != null) {
-            getCommand("endlock").setExecutor(this);
-            getCommand("endlock").setTabCompleter(this);
-        }
-        if (getCommand("lock") != null) {
-            getCommand("lock").setExecutor(this);
-            getCommand("lock").setTabCompleter(this);
-        }
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
@@ -443,6 +450,10 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     return true;
                 }
                 case "lock" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
                     if (!locked) {
                         locked = true;
                         getConfig().set("locked", true);
@@ -459,11 +470,15 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                             gracePeriodTask.startGracePeriod(duration);
                         }
                     } else {
-                        sender.sendMessage("§cThe End is already locked!");
+                        sender.sendMessage(msg("already-locked"));
                     }
                     return true;
                 }
                 case "unlock" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
                     if (locked) {
                         locked = false;
                         getConfig().set("locked", false);
@@ -473,7 +488,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         logAction(sender.getName(), "UNLOCK");
                         historyCommand.addEntry("UNLOCK by " + sender.getName());
                     } else {
-                        sender.sendMessage("§cThe End is already unlocked!");
+                        sender.sendMessage(msg("already-unlocked"));
                     }
                     return true;
                 }
@@ -540,7 +555,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         return true;
                     }
                     pauseSchedule();
-                    sender.sendMessage(msg("schedule.paused"));
+                    sender.sendMessage(msg("schedule-paused"));
                     return true;
                 }
                 case "resume" -> {
@@ -549,7 +564,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         return true;
                     }
                     resumeSchedule();
-                    sender.sendMessage(msg("schedule.resumed"));
+                    sender.sendMessage(msg("schedule-resumed"));
                     return true;
                 }
                 case "reload" -> {
@@ -617,10 +632,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             player.sendMessage(msg("locked-reason").replace("%reason%", reason));
 
             // v1.6: Sound effect
-            if (getConfig().getBoolean("sound-effects.enabled", false)) {
-                player.playSound(player.getLocation(),
-                        org.bukkit.Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
-            }
+            soundPlayer.playDenialSound(player);
 
             // v1.6: Rate-limited detailed logging
             if (getConfig().getBoolean("logging.log-attempts", true)) {
@@ -647,10 +659,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             player.sendMessage(msg("locked-reason").replace("%reason%", reason));
 
             // v1.6: Sound effect
-            if (getConfig().getBoolean("sound-effects.enabled", false)) {
-                player.playSound(player.getLocation(),
-                        org.bukkit.Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
-            }
+            soundPlayer.playDenialSound(player);
 
             // v1.6: Rate-limited detailed logging
             if (getConfig().getBoolean("logging.log-attempts", true)) {

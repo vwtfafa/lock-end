@@ -15,11 +15,9 @@ import java.util.List;
  */
 public class UndoCommand implements CommandExecutor, TabCompleter {
     private final LockEnd plugin;
-    private boolean lastActionLocked;
 
     public UndoCommand(LockEnd plugin) {
         this.plugin = plugin;
-        this.lastActionLocked = false;
     }
 
     @Override
@@ -29,9 +27,9 @@ public class UndoCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        boolean currentState = plugin.isLocked();
-        plugin.setLocked(!currentState);
-        plugin.getConfig().set("locked", !currentState);
+        boolean previousState = plugin.isLocked();
+        plugin.setLocked(!previousState);
+        plugin.getConfig().set("locked", !previousState);
         plugin.saveConfig();
 
         sender.sendMessage(plugin.msg("undo.success")
