@@ -28,7 +28,11 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep "^version = " build.gradle | cut -d "'" -f2 | xargs)
+          VERSION=$(grep "^version" build.gradle | head -1 | sed "s/^version = ['\"]//;s/['\"].*$//" | tr -d ' ')
+          if [ -z "$VERSION" ]; then
+            VERSION="1.6.0"
+            echo "Warning: Could not extract version, using default $VERSION"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building version $VERSION"
 
