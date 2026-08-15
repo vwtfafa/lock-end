@@ -24,7 +24,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
 * 🔐 Lock or unlock the End with `/endlock` (alias: `/lock`) — permission: `endlock.toggle`
 * 🧭 Check the current status with `/endlock status` — **no permission required**
-* 🔨 **Explicit Subcommands** (v1.4.0):
+* 🔨 **Explicit Subcommands** (v1.5.0):
   * `/endlock lock` — Lock the End
   * `/endlock unlock` — Unlock the End
   * `/endlock status` — Show current state
@@ -32,6 +32,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
   * `/endlock unlockin <days>` — Schedule an automatic unlock
   * `/endlock unlockat <yyyy-MM-dd> <HH:mm>` — Schedule an automatic unlock at a specific time
   * `/endlock test` — Test if portal blocking works (Ops only, configurable)
+  * `/endlock reload` — Reload config, language, scheduled unlock, bStats, UpdateChecker, PlaceholderAPI
 * 📋 **Tab Completion** — Full tab completion for all commands
 * 🖥️ **Console** can toggle the End without any permission
 * 🚫 Blocks **player** teleportation into the End:
@@ -57,6 +58,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock unlock` | Unlock the End | `endlock.toggle` |
 | `/endlock status` | Show current lock status | — |
 | `/endlock test` | Test if portal blocking works | `endlock.admin` (Ops, configurable) |
+| `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 
 ---
@@ -67,6 +69,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | ---------- | ----------- | ------- |
 | `endlock.toggle` | Allows locking/unlocking the End | OP |
 | `endlock.admin` | Allows using the test command | OP |
+| `endlock.reload` | Allows reloading the plugin configuration | OP |
 
 ---
 
@@ -82,6 +85,7 @@ language: en
 update-checker:
   enabled: true
   notify-ops: true
+  notify-chat: true
 
 # bStats Metrics: Helps developers understand plugin usage
 metrics:
@@ -102,6 +106,30 @@ logging:
 # Test Command: /endlock test (Ops only)
 test-command:
   enabled: true
+
+# Optional statistics collection
+stats:
+  enabled: true
+  lock-count: 0
+  blocked-count: 0
+
+# Optional join notifications for players joining while the End is locked
+join-notifications:
+  enabled: false
+  show-remaining: true
+
+# Optional scheduled unlock
+scheduled-unlock:
+  enabled: false
+  mode: "days"        # days or datetime
+  days: 7
+  datetime: ""
+
+# Optional integrations and formatting
+hooks:
+  mini-message: true
+  placeholderapi: true
+  discordsrv: false
 ```
 
 ### Available languages
@@ -128,10 +156,9 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 | **Paper** 26.2+ | ✅ Recommended |
 | **Purpur** 26.2+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
-| **Plain Bukkit** | ❌ Not supported (requires Paper API) |
 
-* **Minecraft:** `1.26.2+` (Minecraft 26.2.0 and higher)
-* **Java:** `25` (or higher, tested with Java 25)
+* **Minecraft:** `26.2`
+* **Java:** `25` 
 
 ---
 
@@ -139,16 +166,8 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * Only **players** are blocked — not mobs or items
 * Players already inside the End when locking are **not** removed
-* No `/reload` command — restart to change language files
-
-### Version 1.3 Highlights
-
-* ✅ Tab completion for all commands
-* ✅ Explicit subcommands: `/endlock lock`, `/endlock unlock`, `/endlock test`
-* ✅ Broadcast notifications (actionbar + chat)
-* ✅ Event logging with timestamps
-* ✅ Full test command for portal blocking verification
-* ✅ Updated to Paper 26.2 & Java 25
+* No `/reload` command prior to v1.5.0; now available to refresh config, language, scheduled unlock, bStats, UpdateChecker, PlaceholderAPI
+* The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
 
@@ -158,6 +177,9 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 /endlock
 /lock
 /endlock status
+/endlock unlockin 3
+/endlock unlockat 2026-12-31 23:59
+/endlock reload
 ```
 
 ---
@@ -165,7 +187,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-1.3.jar` into your `plugins` folder
+2. Put `lock-end-1.5.0.jar` into your `plugins` folder
 3. Restart your server (Paper 26.2+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
@@ -175,35 +197,5 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * [GitHub Repository](https://github.com/vwtfafa/lock-end)
 * [Issues & Support](https://github.com/vwtfafa/lock-end/issues)
-```
 
 ---
-
-## Review deines Entwurfs (Kurz)
-
-| Punkt | Bewertung |
-| ----- | --------- |
-| Struktur & Lesbarkeit | Sehr gut – klar für Modrinth |
-| **Bukkit ✅** | Anpassen: ohne Paper API lädt das Plugin nicht (`api-version: 26.1`) |
-| **Purpur ✅** | Stimmt (Paper-Fork) |
-| **Spigot ❌** | Stimmt |
-| **„all teleport mechanisms“** | Etwas zu stark – nur **Spieler**-Teleports/Portale |
-| **`endlock.toggle` Default OP** | War im Code nicht in `plugin.yml` → jetzt ergänzt |
-| **`/endlock status` ohne Permission** | Fehlte bei dir – wichtig, jetzt drin |
-| **Konsole** | Fehlte – jetzt drin |
-| **Installation** | „if want“ → „if you want“; JAR-Name + Paper/Java ergänzt |
-| **Limitations** | Empfohlen – jetzt unter „Notes“ |
-
----
-
-## Upload-Checkliste
-
-| Feld | Wert |
-| ---- | ---- |
-| Game version | `26.1.2` |
-| Loader | Paper |
-| Version | `1.1.0` |
-| JAR | `lock-end-1.1.0.jar` |
-| Icon | PNG 512×512 |
-
-**Tags:** `management`, `utility`, `admin-tools`

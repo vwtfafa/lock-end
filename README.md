@@ -90,33 +90,58 @@ permissions:
 `plugins/EndLock/config.yml`:
 
 ```yaml
-locked: false      # true = End is locked on startup
-language: en       # en, de, fr, es, it, ru, zh, ja
+# EndLock Plugin Configuration
+locked: false
+language: en
 
-# Update Checker: Notifies Ops when updates are available
+# Update Checker: Notifications for available updates
 update-checker:
   enabled: true
   notify-ops: true
+  notify-chat: true
 
-# bStats: Anonymous usage statistics
+# bStats Metrics
 metrics:
   enabled: true
 
-# Broadcast: Send alerts when End is locked/unlocked
+# Broadcast: Send alerts to all players when End is locked/unlocked
 broadcast:
   enabled: true
-  use-actionbar: true     # Send as action bar (or chat if false)
-  notify-all: true        # Notify all players (if false, only Ops)
+  use-actionbar: true  # Send as action bar instead of chat
+  notify-all: true     # Notify all players (if false, only Ops)
 
-# Logging: Track lock/unlock events in a log file
+# Logging: Track who locked/unlocked and when
 logging:
   enabled: true
-  log-file: "EndLock.log"    # Created in plugins/EndLock/logs/
-  log-attempts: true          # Log blocked access attempts
+  log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
+  log-attempts: true       # Log attempted access to locked End
 
-# Test Command: Allow /endlock test for Ops
+# Test Command: Allow /endlock test for Ops to verify blocking works
 test-command:
   enabled: true
+
+# Optional statistics collection
+stats:
+  enabled: true
+  lock-count: 0
+  blocked-count: 0
+
+# Optional join notifications for players joining while the End is locked
+join-notifications:
+  enabled: false
+  show-remaining: true
+
+# Optional scheduled unlock
+scheduled-unlock:
+  enabled: false
+  mode: "days"        # days or datetime
+  days: 7
+  datetime: ""
+
+# Optional integrations and formatting
+hooks:
+  mini-message: true
+  placeholderapi: true
 ```
 
 ### Custom messages
