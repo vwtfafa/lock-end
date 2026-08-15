@@ -5,15 +5,25 @@ permission: "§cVous n'avez pas la permission de verrouiller ou déverrouiller l
 open: "§aouvert"
 closed: "§cverrouillé"
 
-# Messages de diffusion
-broadcast-locked: "§6[§cEndLock§6] End a été §cverrouillé§6 par §b%player%"
-broadcast-unlocked: "§6[§cEndLock§6] End a été §adéverrouillé§6 par §b%player%"
-actionbar-locked: "§c✗ End est verrouillé"
-actionbar-unlocked: "§a✓ End est ouvert"
+# Broadcast messages
+broadcast-locked: "§6[§cEndLock§6] L'End a été §cverrouillé§6 par §b%player%"
+broadcast-unlocked: "§6[§cEndLock§6] L'End a été §adéverrouillé§6 par §b%player%"
+actionbar-locked: "§c✗ L'End est verrouillé"
+actionbar-unlocked: "§a✓ L'End est ouvert"
 
-# Commande de test
+# Test command
 test-success: "§a[TEST] Le blocage des portails fonctionne correctement !"
 test-info: "§6[TEST] État actuel de l'End : %status%"
 
-# Journalisation
+# Logging
 log-player-name: "Console"
+
+# Stats and scheduled unlock
+stats-header: "§7Statistiques : §aVerrouillages §f%lockcount% §7| §cDéverrouillages §f%blockedcount%"
+stats-empty: "§7Aucune statistique enregistrée."
+scheduled-unlock-set: "§aDéblocage programmé défini."
+scheduled-unlock-invalid: "§cUtilisation : /endlock unlockin <jours> ou /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6L'End est actuellement verrouillé."
+update-available: "§6[§cEndLock§6] Mise à jour disponible : §e%version%"
+update-download: "§7Ouvrir : §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§aConfiguration rechargée avec succès !"

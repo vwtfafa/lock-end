@@ -6,7 +6,7 @@ open: "§aaperta"
 closed: "§cbloccata"
 
 # Messaggi di trasmissione
-broadcast-locked: "§6[§cEndLock§6] La End è stata §cblocata§6 da §b%player%"
+broadcast-locked: "§6[§cEndLock§6] La End è stata §cbloccata§6 da §b%player%"
 broadcast-unlocked: "§6[§cEndLock§6] La End è stata §asbloccata§6 da §b%player%"
 actionbar-locked: "§c✗ La End è bloccata"
 actionbar-unlocked: "§a✓ La End è aperta"
@@ -17,3 +17,13 @@ test-info: "§6[TEST] Stato attuale della End: %status%"
 
 # Registrazione
 log-player-name: "Console"
+
+# Statistiche e sblocco programmato
+stats-header: "§7Statistiche: §aBlocchi §f%lockcount% §7| §cTentativi bloccati §f%blockedcount%"
+stats-empty: "§7Nessuna statistica registrata."
+scheduled-unlock-set: "§aSblocco programmato impostato."
+scheduled-unlock-invalid: "§cUtilizzo: /endlock unlockin <giorni> o /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6La End è attualmente bloccata."
+update-available: "§6[§cEndLock§6] Aggiornamento disponibile: §e%version%"
+update-download: "§7Apri: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§aConfigurazione ricaricata con successo!"

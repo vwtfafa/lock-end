@@ -17,3 +17,13 @@ test-info: "§6[PRUEBA] Estado actual del End: %status%"
 
 # Registro
 log-player-name: "Consola"
+
+# Estadísticas y desbloqueo programado
+stats-header: "§7Estadísticas: §aBloqueos §f%lockcount% §7| §cIntentos bloqueados §f%blockedcount%"
+stats-empty: "§7No hay estadísticas registradas todavía."
+scheduled-unlock-set: "§aDesbloqueo program establecido."
+scheduled-unlock-invalid: "§cUso: /endlock unlockin <días> o /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6El End actualmente está bloqueado."
+update-available: "§6[§cEndLock§6] Actualización disponible: §e%version%"
+update-download: "§7Abrir: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§aConfiguración recargada correctamente!"
