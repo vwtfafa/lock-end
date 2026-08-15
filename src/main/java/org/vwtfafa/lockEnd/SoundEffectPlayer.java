@@ -38,7 +38,12 @@ public class SoundEffectPlayer {
             return;
         }
         try {
-            Sound sound = Sound.valueOf(soundName);
+            Sound sound;
+            try {
+                sound = Sound.valueOf(soundName);
+            } catch (IllegalArgumentException e) {
+                sound = Sound.BLOCK_ANVIL_LAND;
+            }
             Location location = player.getLocation();
             player.playSound(location, sound, volume, pitch);
         } catch (IllegalArgumentException e) {
