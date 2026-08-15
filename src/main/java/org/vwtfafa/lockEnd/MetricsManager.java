@@ -9,12 +9,11 @@ public class MetricsManager {
     private final JavaPlugin plugin;
     private final Metrics metrics;
 
-    // bStats Plugin ID for EndLock - https://bstats.org/what-is-my-plugin-id
     private static final int PLUGIN_ID = 32010;
 
     public MetricsManager(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.metrics = new Metrics(plugin, PLUGIN_ID);
+        this.metrics = new Metrics(plugin, 32010);
         initializeCharts();
     }
 

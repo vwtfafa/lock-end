@@ -50,4 +50,3 @@ scheduled-unlock:
 hooks:
   mini-message: true
   placeholderapi: true
-  discordsrv: false
