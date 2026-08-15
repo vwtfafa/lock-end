@@ -17,3 +17,13 @@ test-info: "§6[ТЕСТ] Текущий статус Края: %status%"
 
 # Логирование
 log-player-name: "Консоль"
+
+# Статистика и планируемое разблокирование
+stats-header: "§7Статистика: §aБлокировки §f%lockcount% §7| §cПопытки блокировки §f%blockedcount%"
+stats-empty: "§7Статистика пока не записана."
+scheduled-unlock-set: "§aЗапланированное разблокирование установлено."
+scheduled-unlock-invalid: "§cИспользование: /endlock unlockin <дней> или /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6Край сейчас заблокирован."
+update-available: "§6[§cEndLock§6] Обновление доступно: §e%version%"
+update-download: "§7Открыть: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§aКонфигурация успешно перезагружена!"

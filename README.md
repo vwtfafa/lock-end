@@ -2,8 +2,9 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## What's new in 1.4.0
+## What's new in 1.5.0
 
+- Reload command: `/endlock reload` (and `/lock reload`) to reload configuration without restart.
 - Optional join notifications for players entering while the End is locked
 - Optional scheduled unlocks with `/endlock unlockin` and `/endlock unlockat`
 - Basic plugin statistics via `/endlock stats`
@@ -23,7 +24,7 @@
 
 ## Installation
 
-1. Download the latest `lock-end-1.3.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-1.5.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker, metrics).
@@ -37,6 +38,7 @@
 | `/endlock unlock` | Explicitly unlock the End | `endlock.toggle` |
 | `/endlock status` | Show whether the End is locked or open | *(none)* |
 | `/endlock test` | Test if portal blocking works | *(Ops only, configurable)* |
+| `/endlock reload` | Reload configuration without restart | `endlock.reload` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
@@ -46,7 +48,9 @@
 
 | Permission | Default | Description |
 |------------|---------|-------------|
-| `endlock.toggle` | `op` | Lock or unlock the End via command || `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
+| `endlock.toggle` | `op` | Lock or unlock the End via command |
+| `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
+| `endlock.reload` | `op` | Reload plugin configuration without restart |
 
 ### LuckPerms Setup
 
@@ -86,33 +90,58 @@ permissions:
 `plugins/EndLock/config.yml`:
 
 ```yaml
-locked: false      # true = End is locked on startup
-language: en       # en, de, fr, es, it, ru, zh, ja
+# EndLock Plugin Configuration
+locked: false
+language: en
 
-# Update Checker: Notifies Ops when updates are available
+# Update Checker: Notifications for available updates
 update-checker:
   enabled: true
   notify-ops: true
+  notify-chat: true
 
-# bStats: Anonymous usage statistics
+# bStats Metrics
 metrics:
   enabled: true
 
-# Broadcast: Send alerts when End is locked/unlocked
+# Broadcast: Send alerts to all players when End is locked/unlocked
 broadcast:
   enabled: true
-  use-actionbar: true     # Send as action bar (or chat if false)
-  notify-all: true        # Notify all players (if false, only Ops)
+  use-actionbar: true  # Send as action bar instead of chat
+  notify-all: true     # Notify all players (if false, only Ops)
 
-# Logging: Track lock/unlock events in a log file
+# Logging: Track who locked/unlocked and when
 logging:
   enabled: true
-  log-file: "EndLock.log"    # Created in plugins/EndLock/logs/
-  log-attempts: true          # Log blocked access attempts
+  log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
+  log-attempts: true       # Log attempted access to locked End
 
-# Test Command: Allow /endlock test for Ops
+# Test Command: Allow /endlock test for Ops to verify blocking works
 test-command:
   enabled: true
+
+# Optional statistics collection
+stats:
+  enabled: true
+  lock-count: 0
+  blocked-count: 0
+
+# Optional join notifications for players joining while the End is locked
+join-notifications:
+  enabled: false
+  show-remaining: true
+
+# Optional scheduled unlock
+scheduled-unlock:
+  enabled: false
+  mode: "days"        # days or datetime
+  days: 7
+  datetime: ""
+
+# Optional integrations and formatting
+hooks:
+  mini-message: true
+  placeholderapi: true
 ```
 
 ### Custom messages
@@ -127,7 +156,7 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-1.3.jar`
+Output: `build/libs/lock-end-1.5.0.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -160,7 +189,7 @@ Run a local test server (downloads Paper 26.2):
 
 ## License
 
-Specify your license here (e.g. MIT) and add a `LICENSE` file before publishing.
+This project is licensed under the **All Rights Reserved** license. See the `LICENSE` file for details.
 
 ## Author
 

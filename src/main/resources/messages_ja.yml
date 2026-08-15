@@ -17,3 +17,13 @@ test-info: "§6[テスト] ジ・エンドの現在の状態: %status%"
 
 # ロギング
 log-player-name: "コンソール"
+
+# 統計と予約解除
+stats-header: "§7統計: §aロック数 §f%lockcount% §7| §cブロック数 §f%blockedcount%"
+stats-empty: "§7統計はまだ記録されていません。"
+scheduled-unlock-set: "§a予約解除が設定されました。"
+scheduled-unlock-invalid: "§c使用方法: /endlock unlockin <日数> または /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6ジ・エンドは現在ロックされています。"
+update-available: "§6[§cEndLock§6] アップデートが利用可能です: §e%version%"
+update-download: "§7を開く: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§a設定が正常に再読み込みされました！"

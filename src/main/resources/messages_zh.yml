@@ -17,3 +17,13 @@ test-info: "§6[测试] 末地当前状态: %status%"
 
 # 日志
 log-player-name: "控制台"
+
+# 统计和定时解锁
+stats-header: "§7统计: §a锁定次数 §f%lockcount% §7| §c阻止次数 §f%blockedcount%"
+stats-empty: "§7暂无统计数据。"
+scheduled-unlock-set: "§a定时解锁已设置。"
+scheduled-unlock-invalid: "§c用法: /endlock unlockin <天数> 或 /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+join-notification: "§6末地当前被锁定。"
+update-available: "§6[§c末地Lock§6] 有可用更新: §e%version%"
+update-download: "§7打开: §bhttps://github.com/vwtfafa/lock-end/releases"
+reload-success: "§a配置重新加载成功！"
