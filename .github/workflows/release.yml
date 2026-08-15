@@ -3,8 +3,8 @@ name: Build and Release
 on:
   push:
     branches:
-      - master
       - main
+      - master
 
 permissions:
   contents: write
@@ -50,12 +50,21 @@ jobs:
             CHANGELOG="- Initial release"
           fi
           if [ -f .github/RELEASE_TEMPLATE.md ]; then
-            sed \
-              -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@GITHUB_SHA@/${{ github.sha }}/g" \
-              -e "s/@BUILD_DATE@/${BUILD_DATE}/g" \
-              -e "s|@CHANGELOG@|${CHANGELOG}|g" \
-              .github/RELEASE_TEMPLATE.md > release-body.md
+            cat > release-body.md <<EOF
+          ## 🔒 Lock-End ${VERSION}
+
+          **Requirements:** Paper 26.2+, Java 25
+
+          Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
+
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for commands and configuration.
+
+          ### Changes
+          ${CHANGELOG}
+
+          ---
+          *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
+          EOF
           else
             cat > release-body.md <<EOF
           ## 🔒 Lock-End ${VERSION}
@@ -64,7 +73,7 @@ jobs:
 
           Download \`lock-end-${VERSION}.jar\` below and place it in your server's \`plugins/\` folder.
 
-          See the [README](https://github.com/${{ github.repository }}/blob/master/README.md) for commands and configuration.
+          See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for commands and configuration.
 
           ---
           *Built automatically from commit ${{ github.sha }} on ${BUILD_DATE}.*
@@ -72,53 +81,48 @@ jobs:
           fi
 
       - name: Point release tag at this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           TAG="v${{ steps.version.outputs.version }}"
           git tag -fa "$TAG" -m "Release $TAG"
-          git push origin "$TAG" --force
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "$TAG" --force
 
       - name: Delete all beta tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # Fetch all tags from remote
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin --tags --force
-          
-          # Find and delete all beta tags
-          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+')
-          
+          BETA_TAGS=$(git tag -l | grep -E 'v[0-9]+\.[0-9]+-beta\.[0-9]+' || true)
           if [ -z "$BETA_TAGS" ]; then
             echo "✓ No beta tags found to delete"
             exit 0
           fi
-          
-          echo "Found beta tags to delete:"
-          echo "$BETA_TAGS"
-          
-          # Delete locally and remotely
-          echo "$BETA_TAGS" | while read TAG; do
-            git tag -d "$TAG"
-            git push origin --delete "$TAG" || echo "Note: Tag $TAG may not exist on remote"
+          echo "$BETA_TAGS" | while read -r TAG; do
+            git tag -d "$TAG" 2>/dev/null || true
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" --delete "$TAG" 2>/dev/null || true
           done
-          
           echo "✓ All beta tags have been deleted"
 
-      - name: Create or fully overwrite GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: v${{ steps.version.outputs.version }}
-          commit: ${{ github.sha }}
-          name: Lock-End ${{ steps.version.outputs.version }}
-          bodyFile: release-body.md
-          artifacts: build/libs/lock-end-${{ steps.version.outputs.version }}.jar
-          allowUpdates: true
-          removeArtifacts: true
-          replacesArtifacts: true
-          omitBodyDuringUpdate: false
-          omitNameDuringUpdate: false
-          generateReleaseNotes: false
-          makeLatest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          ARTIFACT="build/libs/lock-end-${VERSION}.jar"
+          if [ ! -f "$ARTIFACT" ]; then
+            echo "Expected plugin jar not found: $ARTIFACT"
+            ls -la build/libs || true
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ARTIFACT" --clobber
+            gh release edit "$TAG" --title "Lock-End ${VERSION}" --notes-file release-body.md --latest
+          else
+            gh release create "$TAG" "$ARTIFACT" --title "Lock-End ${VERSION}" --notes-file release-body.md --latest
+          fi

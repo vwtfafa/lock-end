@@ -106,7 +106,7 @@ test-command:
 
 ### CI/CD & Automation
 - **GitHub Actions Workflows** configured for automated releases:
-  - `release.yml`: Stable releases on push to `master`/`main`
+  - `release.yml`: Stable releases on push to `main`
     - Automatically builds JAR with Gradle
     - Creates GitHub Release with tag `v1.3`
     - **Cleans up all beta tags** (`v1.3-beta.*`) when stable release is created
@@ -121,7 +121,7 @@ test-command:
   `build/libs/lock-end-1.3.jar` to GitHub Releases or Modrinth.
 - **Backward Compatibility**: Toggle command (no arguments) still works as before.
 - All new features are opt-in via `config.yml`
-- **Automated Releases**: Just push to `master` or `beta` branch – GitHub Actions handles the rest!
+- **Automated Releases**: Just push to `main` or `beta` branch – GitHub Actions handles the rest!
 
 ---
 

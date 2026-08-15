@@ -254,7 +254,7 @@ Output: `build/libs/lock-end-1.6.0.jar`
 
 ## Automatic releases (GitHub Actions)
 
-On every push to **`master`** or **`main`**, GitHub Actions will:
+On every push to **`main`**, GitHub Actions will:
 
 1. Build the plugin with Java 25
 2. Read the version from `build.gradle`
