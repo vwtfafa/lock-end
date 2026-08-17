@@ -42,19 +42,4 @@ commands:
     description: Short alias for /endlock (mobile-friendly)
     usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
     permission: endlock.toggle
-  history:
-    description: View recent lock/unlock history
-    usage: /history
-    permission: endlock.history
-  undo:
-    description: Undo the last lock/unlock action
-    usage: /undo
-    permission: endlock.undo
-  validateconfig:
-    description: Validate configuration file for errors
-    usage: /validateconfig
-    permission: endlock.validate
-  schedules:
-    description: Manage scheduled unlock timers
-    usage: /schedules [pause|resume|status]
-    permission: endlock.admin
+  
