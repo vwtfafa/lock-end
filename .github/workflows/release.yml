@@ -165,17 +165,27 @@ jobs:
               ;;
           esac
 
-          sed \
-            -e "s|@VERSION@|${VERSION}|g" \
-            -e "s|@TITLE@|${TITLE}|g" \
-            -e "s|@WARNING@|${WARNING}|g" \
-            -e "s|@PAPER@|${PAPER}|g" \
-            -e "s|@JAVA@|${JAVA}|g" \
-            -e "s|@BRANCH@|${BRANCH}|g" \
-            -e "s|@CHANGELOG@|${CHANGELOG}|g" \
-            -e "s|@GITHUB_SHA@|${GITHUB_SHA}|g" \
-            -e "s|@BUILD_DATE@|${BUILD_DATE}|g" \
-            .github/RELEASE_TEMPLATE.md > release-body.md
+          awk -v VERSION="$VERSION" \
+            -v TITLE="$TITLE" \
+            -v WARNING="$WARNING" \
+            -v PAPER="$PAPER" \
+            -v JAVA="$JAVA" \
+            -v BRANCH="$BRANCH" \
+            -v CHANGELOG="$CHANGELOG" \
+            -v GITHUB_SHA="$GITHUB_SHA" \
+            -v BUILD_DATE="$BUILD_DATE" \
+            '{
+              gsub(/@VERSION@/, VERSION);
+              gsub(/@TITLE@/, TITLE);
+              gsub(/@WARNING@/, WARNING);
+              gsub(/@PAPER@/, PAPER);
+              gsub(/@JAVA@/, JAVA);
+              gsub(/@BRANCH@/, BRANCH);
+              gsub(/@CHANGELOG@/, CHANGELOG);
+              gsub(/@GITHUB_SHA@/, GITHUB_SHA);
+              gsub(/@BUILD_DATE@/, BUILD_DATE);
+              print
+            }' .github/RELEASE_TEMPLATE.md > release-body.md
 
           echo "Release body:"
           cat release-body.md
