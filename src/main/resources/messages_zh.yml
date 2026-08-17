@@ -28,3 +28,32 @@ join-notification: "§6末地当前被锁定。"
 update-available: "§6[§c末地Lock§6] 有可用更新: §e%version%"
 update-download: "§7打开: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a配置重新加载成功！"
+
+# v1.6: Preview notifications
+preview-lock: "§e末地将在 §b%seconds% §e秒后锁定！"
+preview-unlock: "§a末地将在 §e%seconds% §a秒后解锁！"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§c末地Lock§6] 计划解锁已 §c暂停§6。使用 §e/endlock resume§6 继续。"
+schedule-resumed: "§6[§c末地Lock§6] 计划解锁已 §a恢复§6。"
+schedule-not-paused: "§6[§c末地Lock§6] 时间计划当前未暂停。"
+schedule-pause-not-locked: "§6[§c末地Lock§6] 无法暂停：末地未锁定。"
+schedule-resume-not-paused: "§6[§c末地Lock§6] 无法恢复：没有时间计划被暂停。"
+countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
+
+# v1.6: History command
+history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
+history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§c末地Lock§6] 最后一个操作已成功撤销。末地现在是 §e%action%§6。"
+
+# v1.6: Config validator
+config.valid: "§a配置有效。未发现任何问题。"
+config.issues: "§6[§c末地Lock§6] §e发现配置问题："
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§c末地Lock§6] 时间计划当前 §c已暂停§6。"
+countdown-status-active: "§6[§c末地Lock§6] 时间计划当前 §a活跃§6。解锁倒计时： %time%"

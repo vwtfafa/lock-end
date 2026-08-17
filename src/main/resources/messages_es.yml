@@ -28,3 +28,32 @@ join-notification: "§6El End actualmente está bloqueado."
 update-available: "§6[§cEndLock§6] Actualización disponible: §e%version%"
 update-download: "§7Abrir: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguración recargada correctamente!"
+
+# v1.6: Preview notifications
+preview-lock: "§e¡El End se bloqueará en §b%seconds% §esegundos!"
+preview-unlock: "§a¡El End se desbloqueará en §e%seconds% §asegundos!"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] El desbloqueo programado ha sido §cpausado§6. Usa §e/endlock resume§6 para reanudar."
+schedule-resumed: "§6[§cEndLock§6] El desbloqueo programado ha sido §acontinuado§6."
+schedule-not-paused: "§6[§cEndLock§6] El horario no está actualmente en pausa."
+schedule-pause-not-locked: "§6[§cEndLock§6] No se puede pausar: el End no está bloqueado."
+schedule-resume-not-paused: "§6[§cEndLock§6] No se puede continuar: no hay ningún horario en pausa."
+countdown-notification: "§6[§cEndLock§6] El End se desbloqueará en §e%time%§6."
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eHistorial de bloqueos (últimos 10):"
+history.empty: "§6[§cEndLock§6] No hay historial de bloqueos."
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] Última acción deshecha exitosamente. El End ahora está §e%action%§6."
+
+# v1.6: Config validator
+config.valid: "§aLa configuración es válida. No se encontraron problemas."
+config.issues: "§6[§cEndLock§6] §eProblemas encontrados en la configuración:"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] El horario está actualmente §cpausado§6."
+countdown-status-active: "§6[§cEndLock§6] El horario está actualmente §aactivo§6. Desbloqueo en: %time%"

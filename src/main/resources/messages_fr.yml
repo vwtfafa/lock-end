@@ -28,3 +28,32 @@ join-notification: "§6L'End est actuellement verrouillé."
 update-available: "§6[§cEndLock§6] Mise à jour disponible : §e%version%"
 update-download: "§7Ouvrir : §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguration rechargée avec succès !"
+
+# v1.6: Preview notifications
+preview-lock: "§eL'End sera verrouillé dans §b%seconds% §esecondes !"
+preview-unlock: "§aL'End sera déverrouillé dans §e%seconds% §asecondes !"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] Le déverrouillage programmé a été §cpausé§6. Utilisez §e/endlock resume§6 pour reprendre."
+schedule-resumed: "§6[§cEndLock§6] Le déverrouillage programmé a été §aresumé§6."
+schedule-not-paused: "§6[§cEndLock§6] Le planning n'est pas actuellement en pause."
+schedule-pause-not-locked: "§6[§cEndLock§6] Impossible de mettre en pause : l'End n'est pas verrouillé."
+schedule-resume-not-paused: "§6[§cEndLock§6] Impossible de reprendre : aucun planning n'est en pause."
+countdown-notification: "§6[§cEndLock§6] L'End sera déverrouillé dans §e%time%§6."
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eHistorique de verrouillage (10 derniers):"
+history.empty: "§6[§cEndLock§6] Aucun historique de verrouillage."
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] Dernière action annulée avec succès. L'End est maintenant §e%action%§6."
+
+# v1.6: Config validator
+config.valid: "§aLa configuration est valide. Aucun problème trouvé."
+config.issues: "§6[§cEndLock§6] §eProblèmes dans la configuration :"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] Le planning est actuellement §cpausé§6."
+countdown-status-active: "§6[§cEndLock§6] Le planning est actuellement §aactif§6. Déverrouillage dans: %time%"

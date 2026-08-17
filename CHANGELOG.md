@@ -12,22 +12,21 @@ All notable changes to this project will be documented in this file.
 - AsyncLogger properly restarted on config reload to avoid resource leaks
 - Updated Gradle wrapper to 9.7
 - Updated Java target version to 25 (while maintaining compatibility)
-- **Lock reasons**: Customizable reason displayed when blocking (e.g., "Maintenance", "Event in progress")
-- **Grace period**: Temporary unlock after locking to allow players to exit safely
-- **Player/entity whitelists**: Whitelisted players/entities can bypass the lock
-- **Preview notifications**: Warn players X seconds before automatic lock/unlock
-- **Sound effects**: Play custom sounds when attempting to access locked End
-- **Attempt rate limiting**: Prevent log spam from rapid attempts
-- **Detailed attempt logging**: Log player name, source world, method used (portal/command/teleport)
-- **Countdown timers**: Visible countdown before scheduled lock/unlock
-- **Pause/resume schedules**: Temporarily override scheduled events with `/schedules pause` and `/schedules resume`
-- **Lock history**: View recent lock/unlock actions with `/history`
-- **Undo last action**: Quickly reverse the most recent lock/unlock command with `/undo`
-- **Configuration validator**: Check config.yml for errors with `/validateconfig`
-- **Cached permission lookups**: Optimize permission and configuration checks
-- **Asynchronous logging**: Move file I/O off main thread to prevent lag
+- **Lock reasons**: Customizable reason displayed when blocking (e.g., "Maintenance", "Event in progress") - can be configured in `config.yml` and used in broadcast messages
+- **Grace period**: Temporary unlock after locking to allow players to exit safely - configurable duration in seconds
+- **Player/entity whitelists**: Whitelisted players/entities can bypass the lock - configured in `config.yml` with `/whitelist add` command
+- **Preview notifications**: Warn players X seconds before automatic lock/unlock - configurable in `config.yml`
+- **Sound effects**: Play custom sounds when attempting to access locked End - configurable in `config.yml`
+- **Attempt rate limiting**: Prevent log spam from rapid attempts - configurable in `config.yml`
+- **Detailed attempt logging**: Log player name, source world, method used (portal/command/teleport) - fully configurable in `config.yml`
+- **Countdown timers**: Visible countdown before scheduled lock/unlock - visible in chat during scheduled events
+- **Pause/resume schedules**: Temporarily override scheduled events with `/endlock pause` and `/endlock resume` (permission: `endlock.admin`)
+- **Lock history**: View recent lock/unlock actions with `/endlock history` (permission: `endlock.history`) - shows last 10 entries with timestamps
+- **Undo last action**: Quickly reverse the most recent lock/unlock command with `/endlock undo` (permission: `endlock.undo`) - reverses last recorded action
+- **Configuration validator**: Check `config.yml` for errors with `/endlock validateconfig` (permission: `endlock.validate`) - validates YAML syntax and required settings
+- **Cached permission lookups**: Optimize permission and configuration checks - uses PermissionCache for faster lookups
+- **Asynchronous logging**: Move file I/O off main thread to prevent lag - async logger prevents server performance impact
 - **Mobile-friendly alias**: `/el` as short alias for `/endlock`
-- New permissions: `endlock.whitelist.bypass`, `endlock.history`, `endlock.undo`, `endlock.validate`, `endlock.schedules.pause`, `endlock.schedules.resume`, `endlock.schedules.status`
 ### Fixed
 - NullPointerException in LockReasonManager.getReasons() when lock-reasons section missing
 - Case-sensitive player name comparison in WhitelistChecker (now case-insensitive)
@@ -42,7 +41,7 @@ All notable changes to this project will be documented in this file.
 - Updated `config.yml` with new v1.6 options (preview-notifications, sound-effects, lock-reasons, grace-period, whitelists, logging.rate-limit-seconds, scheduled-unlock.countdown)
 - Updated `messages_en.yml` and `messages_de.yml` with new message keys
 - Updated `plugin.yml` with new commands and permissions
-- Consolidated all subcommands (history, undo, validateconfig, schedules) to be accessible only via `/endlock`, `/lock`, and `/el` aliases to avoid command conflicts with other plugins
+- Consolidated all subcommands (history, undo, validateconfig) to be accessible only via `/endlock`, `/lock`, and `/el` aliases to avoid command conflicts with other plugins
 
 ## [1.5.0] - 2026-08-14
 ### Added
@@ -70,7 +69,6 @@ All notable changes to this project will be documented in this file.
 - Release workflow now builds cleaner stable and beta release pages
 - Beta releases keep a single experiment tag (`v1.4.0-beta`) that is updated on every beta push
 - Operator update notifications are now English, clickable, and link directly to the GitHub release page
-
 ### Configuration
 New config options in `config.yml`:
 ```yaml
@@ -87,7 +85,6 @@ logging:
 test-command:
   enabled: true
 ```
-
 ### CI/CD & Automation
 - **GitHub Actions Workflows** configured for automated releases:
   - `release.yml`: Stable releases on push to `main`
@@ -99,15 +96,12 @@ test-command:
     - Creates pre-releases with tags `v1.3-beta.1`, `v1.3-beta.2`, etc.
     - Useful for testing before stable release
     - Both workflows automatically upload the plugin JAR
-
 ### Notes
 - Build the release JAR with `./gradlew shadowJar` and upload the resulting
   `build/libs/lock-end-1.3.jar` to GitHub Releases or Modrinth.
 - **Backward Compatibility**: Toggle command (no arguments) still works as before.
 - All new features are opt-in via `config.yml`
 - **Automated Releases**: Just push to `main` or `beta` branch – GitHub Actions handles the rest!
-
----
 
 ## [1.3] - 2026-06-16
 ### Added
@@ -153,23 +147,18 @@ test-command:
   enabled: true
 ```
 
----
-
 ## [1.2] - 2026-06-15
 ### Added
 - bStats integration (shaded) with plugin id 32010 to collect anonymous metrics.
 - Update checker that queries the GitHub Releases API and notifies online Ops.
 - `shadowJar` configured to shade bStats into the plugin package.
 - New configuration options in `config.yml` for `update-checker` and `metrics`.
-
 ### Changed
 - Project version bumped to `1.2`.
-
 ### Notes
 - Build the release JAR with `./gradlew shadowJar` and upload the resulting
   `build/libs/lock-end-1.2.jar` to GitHub Releases or Modrinth.
 
----
-
 ## [1.1] - previous
 - Initial public release baseline (prior changelog entries omitted).
+

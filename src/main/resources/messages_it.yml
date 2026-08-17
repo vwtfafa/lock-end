@@ -28,3 +28,32 @@ join-notification: "§6La End è attualmente bloccata."
 update-available: "§6[§cEndLock§6] Aggiornamento disponibile: §e%version%"
 update-download: "§7Apri: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfigurazione ricaricata con successo!"
+
+# v1.6: Preview notifications
+preview-lock: "§eLa End sarà bloccata tra §b%seconds% §esecondi!"
+preview-unlock: "§aLa End sarà sbloccata tra §e%seconds% §asecondi!"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] Lo sblocco programmato è stato §cpausato§6. Usa §e/endlock resume§6 per riprendere."
+schedule-resumed: "§6[§cEndLock§6] Lo sblocco programmato è stato §acontinuato§6."
+schedule-not-paused: "§6[§cEndLock§6] La pianificazione non è attualmente in pausa."
+schedule-pause-not-locked: "§6[§cEndLock§6] Impossibile mettere in pausa: la End non è bloccata."
+schedule-resume-not-paused: "§6[§cEndLock§6] Impossibile riprendere: nessuna pianificazione è in pausa."
+countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%§6."
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"
+history.empty: "§6[§cEndLock§6] Nessun storico di blocchi."
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] Ultima azione annullata con successo. La End è ora §e%action%§6."
+
+# v1.6: Config validator
+config.valid: "§aLa configurazione è valida. Nessun problema trovato."
+config.issues: "§6[§cEndLock§6] §eProblemi trovati nella configurazione:"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] La pianificazione è attualmente §cpausata§6."
+countdown-status-active: "§6[§cEndLock§6] La pianificazione è attualmente §aattiva§6. Sblocco tra: %time%"

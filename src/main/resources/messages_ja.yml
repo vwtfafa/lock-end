@@ -28,3 +28,32 @@ join-notification: "§6ジ・エンドは現在ロックされています。"
 update-available: "§6[§cEndLock§6] アップデートが利用可能です: §e%version%"
 update-download: "§7を開く: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a設定が正常に再読み込みされました！"
+
+# v1.6: Preview notifications
+preview-lock: "§eジ・エンドは §b%seconds% §e秒後にロックされます！"
+preview-unlock: "§aジ・エンドは §e%seconds% §a秒後にロック解除されます！"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] 予約解除が §c一時停止§6されました。再開するには §e/endlock resume§6 を使用してください。"
+schedule-resumed: "§6[§cEndLock§6] 予約解除が §a再開§6されました。"
+schedule-not-paused: "§6[§cEndLock§6] スケジュールは現在一時停止されていません。"
+schedule-pause-not-locked: "§6[§cEndLock§6] 一時停止できません：ジ・エンドがロックされていません。"
+schedule-resume-not-paused: "§6[§cEndLock§6] 再開できません：一時停止されているスケジュールはありません。"
+countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"
+history.empty: "§6[§cEndLock§6] ロック履歴はありません。"
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] 最後の操作が正常に元に戻されました。ジ・エンドは現在 §e%action%§6 です。"
+
+# v1.6: Config validator
+config.valid: "§a設定は有効です。問題は見つかりませんでした。"
+config.issues: "§6[§cEndLock§6] §e設定に問題が見つかりました:"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] スケジュールは現在 §c一時停止中§6 です。"
+countdown-status-active: "§6[§cEndLock§6] スケジュールは現在 §a有効§6 です。解除まで: %time%"

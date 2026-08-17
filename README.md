@@ -12,10 +12,10 @@
 - **Rate limiting**: Prevent log spam from rapid attempts
 - **Detailed logging**: Log player, world, and method (portal/teleport)
 - **Countdown timers**: Visible countdown before scheduled unlock
-- **Schedule pause/resume**: Override scheduled events temporarily
-- **Lock history**: View recent actions with `/history`
-- **Undo command**: Reverse the last action with `/undo`
-- **Config validator**: Check config for errors with `/validateconfig`
+- **Schedule pause/resume**: Override scheduled events temporarily with `/endlock pause` and `/endlock resume`
+- **Lock history**: View recent actions with `/endlock history`
+- **Undo command**: Reverse the last action with `/endlock undo`
+- **Config validator**: Check config for errors with `/endlock validateconfig`
 - **Async logging**: File I/O moved off main thread
 - **Mobile alias**: `/el` as short command alias
 
@@ -44,17 +44,17 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | Subcommand | Description | Permission |
 |------------|-------------|----------|
 | (no argument) | Toggle End access (locked ↔ open) | `endlock.toggle` |
-| `lock` | Explicitly lock the End | `endlock.toggle` |
-| `unlock` | Explicitly unlock the End | `endlock.toggle` |
+| `lock` | Explicitly lock the End | `endlock.admin` |
+| `unlock` | Explicitly unlock the End | `endlock.admin` |
 | `status` | Show whether the End is locked or open | *(none)* |
-| `test` | Test if portal blocking works | *(Ops only, configurable)* |
-| `reload` | Reload configuration without restart | `endlock.reload` |
+| `test` | Test if portal blocking works | *(no permission, configurable)* |
+| `reload` | Reload configuration without restart | *(no permission)* |
 | `history` | View recent lock/unlock history | `endlock.history` |
 | `undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `validateconfig` | Validate configuration file | `endlock.validate` |
 | `pause` | Pause scheduled unlock timers | `endlock.admin` |
 | `resume` | Resume paused scheduled unlock timers | `endlock.admin` |
-| `schedules status` | Check schedule status | `endlock.schedules.status` |
+| `stats` | Show basic lock and block counters | *(no permission)* |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
@@ -64,15 +64,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | Permission | Default | Description |
 |------------|---------|-------------|
 | `endlock.toggle` | `op` | Lock or unlock the End via command |
-| `endlock.admin` | `op` | Receive broadcast notifications (if `notify-all: false`) |
-| `endlock.reload` | `op` | Reload plugin configuration without restart |
-| `endlock.whitelist.bypass` | `op` | Bypass the End lock via whitelist |
-| `endlock.history` | `op` | View lock history |
-| `endlock.undo` | `op` | Undo the last lock/unlock action |
-| `endlock.validate` | `op` | Validate configuration file |
-| `endlock.schedules.pause` | `op` | Pause scheduled unlock timers |
-| `endlock.schedules.resume` | `op` | Resume paused scheduled unlock timers |
-| `endlock.schedules.status` | `op` | Check schedule status |
+| `endlock.admin` | `op` | Lock/unlock the End, pause/resume schedules, and use test command |
 
 ### LuckPerms Setup
 
@@ -99,7 +91,7 @@ permissions:
 - Lock state persists in `config.yml` across restarts
 - Eight built-in languages (configurable)
 - **Tab Completion**: Full command completion support for all subcommands
-- **Explicit Subcommands**: `lock`, `unlock`, `status`, `test`
+- **Explicit Subcommands**: All subcommands accessible via `/endlock`, `/lock`, and `/el` (e.g., `/endlock lock`, `/endlock history`, `/el stats`)
 - **Broadcast System**: Optional alerts when End is locked/unlocked (actionbar or chat)
 - **Logging & History**: Automatic log file tracking lock/unlock events and access attempts
 - **Test Command**: Verify portal blocking works correctly
@@ -114,9 +106,9 @@ permissions:
 - **Detailed Logging**: Log player, world, and access method
 - **Countdown Timers**: Visible countdown before scheduled unlock
 - **Schedule Pause/Resume**: Override scheduled events temporarily
-- **Lock History**: View recent actions with `/history`
-- **Undo Command**: Reverse the last action with `/undo`
-- **Config Validator**: Check config for errors with `/validateconfig`
+- **Lock History**: View recent actions with `/endlock history`
+- **Undo Command**: Reverse the last action with `/endlock undo`
+- **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
 - **Mobile Alias**: `/el` short command for console/mobile
 - No dependencies (bStats is shaded), small JAR (~40 KB)
@@ -265,7 +257,7 @@ Run a local test server (downloads Paper 26.2):
 
 - Only **players** are blocked; other entities are not affected.
 - Players **already in the End** when you lock it are not teleported out.
-- Changing language or messages requires a server restart (no `/reload` command yet).
+- Language changes require a server restart or `/endlock reload`.
 
 ## License
 

@@ -5,7 +5,7 @@
 ## Kurzbeschreibung (Summary)
 
 ```
-🔒 Lock or unlock the End globally — portals, /tp & plugin teleports. Tab completion, logging, broadcast, 8 languages. Paper 26.2, Java 25.
+🔒 Lock or unlock the End globally — portals, /tp & plugin teleports. Tab completion, logging, broadcast, 8 languages.
 ```
 
 ---
@@ -22,31 +22,16 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
 ## ✨ Features
 
-* 🔐 Lock or unlock the End with `/endlock` (alias: `/lock`) — permission: `endlock.toggle`
-* 🧭 Check the current status with `/endlock status` — **no permission required**
-* 🔨 **Explicit Subcommands** (v1.5.0):
-  * `/endlock lock` — Lock the End
-  * `/endlock unlock` — Unlock the End
-  * `/endlock status` — Show current state
-  * `/endlock stats` — Show basic lock and block counters
-  * `/endlock unlockin <days>` — Schedule an automatic unlock
-  * `/endlock unlockat <yyyy-MM-dd> <HH:mm>` — Schedule an automatic unlock at a specific time
-  * `/endlock test` — Test if portal blocking works (Ops only, configurable)
-  * `/endlock reload` — Reload config, language, scheduled unlock, bStats, UpdateChecker, PlaceholderAPI
-* 📋 **Tab Completion** — Full tab completion for all commands
-* 🖥️ **Console** can toggle the End without any permission
-* 🚫 Blocks **player** teleportation into the End:
-  * End portals
-  * `/tp` and `/execute`
-  * Most plugin teleports
-* 📢 **Broadcast System** — Actionbar + chat notifications when End is locked/unlocked
-* 🔔 **Optional Join Notifications** — Players joining while the End is locked can be informed
-* 📝 **Logging & History** — Track lock/unlock events with timestamps
-* 📊 **bStats Integration** — Anonymous usage statistics with extra charts for lock counters and feature usage
-* ⬆️ **Update Checker** — Notifies Ops when updates are available and offers a clickable link
-* 🌍 Multi-language support (8 languages: EN, DE, FR, ES, IT, RU, ZH, JA)
-* 📦 Lightweight (~40 KB, bStats shaded)
-
+* 🔐 Lock/unlock the End with `/endlock` (alias: `/lock`, `/el`) — `endlock.toggle`
+* 📋 Full tab completion for all commands
+* 🖥️ Console can toggle without permission
+* 🚫 Blocks player teleportation to End (portals, `/tp`, `/execute`, plugin teleports)
+* 📢 Broadcast system (actionbar or chat) on lock/unlock
+* 🔔 Optional join notifications for locked state
+* 📝 Logging with history tracking
+* 📊 bStats integration for anonymous usage statistics
+* ⬆️ Update checker with clickable links for Ops
+* 🌍 8 languages: EN, DE, FR, ES, IT, RU, ZH, JA
 ---
 
 ## 📜 Commands
@@ -54,12 +39,21 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | Command | Description | Permission |
 | ------- | ----------- | ---------- |
 | `/endlock` | Toggles the End lock | `endlock.toggle` |
-| `/endlock lock` | Lock the End | `endlock.toggle` |
-| `/endlock unlock` | Unlock the End | `endlock.toggle` |
+| `/endlock lock` | Lock the End | `endlock.admin` |
+| `/endlock unlock` | Unlock the End | `endlock.admin` |
 | `/endlock status` | Show current lock status | — |
-| `/endlock test` | Test if portal blocking works | `endlock.admin` (Ops, configurable) |
-| `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
+| `/endlock test` | Test if portal blocking works | *(no permission, configurable)* |
+| `/endlock reload` | Reload configuration and dependent components | *(no permission)* |
+| `/endlock history` | View recent lock/unlock history | `endlock.history` |
+| `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
+| `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
+| `/endlock pause` | Pause scheduled unlock timers | `endlock.admin` |
+| `/endlock resume` | Resume paused scheduled unlock timers | `endlock.admin` |
+| `/endlock stats` | Show basic lock and block counters | *(no permission)* |
+| `/endlock unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
+| `/endlock unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock at a specific time | `endlock.toggle` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
+| `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 
 ---
 
@@ -68,9 +62,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | Permission | Description | Default |
 | ---------- | ----------- | ------- |
 | `endlock.toggle` | Allows locking/unlocking the End | OP |
-| `endlock.admin` | Allows using the test command | OP |
-| `endlock.reload` | Allows reloading the plugin configuration | OP |
-
+| `endlock.admin` | Allows locking/unlocking the End, pausing/resuming schedules, and using the test command | OP |
 ---
 
 ## ⚙️ Configuration
@@ -78,32 +70,72 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 `plugins/EndLock/config.yml`
 
 ```yaml
+# EndLock Plugin Configuration
 locked: false
 language: en
+lock-reason: "Maintenance"
 
-# Update Checker: Notifies Ops when updates are available
+# Update Checker: Notifications for available updates
 update-checker:
   enabled: true
   notify-ops: true
   notify-chat: true
 
-# bStats Metrics: Helps developers understand plugin usage
+# bStats Metrics
 metrics:
   enabled: true
 
-# Broadcast System: Notify players when End is locked/unlocked
+# Broadcast: Send alerts to all players when End is locked/unlocked
 broadcast:
   enabled: true
-  use-actionbar: true    # true = actionbar, false = chat
-  notify-all: true       # true = all players, false = only Ops
+  use-actionbar: true  # Send as action bar instead of chat
+  notify-all: true     # Notify all players (if false, only Ops)
 
-# Logging & History: Track lock/unlock events
+# v1.6: Preview notifications - Warn players before automatic lock/unlock
+preview-notifications:
+  enabled: false
+  seconds: 30  # How many seconds before lock/unlock to send preview
+
+# v1.6: Action bar customization
+actionbar:
+  use-alt-char: false  # Use alternate character for overflow handling
+  alt-char: "|"
+
+# v1.6: Sound effects for access denial
+sound-effects:
+  enabled: false
+  sound: "BLOCK_ANVIL_LAND"
+  volume: 1.0
+  pitch: 1.0
+
+# v1.6: Lock reasons
+lock-reasons:
+  default: "Maintenance"
+  maintenance: "Maintenance in progress"
+  event: "Event in progress"
+
+# v1.6: Grace period - Temporary unlock after locking to allow safe exit
+grace-period:
+  enabled: false
+  duration: 10  # seconds
+
+# v1.6: Whitelists
+whitelists:
+  players: []  # Player names that can bypass the lock
+  entities: []  # Entity types that can bypass the lock
+
+# v1.6: Logging & Analytics
 logging:
   enabled: true
-  log-file: "EndLock.log"
-  log-attempts: true     # Log all attempted End access
+  log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
+  log-attempts: true       # Log attempted access to locked End
+  rate-limit-seconds: 5    # Minimum seconds between logged attempts per player
 
-# Test Command: /endlock test (Ops only)
+# v1.6: Schedule pause/resume
+schedule:
+  paused: false
+
+# Test Command: Allow /endlock test for Ops to verify blocking works
 test-command:
   enabled: true
 
@@ -124,12 +156,16 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
+  # v1.6: Countdown timer
+  countdown:
+    enabled: true
+    interval: 10      # Seconds between countdown updates
+    start-before: 300 # Show countdown N seconds before unlock
 
 # Optional integrations and formatting
 hooks:
   mini-message: true
   placeholderapi: true
-  discordsrv: false
 ```
 
 ### Available languages
@@ -166,7 +202,6 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * Only **players** are blocked — not mobs or items
 * Players already inside the End when locking are **not** removed
-* No `/reload` command prior to v1.5.0; now available to refresh config, language, scheduled unlock, bStats, UpdateChecker, PlaceholderAPI
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
@@ -176,10 +211,16 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ```text
 /endlock
 /lock
+/el
 /endlock status
 /endlock unlockin 3
 /endlock unlockat 2026-12-31 23:59
 /endlock reload
+/endlock history
+/endlock undo
+/endlock validateconfig
+/endlock pause
+/endlock resume
 ```
 
 ---
@@ -187,7 +228,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-1.5.0.jar` into your `plugins` folder
+2. Put `lock-end-1.6.0.jar` into your `plugins` folder
 3. Restart your server (Paper 26.2+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
@@ -197,5 +238,4 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * [GitHub Repository](https://github.com/vwtfafa/lock-end)
 * [Issues & Support](https://github.com/vwtfafa/lock-end/issues)
-
----
+```

@@ -36,12 +36,11 @@ preview-lock: "§eThe End will be locked in §b%seconds% §eseconds!"
 preview-unlock: "§aThe End will be unlocked in §e%seconds% §aseconds!"
 
 # v1.6: Schedule pause/resume
-schedule-paused: "§6[§cEndLock§6] Scheduled unlock has been §cpaused§6. Use §e/schedules resume§6 to resume."
+schedule-paused: "§6[§cEndLock§6] Scheduled unlock has been §cpaused§6. Use §e/endlock resume§6 to resume."
 schedule-resumed: "§6[§cEndLock§6] Scheduled unlock has been §aresumed§6."
 schedule-not-paused: "§6[§cEndLock§6] The schedule is not currently paused."
 schedule-pause-not-locked: "§6[§cEndLock§6] Cannot pause schedule: the End is not locked."
 schedule-resume-not-paused: "§6[§cEndLock§6] Cannot resume schedule: no schedule is paused."
-schedules-command-info: "§7Schedule commands: §e/schedules pause§7, §e/schedules resume§7, §e/schedules status"
 countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time%§6."
 
 # v1.6: History command

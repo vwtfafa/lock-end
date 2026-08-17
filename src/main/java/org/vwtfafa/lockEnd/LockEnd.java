@@ -130,19 +130,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             getCommand("el").setExecutor(this);
             getCommand("el").setTabCompleter(this);
         }
-        if (getCommand("history") != null) {
-            getCommand("history").setExecutor(historyCommand);
-        }
-        if (getCommand("undo") != null) {
-            getCommand("undo").setExecutor(undoCommand);
-        }
-        if (getCommand("validateconfig") != null) {
-            getCommand("validateconfig").setExecutor(configValidatorCommand);
-        }
-        if (getCommand("schedules") != null) {
-            getCommand("schedules").setExecutor(this);
-            getCommand("schedules").setTabCompleter(this);
-        }
 
         // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
@@ -427,18 +414,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // v1.6: history command
-        if (command.getName().equalsIgnoreCase("history")) {
-            return historyCommand.onCommand(sender, command, label, args);
-        }
-        // v1.6: undo command
-        if (command.getName().equalsIgnoreCase("undo")) {
-            return undoCommand.onCommand(sender, command, label, args);
-        }
-        // v1.6: validateconfig command
-        if (command.getName().equalsIgnoreCase("validateconfig")) {
-            return configValidatorCommand.onCommand(sender, command, label, args);
-        }
 
         if (args.length >= 1) {
             String sub = args[0].toLowerCase(Locale.ROOT);
@@ -566,6 +541,30 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     }
                     resumeSchedule();
                     sender.sendMessage(msg("schedule-resumed"));
+                    return true;
+                }
+                case "history" -> {
+                    if (!sender.hasPermission("endlock.history")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    historyCommand.onCommand(sender, command, label, args);
+                    return true;
+                }
+                case "undo" -> {
+                    if (!sender.hasPermission("endlock.undo")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    undoCommand.onCommand(sender, command, label, args);
+                    return true;
+                }
+                case "validateconfig" -> {
+                    if (!sender.hasPermission("endlock.validate")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    configValidatorCommand.onCommand(sender, command, label, args);
                     return true;
                 }
                 case "reload" -> {

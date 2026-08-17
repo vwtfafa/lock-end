@@ -36,12 +36,11 @@ preview-lock: "§eDas End wird in §b%seconds% §eSekunden gesperrt!"
 preview-unlock: "§aDas End wird in §e%seconds% §asekunden entsperrt!"
 
 # v1.6: Schedule pause/resume
-schedule-paused: "§6[§cEndLock§6] Geplantes Entsperrungen wurde §cpausiert§6. Nutze §e/schedules resume§6 zum Fortsetzen."
+schedule-paused: "§6[§cEndLock§6] Geplantes Entsperrungen wurde §cpausiert§6. Nutze §e/endlock resume§6 zum Fortsetzen."
 schedule-resumed: "§6[§cEndLock§6] Geplantes Entsperrungen wurde §afortgesetzt§6."
 schedule-not-paused: "§6[§cEndLock§6] Der Zeitplan ist aktuell nicht pausiert."
 schedule-pause-not-locked: "§6[§cEndLock§6] Zeitplan kann nicht pausiert werden: Das End ist nicht gesperrt."
 schedule-resume-not-paused: "§6[§cEndLock§6] Zeitplan kann nicht fortgesetzt werden: Kein Zeitplan pausiert."
-schedules-command-info: "§7Zeitplan-Befehle: §e/schedules pause§7, §e/schedules resume§7, §e/schedules status"
 countdown-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 entsperrt."
 
 # v1.6: History command

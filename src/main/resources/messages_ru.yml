@@ -28,3 +28,32 @@ join-notification: "§6Край сейчас заблокирован."
 update-available: "§6[§cEndLock§6] Обновление доступно: §e%version%"
 update-download: "§7Открыть: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aКонфигурация успешно перезагружена!"
+
+# v1.6: Preview notifications
+preview-lock: "§eКрай будет заблокирован через §b%seconds% §eсекунд!"
+preview-unlock: "§aКрай будет разблокирован через §e%seconds% §aсекунд!"
+
+# v1.6: Schedule pause/resume
+schedule-paused: "§6[§cEndLock§6] Запланированная разблокировка была §cприостановлена§6. Используйте §e/endlock resume§6 для возобновления."
+schedule-resumed: "§6[§cEndLock§6] Запланированная разблокировка была §aвозобновлена§6."
+schedule-not-paused: "§6[§cEndLock§6] Расписание в настоящее время не приостановлено."
+schedule-pause-not-locked: "§6[§cEndLock§6] Невозможно приостановить: Край не заблокирован."
+schedule-resume-not-paused: "§6[§cEndLock§6] Невозможно возобновить: нет приостановленного расписания."
+countdown-notification: "§6[§cEndLock§6] Край будет разблокирован через §e%time%§6."
+
+# v1.6: History command
+history.header: "§6[§cEndLock§6] §eИстория блокировок (последние 10):"
+history.empty: "§6[§cEndLock§6] Нет истории блокировок."
+history-entry: "§7- %entry%"
+
+# v1.6: Undo command
+undo.success: "§6[§cEndLock§6] Последнее действие успешно отменено. Край теперь §e%action%§6."
+
+# v1.6: Config validator
+config.valid: "§aКонфигурация действительна. Проблем не найдено."
+config.issues: "§6[§cEndLock§6] §eНайдены проблемы в конфигурации:"
+config-issue: "§7- %issue%"
+
+# v1.6: Countdown status
+countdown-status-paused: "§6[§cEndLock§6] Расписание в настоящее время §cприостановлено§6."
+countdown-status-active: "§6[§cEndLock§6] Расписание в настоящее время §aактивно§6. Разблокировка через: %time%"
