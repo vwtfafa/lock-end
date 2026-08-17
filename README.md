@@ -38,27 +38,23 @@
 
 ## Commands
 
-| Command | Description | Permission |
-|---------|-------------|----------|
-| `/endlock` | Toggle End access (locked ↔ open) | `endlock.toggle` |
-| `/endlock lock` | Explicitly lock the End | `endlock.toggle` |
-| `/endlock unlock` | Explicitly unlock the End | `endlock.toggle` |
-| `/endlock status` | Show whether the End is locked or open | *(none)* |
-| `/endlock test` | Test if portal blocking works | *(Ops only, configurable)* |
-| `/endlock reload` | Reload configuration without restart | `endlock.reload` |
-| `/endlock history` | View recent lock/unlock history | `endlock.history` |
-| `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
-| `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
-| `/endlock pause` | Pause scheduled unlock timers | `endlock.admin` |
-| `/endlock resume` | Resume paused scheduled unlock timers | `endlock.admin` |
-| `/lock` | Alias for `/endlock` | `endlock.toggle` |
-| `/el` | Short alias for `/endlock` (mobile-friendly) | `endlock.toggle` |
-| `/history` | View lock history | `endlock.history` |
-| `/undo` | Undo last action | `endlock.undo` |
-| `/validateconfig` | Validate config | `endlock.validate` |
-| `/schedules pause` | Pause scheduled unlock | `endlock.admin` |
-| `/schedules resume` | Resume scheduled unlock | `endlock.admin` |
-| `/schedules status` | Check schedule status | `endlock.schedules.status` |
+All subcommands are available under the three base commands: `/endlock`, `/lock`, and `/el` (mobile‑friendly alias).  
+For example: `/endlock history`, `/lock history`, `/el history` all work the same.
+
+| Subcommand | Description | Permission |
+|------------|-------------|----------|
+| (no argument) | Toggle End access (locked ↔ open) | `endlock.toggle` |
+| `lock` | Explicitly lock the End | `endlock.toggle` |
+| `unlock` | Explicitly unlock the End | `endlock.toggle` |
+| `status` | Show whether the End is locked or open | *(none)* |
+| `test` | Test if portal blocking works | *(Ops only, configurable)* |
+| `reload` | Reload configuration without restart | `endlock.reload` |
+| `history` | View recent lock/unlock history | `endlock.history` |
+| `undo` | Undo the last lock/unlock action | `endlock.undo` |
+| `validateconfig` | Validate configuration file | `endlock.validate` |
+| `pause` | Pause scheduled unlock timers | `endlock.admin` |
+| `resume` | Resume paused scheduled unlock timers | `endlock.admin` |
+| `schedules status` | Check schedule status | `endlock.schedules.status` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
