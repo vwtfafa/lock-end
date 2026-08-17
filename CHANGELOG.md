@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-08-17
+### Added
+- Dependabot configuration for automatic Gradle and GitHub Actions updates
+- Code quality workflow (Checkstyle, SpotBugs, Tests) running on PR/Push
+- Checkstyle and SpotBugs plugins with default configurations
+- Preview notifications feature fully integrated (scheduled unlock/lock previews)
+- Sound effect configuration reload on `/reload`
+- AsyncLogger properly restarted on config reload to avoid resource leaks
+- Updated Gradle wrapper to 9.7
+- Updated Java target version to 25 (while maintaining compatibility)
+### Fixed
+- NullPointerException in LockReasonManager.getReasons() when lock-reasons section missing
+- Case-sensitive player name comparison in WhitelistChecker (now case-insensitive)
+- GracePeriodTask active flag made volatile for correct visibility between threads
+- AsyncLogger thread leak on reload (previous instances now shut down)
+- Missing preview notification scheduling for scheduled lock/unlock events
+### Changed
+- GracePeriodTask logic unchanged (still unlocks after lock; behavior confirmed as intended)
+- Updated build.gradle to include gradlePluginPortal() for plugin resolution
+- Updated checkstyle config to minimal rule set
+- Updated SpotBugs version to 6.5.10 (compatible with Gradle 9+)
+
 ## [1.6.0] - 2026-08-15
 ### Added
 - **Lock reasons**: Customizable reason displayed when blocking (e.g., "Maintenance", "Event in progress")
@@ -20,7 +42,6 @@ All notable changes to this project will be documented in this file.
 - **Asynchronous logging**: Move file I/O off main thread to prevent lag
 - **Mobile-friendly alias**: `/el` as short alias for `/endlock`
 - New permissions: `endlock.whitelist.bypass`, `endlock.history`, `endlock.undo`, `endlock.validate`, `endlock.schedules.pause`, `endlock.schedules.resume`, `endlock.schedules.status`
-
 ### Changed
 - Updated `config.yml` with new v1.6 options (preview-notifications, sound-effects, lock-reasons, grace-period, whitelists, logging.rate-limit-seconds, scheduled-unlock.countdown)
 - Updated `messages_en.yml` and `messages_de.yml` with new message keys
@@ -35,7 +56,6 @@ All notable changes to this project will be documented in this file.
 - All log messages and comments translated to English for consistency.
 - Helper method `miniMsg(String)` for MiniMessage usage.
 - Scheduled unlock now uses exact delay until the configured time (supports both days and datetime).
-
 ### Changed
 - Updated `plugin.yml` usage strings to include `reload` in the command aliases.
 - Updated `messages_en.yml` and `messages_de.yml` with `reload-success` key.
@@ -48,44 +68,11 @@ All notable changes to this project will be documented in this file.
 - Clickable update notification links in chat for admins
 - Better GitHub release templates and cleaner release pages
 - PlaceholderAPI and MiniMessage preparation for upcoming integration support
-
 ### Changed
 - Bumped plugin version to `1.4.0`
 - Release workflow now builds cleaner stable and beta release pages
 - Beta releases keep a single experiment tag (`v1.4.0-beta`) that is updated on every beta push
 - Operator update notifications are now English, clickable, and link directly to the GitHub release page
-
----
-
-## [1.3] - 2026-06-16
-### Added
-- **Tab Completion**: Full tab completion support for `/endlock` and `/lock` commands.
-  - Available options: `status`, `lock`, `unlock`, `test`
-  - Works with both command aliases
-- **Explicit Subcommands**: New dedicated subcommands for lock/unlock operations.
-  - `/endlock lock` – Explicitly lock the End
-  - `/endlock unlock` – Explicitly unlock the End
-  - `/endlock status` – Check current lock status (no permission required)
-  - `/endlock test` – Test if portal blocking works (Ops only, configurable)
-  - Toggle command still available for backward compatibility
-- **Broadcast System**: Automatic alerts when End is locked/unlocked
-  - Configurable in `config.yml` (`broadcast.enabled`, `broadcast.notify-all`, `broadcast.use-actionbar`)
-  - Can send actionbar messages instead of chat
-  - Can notify all players or only Ops
-- **Logging & History**: Track all lock/unlock events and access attempts
-  - Log file created in `plugins/EndLock/logs/EndLock.log`
-  - Records who locked/unlocked and when (timestamp format: `yyyy-MM-dd HH:mm:ss`)
-  - Optional: log all attempted portal/teleport access to locked End
-  - Configurable in `config.yml` (`logging.enabled`, `logging.log-file`, `logging.log-attempts`)
-
-### Changed
-- **Paper 26.2 Support**: Updated to Paper 26.2 (was 26.1.2)
-  - `paper-api` dependency updated to `26.2.build.+`
-  - `api-version` in `plugin.yml` set to `26.2`
-  - Server runtime updated to `26.2`
-- Command syntax in `plugin.yml` updated to reflect new subcommand options
-- README requirements updated to Paper 26.2
-- Improved command feedback (e.g., "End is already locked!" when trying to lock twice)
 
 ### Configuration
 New config options in `config.yml`:
@@ -114,7 +101,7 @@ test-command:
   - `beta-release.yml`: Pre-releases on push to `beta` branch
     - Creates pre-releases with tags `v1.3-beta.1`, `v1.3-beta.2`, etc.
     - Useful for testing before stable release
-  - Both workflows automatically upload the plugin JAR
+    - Both workflows automatically upload the plugin JAR
 
 ### Notes
 - Build the release JAR with `./gradlew shadowJar` and upload the resulting
@@ -122,6 +109,52 @@ test-command:
 - **Backward Compatibility**: Toggle command (no arguments) still works as before.
 - All new features are opt-in via `config.yml`
 - **Automated Releases**: Just push to `main` or `beta` branch – GitHub Actions handles the rest!
+
+---
+
+## [1.3] - 2026-06-16
+### Added
+- **Tab Completion**: Full tab completion support for `/endlock` and `/lock` commands.
+  - Available options: `status`, `lock`, `unlock`, `test`
+  - Works with both command aliases
+- **Explicit Subcommands**: New dedicated subcommands for lock/unlock operations.
+  - `/endlock lock` – Explicitly lock the End
+  - `/endlock unlock` – Explicitly unlock the End
+  - `/endlock status` – Check current lock status (no permission required)
+  - `/endlock test` – Test if portal blocking works (Ops only, configurable)
+- **Broadcast System**: Automatic alerts when End is locked/unlocked
+  - Configurable in `config.yml` (`broadcast.enabled`, `broadcast.use-actionbar`, `broadcast.notify-all`)
+  - Can send actionbar messages instead of chat
+  - Can notify all players or only Ops
+- **Logging & History**: Track all lock/unlock events and access attempts
+  - Log file created in `plugins/EndLock/logs/EndLock.log`
+  - Records who locked/unlocked and when (timestamp format: `yyyy-MM-dd HH:mm:ss`)
+  - Optional: log all attempted portal/teleport access to locked End
+  - Configurable in `config.yml` (`logging.enabled`, `logging.log-file`, `logging.log-attempts`)
+### Changed
+- **Paper 26.2 Support**: Updated to Paper 26.2 (was 26.1.2)
+  - `paper-api` dependency updated to `26.2.build.+`
+  - `api-version` in `plugin.yml` set to `26.2`
+  - Server runtime updated to `26.2`
+  - Command syntax in `plugin.yml` updated to reflect new subcommand options
+  - README requirements updated to Paper 26.2
+  - Improved command feedback (e.g., "End is already locked!" when trying to lock twice)
+### Configuration
+New config options in `config.yml`:
+```yaml
+broadcast:
+  enabled: true
+  use-actionbar: true
+  notify-all: true
+
+logging:
+  enabled: true
+  log-file: "EndLock.log"
+  log-attempts: true
+
+test-command:
+  enabled: true
+```
 
 ---
 
