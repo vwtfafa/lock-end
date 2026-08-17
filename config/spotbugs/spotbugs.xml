@@ -1,8 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE FindBugsFilter PUBLIC
-        "-//FindBugs//DTD Filter 1.0//EN"
-        "https://findbugs.sourceforge.net/spotbugs-filter.dtd">
 <FindBugsFilter>
-    <!-- Beispiel: alle Warnungen, die ein NullPointerException‑Muster enthalten, werden nicht gefiltert -->
-    <!-- Du kannst hier <Match>‑Einträge hinzufügen, um bestimmte Bugs auszublenden -->
 </FindBugsFilter>

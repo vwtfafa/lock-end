@@ -1,7 +1,6 @@
 package org.vwtfafa.lockEnd;
 
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
 
 /**
  * Handles grace period after locking - temporarily unlocks to allow safe exit.

@@ -3,8 +3,7 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id("com.gradleup.shadow") version "9.3.1"
     id "checkstyle"
-    id "com.github.spotbugs" version "5.0.14"
-    id "com.github.spotbugs" version "5.0.14"
+    id "com.github.spotbugs" version "6.5.9"
 }
 
 group = 'org.vwtfafa'
@@ -20,6 +19,7 @@ repositories {
         name = "placeholderapi"
         url = "https://repo.extendedclip.com/content/repositories/placeholderapi/"
     }
+    gradlePluginPortal()
 }
 
 dependencies {
@@ -56,24 +56,13 @@ tasks {
     }
 }
 
-checkstyle {
-    toolVersion = "10.12.4"
-    configFile = file("config/checkstyle/checkstyle.xml")
-}
-
-spotbugs {
-    toolVersion = "5.0.14"
-    ignoreFailures = false
-    effort = "max"
-    reportLevel = "low"
-    reportsDir = file("build/reports/spotbugs")
-    includeFilter = file("config/spotbugs/spotbugs.xml")
-}
+def targetJavaVersion = 25
 
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
+
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
@@ -91,7 +80,22 @@ processResources {
     def props = [version: version]
     inputs.properties props
     filteringCharset = 'UTF-8'
+
     filesMatching('plugin.yml') {
         expand props
     }
+}
+
+checkstyle {
+    toolVersion = "10.12.4"
+    configFile = file("config/checkstyle/checkstyle.xml")
+}
+
+spotbugs {
+    toolVersion = "4.10.3"
+    ignoreFailures = false
+    effort = "max"
+    reportLevel = "low"
+    reportsDir = file("build/reports/spotbugs")
+    includeFilter = file("config/spotbugs/spotbugs.xml")
 }
