@@ -139,6 +139,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             placeholderExpansion.register();
         }
 
+        // Initialize bStats metrics
+        if (getConfig().getBoolean("metrics.enabled", true)) {
+            metricsManager = new MetricsManager(this);
+        }
+
         loadScheduledUnlock();
         if (locked && scheduledUnlockTime != null) {
             scheduleUnlock();
