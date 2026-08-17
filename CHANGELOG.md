@@ -42,6 +42,7 @@ All notable changes to this project will be documented in this file.
 - Updated `config.yml` with new v1.6 options (preview-notifications, sound-effects, lock-reasons, grace-period, whitelists, logging.rate-limit-seconds, scheduled-unlock.countdown)
 - Updated `messages_en.yml` and `messages_de.yml` with new message keys
 - Updated `plugin.yml` with new commands and permissions
+- Consolidated all subcommands (history, undo, validateconfig, schedules) to be accessible only via `/endlock`, `/lock`, and `/el` aliases to avoid command conflicts with other plugins
 
 ## [1.5.0] - 2026-08-14
 ### Added
