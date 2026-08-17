@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.6.1] - 2026-08-17
+## [1.6.0] - 2026-08-17
 ### Added
 - Dependabot configuration for automatic Gradle and GitHub Actions updates
 - Code quality workflow (Checkstyle, SpotBugs, Tests) running on PR/Push
@@ -12,20 +12,6 @@ All notable changes to this project will be documented in this file.
 - AsyncLogger properly restarted on config reload to avoid resource leaks
 - Updated Gradle wrapper to 9.7
 - Updated Java target version to 25 (while maintaining compatibility)
-### Fixed
-- NullPointerException in LockReasonManager.getReasons() when lock-reasons section missing
-- Case-sensitive player name comparison in WhitelistChecker (now case-insensitive)
-- GracePeriodTask active flag made volatile for correct visibility between threads
-- AsyncLogger thread leak on reload (previous instances now shut down)
-- Missing preview notification scheduling for scheduled lock/unlock events
-### Changed
-- GracePeriodTask logic unchanged (still unlocks after lock; behavior confirmed as intended)
-- Updated build.gradle to include gradlePluginPortal() for plugin resolution
-- Updated checkstyle config to minimal rule set
-- Updated SpotBugs version to 6.5.10 (compatible with Gradle 9+)
-
-## [1.6.0] - 2026-08-15
-### Added
 - **Lock reasons**: Customizable reason displayed when blocking (e.g., "Maintenance", "Event in progress")
 - **Grace period**: Temporary unlock after locking to allow players to exit safely
 - **Player/entity whitelists**: Whitelisted players/entities can bypass the lock
@@ -42,7 +28,17 @@ All notable changes to this project will be documented in this file.
 - **Asynchronous logging**: Move file I/O off main thread to prevent lag
 - **Mobile-friendly alias**: `/el` as short alias for `/endlock`
 - New permissions: `endlock.whitelist.bypass`, `endlock.history`, `endlock.undo`, `endlock.validate`, `endlock.schedules.pause`, `endlock.schedules.resume`, `endlock.schedules.status`
+### Fixed
+- NullPointerException in LockReasonManager.getReasons() when lock-reasons section missing
+- Case-sensitive player name comparison in WhitelistChecker (now case-insensitive)
+- GracePeriodTask active flag made volatile for correct visibility between threads
+- AsyncLogger thread leak on reload (previous instances now shut down)
+- Missing preview notification scheduling for scheduled lock/unlock events
 ### Changed
+- GracePeriodTask logic unchanged (still unlocks after lock; behavior confirmed as intended)
+- Updated build.gradle to include gradlePluginPortal() for plugin resolution
+- Updated checkstyle config to minimal rule set
+- Updated SpotBugs version to 6.5.10 (compatible with Gradle 9+)
 - Updated `config.yml` with new v1.6 options (preview-notifications, sound-effects, lock-reasons, grace-period, whitelists, logging.rate-limit-seconds, scheduled-unlock.countdown)
 - Updated `messages_en.yml` and `messages_de.yml` with new message keys
 - Updated `plugin.yml` with new commands and permissions
