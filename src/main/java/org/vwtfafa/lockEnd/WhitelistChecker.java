@@ -26,9 +26,11 @@ public class WhitelistChecker {
      * @return true if the player can bypass
      */
     public boolean canBypass(Player player) {
-        // Check if player is in whitelist
-        if (playerWhitelist.contains(player.getName())) {
-            return true;
+        // Check if player is in whitelist (case-insensitive)
+        for (String name : playerWhitelist) {
+            if (name.equalsIgnoreCase(player.getName())) {
+                return true;
+            }
         }
         // Check if player has permission to bypass
         if (player.hasPermission("endlock.whitelist.bypass")) {

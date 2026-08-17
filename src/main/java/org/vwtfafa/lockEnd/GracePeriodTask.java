@@ -7,7 +7,7 @@ import org.bukkit.Bukkit;
  */
 public class GracePeriodTask {
     private final LockEnd plugin;
-    private boolean active;
+    private volatile boolean active;
 
     public GracePeriodTask(LockEnd plugin) {
         this.plugin = plugin;

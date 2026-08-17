@@ -278,6 +278,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
+        // Schedule preview notification before unlock
+        previewManager.schedulePreviewUnlock(scheduledUnlockTime);
         long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
         long ticksDelay = Math.max(secondsDelay, 0) * 20L;
         Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -519,6 +521,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         saveConfig();
                         sender.sendMessage("§aScheduled unlock in " + days + " days.");
                         if (locked) {
+                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
                             scheduleUnlock();
                         }
                     } catch (Exception e) {
@@ -539,6 +542,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         saveConfig();
                         sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
                         if (locked) {
+                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
                             scheduleUnlock();
                         }
                     } catch (Exception e) {

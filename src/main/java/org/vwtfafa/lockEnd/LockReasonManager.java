@@ -1,6 +1,8 @@
 package org.vwtfafa.lockEnd;
 
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -41,6 +43,7 @@ public class LockReasonManager {
      * @return Map of reason keys to reason messages
      */
     public Map<String, Object> getReasons() {
-        return config.getConfigurationSection("lock-reasons").getValues(false);
+        ConfigurationSection section = config.getConfigurationSection("lock-reasons");
+        return section != null ? section.getValues(false) : Collections.emptyMap();
     }
 }
