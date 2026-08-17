@@ -19,16 +19,6 @@
 - **Async logging**: File I/O moved off main thread
 - **Mobile alias**: `/el` as short command alias
 
-## What's new in 1.5.0
-
-- Reload command: `/endlock reload` (and `/lock reload`) to reload configuration without restart.
-- Optional join notifications for players entering while the End is locked
-- Optional scheduled unlocks with `/endlock unlockin` and `/endlock unlockat`
-- Basic plugin statistics via `/endlock stats`
-- Better update notifications with a clickable link
-- Cleaner GitHub release pages and improved release automation
-- Optional bStats charts for lock state, counters and feature usage
-
 ## Requirements
 
 | Requirement | Version |
