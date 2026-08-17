@@ -144,7 +144,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             scheduleUnlock();
         }
 
-        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+) [v1.6 features loaded]");
+        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+)");
     }
 
     @Override
