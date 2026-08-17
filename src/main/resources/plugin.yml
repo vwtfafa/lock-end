@@ -32,14 +32,14 @@ permissions:
 commands:
   endlock:
     description: Globally locks or unlocks access to the End dimension
-    usage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    usage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig|schedules]
     permission: endlock.toggle
   lock:
     description: Alias for /endlock
-    usage: /lock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    usage: /lock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig|schedules]
     permission: endlock.toggle
   el:
     description: Short alias for /endlock (mobile-friendly)
-    usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload]
+    usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig|schedules]
     permission: endlock.toggle
   
