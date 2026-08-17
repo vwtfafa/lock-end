@@ -39,7 +39,7 @@
 - Join notifications
 - Update checker with clickable chat link
 - bStats metrics
-- Integration toggles (PAPI, DiscordSRV, LuckPerms, MiniMessage)
+- Integration toggles (PAPI, LuckPerms, MiniMessage)
 
 ### 🧱 Compatibility
 
