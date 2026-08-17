@@ -1,0 +1,41 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [master, main, beta]
+  pull_request:
+    branches: [master, main, beta]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Run Gradle checks
+        run: |
+          ./gradlew checkstyleMain spotbugsMain test --no-daemon --stacktrace
+
+      - name: Archive Checkstyle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: build/reports/checkstyle/main/*.xml
+
+      - name: Archive SpotBugs report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotbugs-report
+          path: build/reports/spotbugs/main/*.xml
