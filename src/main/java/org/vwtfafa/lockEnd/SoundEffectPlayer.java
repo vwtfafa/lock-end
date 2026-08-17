@@ -12,6 +12,7 @@ public class SoundEffectPlayer {
     private String soundName;
     private float volume;
     private float pitch;
+    private boolean enabled;
 
     public SoundEffectPlayer(LockEnd plugin) {
         this.plugin = plugin;
@@ -23,6 +24,7 @@ public class SoundEffectPlayer {
      */
     public void loadConfig() {
         FileConfiguration config = plugin.getConfig();
+        this.enabled = config.getBoolean("sound-effects.enabled", true);
         soundName = config.getString("sound-effects.sound", "BLOCK_ANVIL_LAND");
         volume = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.volume", 1.0)));
         pitch = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.pitch", 1.0)));
@@ -33,7 +35,7 @@ public class SoundEffectPlayer {
      * @param player The player who attempted access
      */
     public void playDenialSound(Player player) {
-        if (!plugin.getConfig().getBoolean("sound-effects.enabled", false)) {
+        if (!enabled) {
             return;
         }
         Location location = player.getLocation();

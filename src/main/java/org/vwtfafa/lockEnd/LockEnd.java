@@ -578,6 +578,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     whitelistChecker = new WhitelistChecker(getConfig());
                     rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
                     loadScheduledUnlock();
+                    soundPlayer.loadConfig();
                     if (locked && scheduledUnlockTime != null) {
                         scheduleUnlock();
                     }
