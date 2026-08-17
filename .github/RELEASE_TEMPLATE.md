@@ -1,6 +1,8 @@
-## 🔒 Lock-End @VERSION@
+## 🔒 Lock-End @TITLE@
 
-**Requirements:** Paper 26.2+, Java 25
+@WARNING@
+
+**Requirements:** Paper @PAPER@+, Java @JAVA@
 
 ### 📋 Changes since last release
 
@@ -23,13 +25,13 @@
 ### 🔌 Integrations
 
 - **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`
-- **DiscordSRV** — Lock/unlock events sent to Discord channel
-- **LuckPerms** — Context `lockend:locked=true\|false`
+- **LuckPerms** — Context `lockend:locked=true|false`
 - **MiniMessage** — Full RGB & gradient message support
 
 ### 🔧 Configuration
 
 `plugins/EndLock/config.yml`:
+
 - Lock state, language (8 languages)
 - Broadcast notifications (actionbar or chat, scope)
 - Event logging with JSON export
@@ -43,18 +45,18 @@
 
 | Platform | Version | Support |
 | -------- | ------- | ------- |
-| **Paper** | 26.2+ | ✅ Recommended |
-| **Purpur** | 26.2+ | ✅ Works |
+| **Paper** | @PAPER@+ | ✅ Recommended |
+| **Purpur** | @PAPER@+ | ✅ Works |
 
 ### 📦 Installation
 
 1. Download `lock-end-@VERSION@.jar` below
 2. Place it in your `plugins/` folder
-3. Restart your server (Paper 26.2+, Java 25)
+3. Restart your server (Paper @PAPER@+, Java @JAVA@)
 
 ### 📚 Documentation
 
-- [README](https://github.com/vwtfafa/lock-end/blob/master/README.md) – Full docs & examples
+- [README](https://github.com/vwtfafa/lock-end/blob/@BRANCH@/README.md) – Full docs & examples
 - [Modrinth](https://modrinth.com/plugin/lock-end) – Download on Modrinth
 
 ---
