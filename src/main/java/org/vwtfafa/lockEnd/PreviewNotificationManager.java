@@ -28,10 +28,7 @@ public class PreviewNotificationManager {
         cancelPreview("lock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Duration.between(LocalDateTime.now(), lockTime).getSeconds() - previewSeconds;
-        if (previewDelay <= 0) {
-            previewDelay = 0;
-        }
+        long previewDelay = Math.max(0, Duration.between(LocalDateTime.now(), lockTime).getSeconds() - previewSeconds);
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (plugin.isLocked()) {
@@ -53,10 +50,7 @@ public class PreviewNotificationManager {
         cancelPreview("unlock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Duration.between(LocalDateTime.now(), unlockTime).getSeconds() - previewSeconds;
-        if (previewDelay <= 0) {
-            previewDelay = 0;
-        }
+        long previewDelay = Math.max(0, Duration.between(LocalDateTime.now(), unlockTime).getSeconds() - previewSeconds);
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!plugin.isLocked()) {

@@ -17,7 +17,7 @@ public class LockEndExpansion extends PlaceholderExpansion {
 
     @Override
     public String getAuthor() {
-        return plugin.getDescription().getAuthors().toString();
+        return plugin.getDescription().getAuthors().isEmpty() ? "Unknown" : plugin.getDescription().getAuthors().iterator().next();
     }
 
     @Override
