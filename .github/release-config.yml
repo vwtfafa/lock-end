@@ -18,3 +18,8 @@ branches:
     type: test
     paper: "26.3"
     java: "25"
+  
+  v2.0:
+    type: test
+    paper: "26.2"
+    java: "25"
