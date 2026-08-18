@@ -125,3 +125,4 @@ V1_6_PLAN.md
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+/version 2.0 plan.md
