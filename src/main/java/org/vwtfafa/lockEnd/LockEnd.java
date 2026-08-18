@@ -324,28 +324,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
         }
+        String message = String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED");
         if (asyncLogger != null) {
-            asyncLogger.log(String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED"));
+            asyncLogger.log(message);
         } else {
-            if (logFile == null) {
-                return;
-            }
-            try {
-                LocalDateTime now = LocalDateTime.now();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                String timestamp = now.format(formatter);
-                String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
-                        timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
-                if (logFile != null && !logFile.exists()) {
-                    logFile.createNewFile();
-                }
-                try (FileWriter writer = new FileWriter(logFile, true)) {
-                    writer.append(logMessage);
-                    writer.flush();
-                }
-            } catch (IOException e) {
-                getLogger().warning("Error writing to log file: " + e.getMessage());
-            }
+            writeToLogFile(message);
         }
     }
 
@@ -375,20 +358,25 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (asyncLogger != null) {
             asyncLogger.log(logMessage.trim());
         } else {
-            if (logFile == null) {
-                return;
+            writeToLogFile(logMessage.trim());
+        }
+    }
+
+    private void writeToLogFile(String message) {
+        if (logFile == null) {
+            return;
+        }
+        try {
+            if (!logFile.exists()) {
+                logFile.createNewFile();
             }
-            try {
-                if (logFile != null && !logFile.exists()) {
-                    logFile.createNewFile();
-                }
-                try (FileWriter writer = new FileWriter(logFile, true)) {
-                    writer.append(logMessage);
-                    writer.flush();
-                }
-            } catch (IOException e) {
-                getLogger().warning("Error writing attempt log: " + e.getMessage());
+            try (FileWriter writer = new FileWriter(logFile, true)) {
+                writer.append(message);
+                writer.append("\n");
+                writer.flush();
             }
+        } catch (IOException e) {
+            getLogger().warning("Error writing to log file: " + e.getMessage());
         }
     }
 
