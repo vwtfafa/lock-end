@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-08-18
+### Fixed
+- Improved AsyncLogger shutdown and processing loop
+- Ensured delay is never negative in PreviewNotificationManager
+- Added early return when logFile is null in logAction and logAttempt to prevent NPE
+
 ## [1.6.0] - 2026-08-17
 ### Added
 - Dependabot configuration for automatic Gradle and GitHub Actions updates
