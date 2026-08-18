@@ -327,6 +327,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (asyncLogger != null) {
             asyncLogger.log(String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED"));
         } else {
+            if (logFile == null) {
+                return;
+            }
             try {
                 LocalDateTime now = LocalDateTime.now();
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -372,6 +375,9 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (asyncLogger != null) {
             asyncLogger.log(logMessage.trim());
         } else {
+            if (logFile == null) {
+                return;
+            }
             try {
                 if (logFile != null && !logFile.exists()) {
                     logFile.createNewFile();
