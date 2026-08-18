@@ -204,24 +204,24 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
         boolean notifyAll = getConfig().getBoolean("broadcast.notify-all", true);
         boolean useActionbar = getConfig().getBoolean("broadcast.use-actionbar", true);
-        String message = msg(key).replace("%player%", playerName);
+        String rawMessage = msg(key).replace("%player%", playerName);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
                 if (useActionbar) {
-                    sendActionBar(player, locked ? msg("actionbar-locked") : msg("actionbar-unlocked"));
+                    sendActionBar(player, locked ? miniMsg("actionbar-locked") : miniMsg("actionbar-unlocked"));
                 } else {
-                    player.sendMessage(message);
+                    player.sendMessage(miniMessage.deserialize(rawMessage));
                 }
             }
         }
     }
 
-    private void sendActionBar(Player player, String message) {
+    private void sendActionBar(Player player, Component message) {
         try {
-            player.sendActionBar(Component.text(message));
+            player.sendActionBar(message);
         } catch (Exception e) {
-            player.sendMessage(message);
+            player.sendMessage(message.toString());
         }
     }
 
@@ -306,7 +306,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
             return;
         }
-        player.sendMessage(msg("join-notification"));
+        player.sendMessage(miniMessage.deserialize(msg("join-notification")));
     }
 
     public boolean isLocked() {

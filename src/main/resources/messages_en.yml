@@ -1,4 +1,4 @@
-locked: "The End is locked!"
+locked: "<gradient:#ff0000:#ffff00>The End is locked!</gradient>"
 locked-reason: "The End is locked! Reason: %reason%"
 toggle: "The End is now %status%."
 status: "The End is currently %status%."
