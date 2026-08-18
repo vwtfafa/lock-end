@@ -49,9 +49,9 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `status` | Show whether the End is locked or open | *(none)* |
 | `test` | Test if portal blocking works | *(no permission, configurable)* |
 | `reload` | Reload configuration without restart | *(no permission)* |
-| `history` | View recent lock/unlock history | `endlock.history` |
-| `undo` | Undo the last lock/unlock action | `endlock.undo` |
-| `validateconfig` | Validate configuration file | `endlock.validate` |
+| `history` | View recent lock/unlock history | `endlock.admin` |
+| `undo` | Undo the last lock/unlock action | `endlock.admin` |
+| `validateconfig` | Validate configuration file | `endlock.admin` |
 | `pause` | Pause scheduled unlock timers | `endlock.admin` |
 | `resume` | Resume paused scheduled unlock timers | `endlock.admin` |
 | `stats` | Show basic lock and block counters | *(no permission)* |
