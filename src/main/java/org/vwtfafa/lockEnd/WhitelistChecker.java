@@ -10,12 +10,10 @@ import java.util.List;
  * Checks if a player or entity is whitelisted to bypass the lock.
  */
 public class WhitelistChecker {
-    private final FileConfiguration config;
     private final List<String> playerWhitelist;
     private final List<String> entityWhitelist;
 
     public WhitelistChecker(FileConfiguration config) {
-        this.config = config;
         this.playerWhitelist = config.getStringList("whitelists.players");
         this.entityWhitelist = config.getStringList("whitelists.entities");
     }

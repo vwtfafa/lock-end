@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.0] - 2026-08-20
+### Maintenance
+- Replaced deprecated Paper metadata access with `getPluginMeta()`.
+- Replaced deprecated `URL(String)` construction with URI-based URL creation.
+- Fixed update checks for `-SNAPSHOT` versions.
+- Removed redundant `TabCompleter` declaration and unused non-metrics fields.
+- Made `/endlock reload` refresh logging, MiniMessage, PlaceholderAPI, countdown, and update-checker settings.
 ### Added
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification

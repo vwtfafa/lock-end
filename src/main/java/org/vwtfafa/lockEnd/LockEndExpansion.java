@@ -17,12 +17,12 @@ public class LockEndExpansion extends PlaceholderExpansion {
 
     @Override
     public String getAuthor() {
-        return plugin.getDescription().getAuthors().isEmpty() ? "Unknown" : plugin.getDescription().getAuthors().iterator().next();
+        return plugin.getPluginMeta().getAuthors().isEmpty() ? "Unknown" : plugin.getPluginMeta().getAuthors().get(0);
     }
 
     @Override
     public String getVersion() {
-        return plugin.getDescription().getVersion();
+        return plugin.getPluginMeta().getVersion();
     }
 
     @Override

@@ -9,8 +9,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.net.URL;
 import java.net.URLConnection;
+import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,7 +22,7 @@ public class UpdateChecker {
 
     public UpdateChecker(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.currentVersion = plugin.getDescription().getVersion();
+        this.currentVersion = plugin.getPluginMeta().getVersion();
     }
 
     /**
@@ -34,8 +34,8 @@ public class UpdateChecker {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 // Abrufen der neuesten Version von GitHub API
-                URL url = new URL("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
-                URLConnection connection = url.openConnection();
+                URI releasesUri = URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
+                URLConnection connection = releasesUri.toURL().openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
                 connection.setRequestProperty("User-Agent", "EndLock/" + currentVersion);
@@ -99,9 +99,8 @@ public class UpdateChecker {
      */
     private boolean isNewerVersion(String newVersion, String currentVersion) {
         try {
-            // Entferne 'v' Prefix wenn vorhanden
-            newVersion = newVersion.replaceFirst("^v", "");
-            currentVersion = currentVersion.replaceFirst("^v", "");
+            newVersion = normalizeVersion(newVersion);
+            currentVersion = normalizeVersion(currentVersion);
 
             String[] newParts = newVersion.split("\\.");
             String[] currentParts = currentVersion.split("\\.");
@@ -117,6 +116,12 @@ public class UpdateChecker {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private String normalizeVersion(String version) {
+        String normalized = version.trim().replaceFirst("^[vV]", "");
+        int prereleaseSeparator = normalized.indexOf('-');
+        return prereleaseSeparator >= 0 ? normalized.substring(0, prereleaseSeparator) : normalized;
     }
 
     public boolean isUpdateAvailable() {

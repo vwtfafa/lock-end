@@ -7,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -39,7 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public final class LockEnd extends JavaPlugin implements Listener, TabCompleter {
+public final class LockEnd extends JavaPlugin implements Listener {
     private boolean locked = false;
     private FileConfiguration langConfig;
     private String langCode = "en";
@@ -53,7 +52,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
     private int blockedCount = 0;
-    private String lockReason = "Maintenance";
 
     // v1.6 new features
     private LockReasonManager lockReasonManager;
@@ -83,8 +81,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
         langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
         loadLanguage(langCode);
-        lockReason = getConfig().getString("lock-reason", "Maintenance");
-
         // v1.6: Lock reason manager
         lockReasonManager = new LockReasonManager(getConfig());
 
@@ -105,23 +101,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         undoCommand = new UndoCommand(this);
         configValidatorCommand = new ConfigValidatorCommand(this);
 
-        // v1.6: Async logger
-        if (getConfig().getBoolean("logging.enabled", true)) {
-            logDir = new File(getDataFolder(), "logs");
-            if (!logDir.exists()) {
-                logDir.mkdirs();
-            }
-            String configuredLogFile = getConfig().getString("logging.log-file", "EndLock.log");
-            Path logDirectory = logDir.toPath().toAbsolutePath().normalize();
-            Path configuredPath = logDirectory.resolve(configuredLogFile).normalize();
-            if (!configuredPath.startsWith(logDirectory)) {
-                getLogger().warning("Invalid logging.log-file path; using EndLock.log instead.");
-                configuredPath = logDirectory.resolve("EndLock.log");
-            }
-            logFile = configuredPath.toFile();
-            asyncLogger = new AsyncLogger(getLogger());
-            asyncLogger.initialize(logFile);
-        }
+        configureAsyncLogger();
 
         miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
         if (miniMessageEnabled) {
@@ -168,7 +148,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             scheduleUnlock();
         }
 
-        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+)");
+        getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.2+)");
     }
 
     @Override
@@ -190,10 +170,6 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             asyncLogger.shutdown();
         }
         getLogger().info("EndLock disabled");
-    }
-
-    public void setLocked(boolean locked) {
-        this.locked = locked;
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action, boolean recordStats) {
@@ -228,6 +204,33 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         boolean changed = changeLockState(restored, actor, "UNDO", false);
         historyCommand.clearLastPreviousState();
         return changed;
+    }
+
+    private void configureAsyncLogger() {
+        if (asyncLogger != null) {
+            asyncLogger.shutdown();
+            asyncLogger = null;
+        }
+        logFile = null;
+        if (!getConfig().getBoolean("logging.enabled", true)) {
+            return;
+        }
+
+        logDir = new File(getDataFolder(), "logs");
+        if (!logDir.exists() && !logDir.mkdirs()) {
+            getLogger().warning("Could not create logging directory: " + logDir);
+            return;
+        }
+        String configuredLogFile = getConfig().getString("logging.log-file", "EndLock.log");
+        Path logDirectory = logDir.toPath().toAbsolutePath().normalize();
+        Path configuredPath = logDirectory.resolve(configuredLogFile).normalize();
+        if (!configuredPath.startsWith(logDirectory)) {
+            getLogger().warning("Invalid logging.log-file path; using EndLock.log instead.");
+            configuredPath = logDirectory.resolve("EndLock.log");
+        }
+        logFile = configuredPath.toFile();
+        asyncLogger = new AsyncLogger(getLogger());
+        asyncLogger.initialize(logFile);
     }
 
     private void loadLanguage(String code) {
@@ -663,12 +666,12 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         sender.sendMessage(msg("reason-usage"));
                         return true;
                     }
-                    lockReason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
-                    getConfig().set("lock-reason", lockReason);
-                    getConfig().set("lock-reasons.default", lockReason);
+                    String newReason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                    getConfig().set("lock-reason", newReason);
+                    getConfig().set("lock-reasons.default", newReason);
                     saveConfig();
                     lockReasonManager = new LockReasonManager(getConfig());
-                    sender.sendMessage(msg("reason-set").replace("%reason%", lockReason));
+                    sender.sendMessage(msg("reason-set").replace("%reason%", newReason));
                     return true;
                 }
                 case "pause" -> {
@@ -720,25 +723,35 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     }
                     cancelScheduledUnlock();
                     previewManager.cancelAll();
+                    cancelCountdown();
                     reloadConfig();
                     langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
                     loadLanguage(langCode);
-                    lockReason = getConfig().getString("lock-reason", "Maintenance");
                     // Refresh managers with new config
                     lockReasonManager = new LockReasonManager(getConfig());
                     whitelistChecker = new WhitelistChecker(getConfig());
                     rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
                     schedulePaused = getConfig().getBoolean("schedule.paused", false);
+                    configureAsyncLogger();
+                    miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
+                    miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
                     loadScheduledUnlock();
                     soundPlayer.loadConfig();
                     if (locked && scheduledUnlockTime != null) {
                         scheduleUnlock();
                     }
-                    if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
-                        if (placeholderExpansion == null) {
-                            placeholderExpansion = new LockEndExpansion(this);
-                            placeholderExpansion.register();
-                        }
+                    boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
+                            && getConfig().getBoolean("hooks.placeholderapi", true);
+                    if (placeholderEnabled && placeholderExpansion == null) {
+                        placeholderExpansion = new LockEndExpansion(this);
+                        placeholderExpansion.register();
+                    } else if (!placeholderEnabled && placeholderExpansion != null) {
+                        placeholderExpansion.unregister();
+                        placeholderExpansion = null;
+                    }
+                    if (getConfig().getBoolean("update-checker.enabled", true)) {
+                        updateChecker = new UpdateChecker(this);
+                        updateChecker.checkForUpdates();
                     }
                     sender.sendMessage(msg("reload-success"));
                     return true;
