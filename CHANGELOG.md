@@ -3,8 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.0] - 2026-08-20
+### Added
+- Add English messages for EndLock functionality including notifications and commands
+- Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
 ### Changed
+- Update gradle wrapper to version 9.7.1 and improve startup scripts for consistency
+- Update version to 2.0.0-SNAPSHOT and add adventure-api dependency
+- Refactor: extract duplicate logging code into writeToLogFile method
 - Translated bStats startup log message from German to English
+### Fixed
+- Update release configuration for v2.0 branch
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
