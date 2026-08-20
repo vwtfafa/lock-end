@@ -318,6 +318,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     }
 
     private void loadScheduledUnlock() {
+        scheduledUnlockTime = null;
         if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
             return;
         }
@@ -409,6 +410,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         getConfig().set("schedule.paused", true);
         saveConfig();
         cancelScheduledUnlock();
+        cancelCountdown();
         previewManager.cancelPreview("unlock");
         getLogger().info("Schedule paused by " + "System");
     }
