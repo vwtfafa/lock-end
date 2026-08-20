@@ -1,6 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Handles grace period after locking - temporarily unlocks to allow safe exit.
@@ -8,6 +9,7 @@ import org.bukkit.Bukkit;
 public class GracePeriodTask {
     private final LockEnd plugin;
     private volatile boolean active;
+    private BukkitTask task;
 
     public GracePeriodTask(LockEnd plugin) {
         this.plugin = plugin;
@@ -23,12 +25,13 @@ public class GracePeriodTask {
             return;
         }
         active = true;
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (plugin.isLocked()) {
-                plugin.setLocked(false);
+                plugin.changeLockState(false, "System", "GRACE_PERIOD_END", false);
                 plugin.getLogger().info("Grace period ended, End is now unlocked.");
             }
             active = false;
+            task = null;
         }, durationSeconds * 20L);
         plugin.getLogger().info("Grace period started for " + durationSeconds + " seconds.");
     }
@@ -39,5 +42,13 @@ public class GracePeriodTask {
      */
     public boolean isActive() {
         return active;
+    }
+
+    public void cancel() {
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        active = false;
     }
 }

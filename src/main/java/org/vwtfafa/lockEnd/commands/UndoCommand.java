@@ -26,15 +26,13 @@ public class UndoCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        boolean previousState = plugin.isLocked();
-        plugin.setLocked(!previousState);
-        plugin.getConfig().set("locked", !previousState);
-        plugin.saveConfig();
+        if (!plugin.undoLastAction(sender.getName())) {
+            sender.sendMessage(plugin.msg("undo.empty"));
+            return true;
+        }
 
         sender.sendMessage(plugin.msg("undo.success")
             .replace("%action%", plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open")));
-
-        plugin.getLogger().info(sender.getName() + " undid the last lock/unlock action.");
         return true;
     }
 

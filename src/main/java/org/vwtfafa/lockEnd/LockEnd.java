@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.StringUtil;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
@@ -68,6 +69,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     // Schedule pause/resume
     private boolean schedulePaused = false;
+    private BukkitTask scheduledUnlockTask;
 
     @Override
     public void onEnable() {
@@ -133,6 +135,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
         // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        schedulePaused = getConfig().getBoolean("schedule.paused", false);
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
@@ -156,6 +159,16 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     public void onDisable() {
         getConfig().set("locked", locked);
         saveConfig();
+        cancelScheduledUnlock();
+        if (previewManager != null) {
+            previewManager.cancelAll();
+        }
+        if (gracePeriodTask != null) {
+            gracePeriodTask.cancel();
+        }
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+        }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
         }
@@ -164,6 +177,40 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
 
     public void setLocked(boolean locked) {
         this.locked = locked;
+    }
+
+    public boolean changeLockState(boolean newLocked, String actor, String action, boolean recordStats) {
+        if (locked == newLocked) {
+            return false;
+        }
+
+        boolean previousState = locked;
+        locked = newLocked;
+        historyCommand.recordPreviousState(previousState);
+        getConfig().set("locked", locked);
+        saveConfig();
+
+        if (!locked) {
+            cancelScheduledUnlock();
+            previewManager.cancelPreview("unlock");
+        }
+        broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+        logAction(actor, action);
+        historyCommand.addEntry(action + " by " + actor + " (previously " + (previousState ? "locked" : "unlocked") + ")");
+        if (recordStats && locked) {
+            incrementStats(true);
+        }
+        return true;
+    }
+
+    public boolean undoLastAction(String actor) {
+        if (historyCommand.getLastPreviousState() == null) {
+            return false;
+        }
+        boolean restored = historyCommand.getLastPreviousState();
+        boolean changed = changeLockState(restored, actor, "UNDO", false);
+        historyCommand.clearLastPreviousState();
+        return changed;
     }
 
     private void loadLanguage(String code) {
@@ -270,28 +317,40 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
+        cancelScheduledUnlock();
         // Schedule preview notification before unlock
         previewManager.schedulePreviewUnlock(scheduledUnlockTime);
         long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
         long ticksDelay = Math.max(secondsDelay, 0) * 20L;
-        Bukkit.getScheduler().runTaskLater(this, () -> {
+        scheduledUnlockTask = Bukkit.getScheduler().runTaskLater(this, () -> {
             if (locked && !schedulePaused) {
-                locked = false;
-                getConfig().set("locked", false);
-                saveConfig();
+                changeLockState(false, "System", "SCHEDULED_UNLOCK", false);
                 getLogger().info("Scheduled unlock executed.");
-                broadcastMessage("broadcast-unlocked", "System");
             }
+            scheduledUnlockTask = null;
         }, ticksDelay);
+    }
+
+    private void cancelScheduledUnlock() {
+        if (scheduledUnlockTask != null) {
+            scheduledUnlockTask.cancel();
+            scheduledUnlockTask = null;
+        }
     }
 
     public void pauseSchedule() {
         schedulePaused = true;
+        getConfig().set("schedule.paused", true);
+        saveConfig();
+        cancelScheduledUnlock();
+        previewManager.cancelPreview("unlock");
         getLogger().info("Schedule paused by " + "System");
     }
 
     public void resumeSchedule() {
         schedulePaused = false;
+        getConfig().set("schedule.paused", false);
+        saveConfig();
         if (locked && scheduledUnlockTime != null) {
             scheduleUnlock();
         }
@@ -428,14 +487,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         return true;
                     }
                     if (!locked) {
-                        locked = true;
-                        getConfig().set("locked", true);
-                        saveConfig();
                         sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
-                        broadcastMessage("broadcast-locked", sender.getName());
-                        logAction(sender.getName(), "LOCK");
-                        historyCommand.addEntry("LOCK by " + sender.getName());
-                        incrementStats(true);
+                        changeLockState(true, sender.getName(), "LOCK", true);
 
                         // v1.6: Grace period
                         if (getConfig().getBoolean("grace-period.enabled", false)) {
@@ -453,13 +506,8 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                         return true;
                     }
                     if (locked) {
-                        locked = false;
-                        getConfig().set("locked", false);
-                        saveConfig();
                         sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
-                        broadcastMessage("broadcast-unlocked", sender.getName());
-                        logAction(sender.getName(), "UNLOCK");
-                        historyCommand.addEntry("UNLOCK by " + sender.getName());
+                        changeLockState(false, sender.getName(), "UNLOCK", false);
                     } else {
                         sender.sendMessage(msg("already-unlocked"));
                     }
@@ -567,6 +615,12 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     return true;
                 }
                 case "reload" -> {
+                    if (!sender.hasPermission("endlock.reload")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    cancelScheduledUnlock();
+                    previewManager.cancelAll();
                     reloadConfig();
                     langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
                     loadLanguage(langCode);
@@ -575,6 +629,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     lockReasonManager = new LockReasonManager(getConfig());
                     whitelistChecker = new WhitelistChecker(getConfig());
                     rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+                    schedulePaused = getConfig().getBoolean("schedule.paused", false);
                     loadScheduledUnlock();
                     soundPlayer.loadConfig();
                     if (locked && scheduledUnlockTime != null) {
@@ -593,15 +648,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         }
 
         if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {
-            locked = !locked;
-            String status = locked ? msg("closed") : msg("open");
+            boolean newLocked = !locked;
+            String status = newLocked ? msg("closed") : msg("open");
             sender.sendMessage(msg("toggle").replace("%status%", status));
-            getConfig().set("locked", locked);
-            saveConfig();
-            broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", sender.getName());
-            logAction(sender.getName(), locked ? "LOCK" : "UNLOCK");
-            if (locked) {
-                incrementStats(true);
+            changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK", newLocked);
+            if (newLocked) {
                 // Grace period on lock
                 if (getConfig().getBoolean("grace-period.enabled", false)) {
                     int duration = getConfig().getInt("grace-period.duration", 10);

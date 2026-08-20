@@ -15,6 +15,7 @@ import java.util.List;
 public class LockHistoryCommand implements CommandExecutor, TabCompleter {
     private final LockEnd plugin;
     private final List<String> history = new ArrayList<>();
+    private Boolean lastPreviousState;
 
     public LockHistoryCommand(LockEnd plugin) {
         this.plugin = plugin;
@@ -54,5 +55,17 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
         if (history.size() > 100) {
             history.remove(0);
         }
+    }
+
+    public void recordPreviousState(boolean previousState) {
+        lastPreviousState = previousState;
+    }
+
+    public Boolean getLastPreviousState() {
+        return lastPreviousState;
+    }
+
+    public void clearLastPreviousState() {
+        lastPreviousState = null;
     }
 }
