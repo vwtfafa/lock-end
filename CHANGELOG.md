@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-08-20
+### Changed
+- Translated bStats startup log message from German to English
+
 ## [1.6.1] - 2026-08-18
 ### Fixed
 - Improved AsyncLogger shutdown and processing loop

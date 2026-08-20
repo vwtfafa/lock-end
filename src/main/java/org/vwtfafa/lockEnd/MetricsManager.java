@@ -65,7 +65,7 @@ public class MetricsManager {
         }));
         metrics.addCustomChart(new SimplePie("metrics_enabled", () -> "Enabled"));
 
-        plugin.getLogger().info("bStats Metriken aktiviert (ID: " + PLUGIN_ID + ")");
+        plugin.getLogger().info("bStats metrics enabled (ID: " + PLUGIN_ID + ")");
     }
 
     /**
