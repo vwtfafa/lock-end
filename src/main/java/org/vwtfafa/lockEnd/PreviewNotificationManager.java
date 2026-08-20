@@ -25,6 +25,9 @@ public class PreviewNotificationManager {
      * @param lockTime The time when lock will occur
      */
     public void schedulePreviewLock(LocalDateTime lockTime) {
+        if (!plugin.getConfig().getBoolean("preview-notifications.enabled", false)) {
+            return;
+        }
         cancelPreview("lock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
@@ -47,6 +50,9 @@ public class PreviewNotificationManager {
      * @param unlockTime The time when unlock will occur
      */
     public void schedulePreviewUnlock(LocalDateTime unlockTime) {
+        if (!plugin.getConfig().getBoolean("preview-notifications.enabled", false)) {
+            return;
+        }
         cancelPreview("unlock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 

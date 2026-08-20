@@ -1,6 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -28,6 +29,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -107,7 +109,14 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             if (!logDir.exists()) {
                 logDir.mkdirs();
             }
-            logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
+            String configuredLogFile = getConfig().getString("logging.log-file", "EndLock.log");
+            Path logDirectory = logDir.toPath().toAbsolutePath().normalize();
+            Path configuredPath = logDirectory.resolve(configuredLogFile).normalize();
+            if (!configuredPath.startsWith(logDirectory)) {
+                getLogger().warning("Invalid logging.log-file path; using EndLock.log instead.");
+                configuredPath = logDirectory.resolve("EndLock.log");
+            }
+            logFile = configuredPath.toFile();
             asyncLogger = new AsyncLogger();
             asyncLogger.initialize(logFile);
         }
@@ -140,6 +149,11 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
+        }
+
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            updateChecker = new UpdateChecker(this);
+            updateChecker.checkForUpdates();
         }
 
         // Initialize bStats metrics
@@ -240,8 +254,14 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     }
 
     private Component miniMsg(String key) {
-        String raw = msg(key);
-        return miniMessage.deserialize(raw);
+        return messageComponent(msg(key));
+    }
+
+    private Component messageComponent(String raw) {
+        if (miniMessageEnabled && miniMessage != null) {
+            return miniMessage.deserialize(raw);
+        }
+        return LegacyComponentSerializer.legacySection().deserialize(raw);
     }
 
     private void broadcastMessage(String key, String playerName) {
@@ -258,7 +278,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                 if (useActionbar) {
                     sendActionBar(player, locked ? miniMsg("actionbar-locked") : miniMsg("actionbar-unlocked"));
                 } else {
-                    player.sendMessage(miniMessage.deserialize(rawMessage));
+                    player.sendMessage(messageComponent(rawMessage));
                 }
             }
         }
@@ -268,7 +288,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         try {
             player.sendActionBar(message);
         } catch (Exception e) {
-            player.sendMessage(message.toString());
+            player.sendMessage(message);
         }
     }
 
@@ -365,7 +385,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
             return;
         }
-        player.sendMessage(miniMessage.deserialize(msg("join-notification")));
+        player.sendMessage(messageComponent(msg("join-notification")));
     }
 
     public boolean isLocked() {
