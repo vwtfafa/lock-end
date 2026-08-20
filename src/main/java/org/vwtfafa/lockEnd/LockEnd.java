@@ -43,7 +43,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private FileConfiguration langConfig;
     private String langCode = "en";
     private UpdateChecker updateChecker;
-    private MetricsManager metricsManager;
     private File logDir;
     private File logFile;
     private MiniMessage miniMessage;
