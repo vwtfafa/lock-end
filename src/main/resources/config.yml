@@ -3,6 +3,12 @@ locked: false
 language: en
 lock-reason: "Maintenance"
 
+# End access scope. An empty world list means all End worlds.
+end:
+  worlds: []
+  block-return: false
+  block-end-gateway: true
+
 # Update Checker: Notifications for available updates
 update-checker:
   enabled: true

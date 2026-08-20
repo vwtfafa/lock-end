@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
@@ -72,6 +73,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     // Schedule pause/resume
     private boolean schedulePaused = false;
     private BukkitTask scheduledUnlockTask;
+    private BukkitTask countdownTask;
 
     @Override
     public void onEnable() {
@@ -174,6 +176,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         getConfig().set("locked", locked);
         saveConfig();
         cancelScheduledUnlock();
+        cancelCountdown();
         if (previewManager != null) {
             previewManager.cancelAll();
         }
@@ -338,8 +341,10 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             return;
         }
         cancelScheduledUnlock();
+        cancelCountdown();
         // Schedule preview notification before unlock
         previewManager.schedulePreviewUnlock(scheduledUnlockTime);
+        scheduleCountdown();
         long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
         long ticksDelay = Math.max(secondsDelay, 0) * 20L;
         scheduledUnlockTask = Bukkit.getScheduler().runTaskLater(this, () -> {
@@ -356,6 +361,47 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
             scheduledUnlockTask.cancel();
             scheduledUnlockTask = null;
         }
+    }
+
+    private void scheduleCountdown() {
+        if (!getConfig().getBoolean("scheduled-unlock.countdown.enabled", false)) {
+            return;
+        }
+        long startBefore = getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
+        long interval = Math.max(1, getConfig().getLong("scheduled-unlock.countdown.interval", 10));
+        countdownTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            if (!locked || scheduledUnlockTime == null || schedulePaused) {
+                return;
+            }
+            long remaining = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds();
+            if (remaining < 0 || remaining > startBefore) {
+                return;
+            }
+            String message = msg("countdown-notification").replace("%time%", formatDuration(remaining));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.isOp() || player.hasPermission("endlock.admin")) {
+                    player.sendMessage(messageComponent(message));
+                }
+            }
+        }, 0L, interval * 20L);
+    }
+
+    private void cancelCountdown() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+    }
+
+    private String formatDuration(long seconds) {
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long remainingSeconds = seconds % 60;
+        if (days > 0) return days + "d " + hours + "h";
+        if (hours > 0) return hours + "h " + minutes + "m";
+        if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
+        return remainingSeconds + "s";
     }
 
     public void pauseSchedule() {
@@ -465,7 +511,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         if (args.length == 1) {
             List<String> options = List.of("status", "lock", "unlock", "test", "stats",
                     "unlockin", "unlockat", "reload", "history", "undo", "validateconfig",
-                    "pause", "resume");
+                    "pause", "resume", "cancel", "reason");
             StringUtil.copyPartialMatches(args[0], options, completions);
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
@@ -592,6 +638,37 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                     }
                     return true;
                 }
+                case "cancel" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    scheduledUnlockTime = null;
+                    getConfig().set("scheduled-unlock.enabled", false);
+                    saveConfig();
+                    cancelScheduledUnlock();
+                    cancelCountdown();
+                    previewManager.cancelAll();
+                    sender.sendMessage(msg("schedule-cancelled"));
+                    return true;
+                }
+                case "reason" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    if (args.length < 2) {
+                        sender.sendMessage(msg("reason-usage"));
+                        return true;
+                    }
+                    lockReason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                    getConfig().set("lock-reason", lockReason);
+                    getConfig().set("lock-reasons.default", lockReason);
+                    saveConfig();
+                    lockReasonManager = new LockReasonManager(getConfig());
+                    sender.sendMessage(msg("reason-set").replace("%reason%", lockReason));
+                    return true;
+                }
                 case "pause" -> {
                     if (!sender.hasPermission("endlock.admin")) {
                         sender.sendMessage(msg("permission"));
@@ -686,58 +763,46 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerPortal(PlayerPortalEvent event) {
-        Player player = event.getPlayer();
-        if (!locked) return;
-
-        // v1.6: Check whitelist
-        if (whitelistChecker.canBypass(player)) {
-            return;
-        }
-
-        if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
-            event.setCancelled(true);
-            // v1.6: Use lock reason
-            String reason = lockReasonManager.getReason("default");
-            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
-
-            // v1.6: Sound effect
-            soundPlayer.playDenialSound(player);
-
-            // v1.6: Rate-limited detailed logging
-            if (getConfig().getBoolean("logging.log-attempts", true)) {
-                logAttempt(player, player.getWorld(), "PORTAL");
-            }
-            incrementStats(false);
-        }
+        handleEndAccess(event, "PORTAL");
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        Player player = event.getPlayer();
-        if (!locked) return;
+        handleEndAccess(event, "TELEPORT_" + event.getCause().name());
+    }
 
-        // v1.6: Check whitelist
-        if (whitelistChecker.canBypass(player)) {
+    private void handleEndAccess(PlayerTeleportEvent event, String method) {
+        Player player = event.getPlayer();
+        if (!locked || event.getTo() == null || event.getTo().getWorld() == null) {
             return;
         }
-
-        if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
-            event.setCancelled(true);
-            // v1.6: Use lock reason
-            String reason = lockReasonManager.getReason("default");
-            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
-
-            // v1.6: Sound effect
-            soundPlayer.playDenialSound(player);
-
-            // v1.6: Rate-limited detailed logging
-            if (getConfig().getBoolean("logging.log-attempts", true)) {
-                logAttempt(player, player.getWorld(), "TELEPORT_" + event.getCause().name());
-            }
-            incrementStats(false);
+        if (event.getTo().getWorld().getEnvironment() != World.Environment.THE_END) {
+            return;
         }
+        if (!getConfig().getBoolean("end.block-return", false)
+                && event.getFrom().getWorld().getEnvironment() == World.Environment.THE_END) {
+            return;
+        }
+        List<String> configuredWorlds = getConfig().getStringList("end.worlds");
+        if (!configuredWorlds.isEmpty() && configuredWorlds.stream().noneMatch(name ->
+                name.equalsIgnoreCase(event.getTo().getWorld().getName()))) {
+            return;
+        }
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.END_GATEWAY
+                && !getConfig().getBoolean("end.block-end-gateway", true)) {
+            return;
+        }
+        if (whitelistChecker.canBypass(player)) return;
+        event.setCancelled(true);
+        String reason = lockReasonManager.getReason("default");
+        player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
+        soundPlayer.playDenialSound(player);
+        if (getConfig().getBoolean("logging.log-attempts", true)) {
+            logAttempt(player, player.getWorld(), method);
+        }
+        incrementStats(false);
     }
 
     @EventHandler
