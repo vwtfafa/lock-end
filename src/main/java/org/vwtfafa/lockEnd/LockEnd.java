@@ -139,7 +139,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         // Initialize bStats metrics
         if (getConfig().getBoolean("metrics.enabled", true)) {
-            metricsManager = new MetricsManager(this);
+            new MetricsManager(this);
         }
 
         loadScheduledUnlock();
