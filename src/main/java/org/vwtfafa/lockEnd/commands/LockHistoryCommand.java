@@ -4,8 +4,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.vwtfafa.lockEnd.LockEnd;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,10 +18,13 @@ import java.util.List;
 public class LockHistoryCommand implements CommandExecutor, TabCompleter {
     private final LockEnd plugin;
     private final List<String> history = new ArrayList<>();
+    private final File historyFile;
     private Boolean lastPreviousState;
 
     public LockHistoryCommand(LockEnd plugin) {
         this.plugin = plugin;
+        historyFile = new File(plugin.getDataFolder(), "history.yml");
+        loadHistory();
     }
 
     @Override
@@ -55,6 +61,7 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
         if (history.size() > 100) {
             history.remove(0);
         }
+        saveHistory();
     }
 
     public void recordPreviousState(boolean previousState) {
@@ -67,5 +74,25 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
 
     public void clearLastPreviousState() {
         lastPreviousState = null;
+    }
+
+    private void loadHistory() {
+        if (!historyFile.isFile()) {
+            return;
+        }
+        history.addAll(YamlConfiguration.loadConfiguration(historyFile).getStringList("entries"));
+        if (history.size() > 100) {
+            history.subList(0, history.size() - 100).clear();
+        }
+    }
+
+    private void saveHistory() {
+        YamlConfiguration historyConfig = new YamlConfiguration();
+        historyConfig.set("entries", history);
+        try {
+            historyConfig.save(historyFile);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Could not save history: " + exception.getMessage());
+        }
     }
 }

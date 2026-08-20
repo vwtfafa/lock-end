@@ -1,7 +1,5 @@
 package org.vwtfafa.lockEnd.util;
 
-import org.bukkit.Bukkit;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,13 +11,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * Asynchronous logger to prevent main thread lag from file I/O.
  */
 public class AsyncLogger {
-    private static final AsyncLogger INSTANCE = new AsyncLogger();
     private final BlockingQueue<LogEntry> logQueue = new LinkedBlockingQueue<>();
+    private final Logger logger;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "EndLock-AsyncLogger");
         t.setDaemon(true);
@@ -28,10 +27,8 @@ public class AsyncLogger {
     private File logFile;
     private volatile boolean running = false;
 
-    public AsyncLogger() {}
-
-    public static AsyncLogger getInstance() {
-        return INSTANCE;
+    public AsyncLogger(Logger logger) {
+        this.logger = logger;
     }
 
     /**
@@ -68,7 +65,7 @@ public class AsyncLogger {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 executor.shutdownNow(); // Cancel any still-running tasks
                 if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
-                    Bukkit.getLogger().warning("AsyncLogger executor did not terminate within the timeout");
+                    logger.warning("AsyncLogger executor did not terminate within the timeout");
                 }
             }
         } catch (InterruptedException e) {
@@ -109,7 +106,7 @@ public class AsyncLogger {
                 writer.print(logMessage);
             }
         } catch (IOException e) {
-            Bukkit.getLogger().severe("Error writing to log file: " + e.getMessage());
+            logger.severe("Error writing to log file: " + e.getMessage());
         }
     }
 

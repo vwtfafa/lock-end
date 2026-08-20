@@ -11,12 +11,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class UpdateChecker {
     private final JavaPlugin plugin;
     private final String currentVersion;
-    private String latestVersion = null;
-    private boolean updateAvailable = false;
+    private volatile String latestVersion;
+    private volatile boolean updateAvailable;
 
     public UpdateChecker(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -27,6 +29,8 @@ public class UpdateChecker {
      * Lädt die neueste Version von GitHub asynchron und benachrichtigt Ops
      */
     public void checkForUpdates() {
+        boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
+        boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 // Abrufen der neuesten Version von GitHub API
@@ -34,22 +38,20 @@ public class UpdateChecker {
                 URLConnection connection = url.openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
+                connection.setRequestProperty("User-Agent", "EndLock/" + currentVersion);
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String line;
                 StringBuilder response = new StringBuilder();
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
                 }
-                reader.close();
 
                 // Parse die Version aus der JSON-Antwort
-                String json = response.toString();
-                int tagIndex = json.indexOf("\"tag_name\":\"");
-                if (tagIndex != -1) {
-                    int startIndex = tagIndex + 12;
-                    int endIndex = json.indexOf("\"", startIndex);
-                    latestVersion = json.substring(startIndex, endIndex);
+                Matcher matcher = Pattern.compile("\\\"tag_name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"").matcher(response);
+                if (matcher.find()) {
+                    latestVersion = matcher.group(1);
                     updateAvailable = isNewerVersion(latestVersion, currentVersion);
 
                     if (updateAvailable) {
@@ -61,7 +63,7 @@ public class UpdateChecker {
                         plugin.getLogger().info("========================================");
 
                         // Notify online operators
-                        notifyOps();
+                        notifyOps(notifyOps, notifyChat);
                     }
                 }
             } catch (Exception e) {
@@ -73,10 +75,7 @@ public class UpdateChecker {
     /**
      * Sends a chat notification to online operators about available updates
      */
-    private void notifyOps() {
-        boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
-        boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
-
+    private void notifyOps(boolean notifyOps, boolean notifyChat) {
         if (!notifyOps || !notifyChat) {
             return;
         }

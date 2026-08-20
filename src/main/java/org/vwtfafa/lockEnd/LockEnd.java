@@ -119,7 +119,7 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
                 configuredPath = logDirectory.resolve("EndLock.log");
             }
             logFile = configuredPath.toFile();
-            asyncLogger = new AsyncLogger();
+            asyncLogger = new AsyncLogger(getLogger());
             asyncLogger.initialize(logFile);
         }
 
