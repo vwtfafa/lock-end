@@ -2,7 +2,7 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## What's new in 1.6.0
+## What's new in 2.0.0
 
 - **Lock reasons**: Customizable reasons displayed when blocking (e.g., "Maintenance", "Event in progress")
 - **Grace period**: Temporary unlock after locking to allow players to exit safely
@@ -18,6 +18,10 @@
 - **Config validator**: Check config for errors with `/endlock validateconfig`
 - **Async logging**: File I/O moved off main thread
 - **Mobile alias**: `/el` as short command alias
+- **Scoped locking**: Restrict the lock to configured End worlds and optionally block End returns or End gateways
+- **Schedule controls**: Cancel scheduled unlocks and change the lock reason with `/endlock cancel` and `/endlock reason <reason>`
+- **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
+- **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
 ## Requirements
 
@@ -31,7 +35,7 @@
 
 ## Installation
 
-1. Download the latest `lock-end-1.6.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-2.0.0-SNAPSHOT.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker, metrics).
@@ -48,12 +52,14 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `unlock` | Explicitly unlock the End | `endlock.admin` |
 | `status` | Show whether the End is locked or open | *(none)* |
 | `test` | Test if portal blocking works | *(no permission, configurable)* |
-| `reload` | Reload configuration without restart | *(no permission)* |
+| `reload` | Reload configuration without restart | `endlock.reload` |
 | `history` | View recent lock/unlock history | `endlock.admin` |
 | `undo` | Undo the last lock/unlock action | `endlock.admin` |
 | `validateconfig` | Validate configuration file | `endlock.admin` |
 | `pause` | Pause scheduled unlock timers | `endlock.admin` |
 | `resume` | Resume paused scheduled unlock timers | `endlock.admin` |
+| `cancel` | Cancel the scheduled unlock | `endlock.admin` |
+| `reason <reason>` | Set the lock reason | `endlock.admin` |
 | `stats` | Show basic lock and block counters | *(no permission)* |
 
 - **Console** can toggle without a permission node.
@@ -65,6 +71,11 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 |------------|---------|-------------|
 | `endlock.toggle` | `op` | Lock or unlock the End via command |
 | `endlock.admin` | `op` | Lock/unlock the End, pause/resume schedules, and use test command |
+| `endlock.reload` | `op` | Reload the plugin configuration |
+| `endlock.history` | `op` | View persistent lock history |
+| `endlock.undo` | `op` | Undo the last recorded state change |
+| `endlock.validate` | `op` | Validate the plugin configuration |
+| `endlock.whitelist.bypass` | `op` | Bypass the End lock |
 
 ### LuckPerms Setup
 
@@ -123,6 +134,12 @@ locked: false
 language: en
 lock-reason: "Maintenance"
 
+# End access scope. An empty world list means all End worlds.
+end:
+  worlds: []
+  block-return: false
+  block-end-gateway: true
+
 # Update Checker: Notifications for available updates
 update-checker:
   enabled: true
@@ -139,47 +156,47 @@ broadcast:
   use-actionbar: true  # Send as action bar instead of chat
   notify-all: true     # Notify all players (if false, only Ops)
 
-# v1.6: Preview notifications - Warn players before automatic lock/unlock
+# Preview notifications - Warn players before automatic lock/unlock
 preview-notifications:
   enabled: false
   seconds: 30  # How many seconds before lock/unlock to send preview
 
-# v1.6: Action bar customization
+# Action bar customization
 actionbar:
   use-alt-char: false  # Use alternate character for overflow handling
   alt-char: "|"
 
-# v1.6: Sound effects for access denial
+# Sound effects for access denial
 sound-effects:
   enabled: false
   sound: "BLOCK_ANVIL_LAND"
   volume: 1.0
   pitch: 1.0
 
-# v1.6: Lock reasons
+# Lock reasons
 lock-reasons:
   default: "Maintenance"
   maintenance: "Maintenance in progress"
   event: "Event in progress"
 
-# v1.6: Grace period - Temporary unlock after locking to allow safe exit
+# Grace period - Temporary unlock after locking to allow safe exit
 grace-period:
   enabled: false
   duration: 10  # seconds
 
-# v1.6: Whitelists
+# Whitelists
 whitelists:
   players: []  # Player names that can bypass the lock
   entities: []  # Entity types that can bypass the lock
 
-# v1.6: Logging & Analytics
+# Logging & Analytics
 logging:
   enabled: true
   log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
   log-attempts: true       # Log attempted access to locked End
   rate-limit-seconds: 5    # Minimum seconds between logged attempts per player
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule:
   paused: false
 
@@ -204,7 +221,7 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
-  # v1.6: Countdown timer
+  # Countdown timer
   countdown:
     enabled: true
     interval: 10      # Seconds between countdown updates
@@ -228,7 +245,7 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-1.6.0.jar`
+Output: `build/libs/lock-end-2.0.0-SNAPSHOT.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -255,9 +272,10 @@ Run a local test server (downloads Paper 26.2):
 
 ## Limitations
 
-- Only **players** are blocked; other entities are not affected.
+- Only **player** movement is blocked; entity whitelist entries do not control entity teleport events.
 - Players **already in the End** when you lock it are not teleported out.
-- Language changes require a server restart or `/endlock reload`.
+- Language and configuration changes can be applied with `/endlock reload`.
+- The default lock blocks travel into the End; returning from the End is allowed unless `end.block-return` is enabled.
 
 ## License
 

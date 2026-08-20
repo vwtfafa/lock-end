@@ -51,6 +51,7 @@ history-entry: "§7- %entry%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] Dernière action annulée avec succès. L'End est maintenant §e%action%§6."
+undo.empty: "§c[EndLock] Aucune action à annuler."
 
 # v1.6: Config validator
 config.valid: "§aLa configuration est valide. Aucun problème trouvé."

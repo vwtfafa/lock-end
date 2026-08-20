@@ -51,6 +51,7 @@ history-entry: "§7- %entry%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] 最後の操作が正常に元に戻されました。ジ・エンドは現在 §e%action%§6 です。"
+undo.empty: "§c[EndLock] 元に戻す操作はありません。"
 
 # v1.6: Config validator
 config.valid: "§a設定は有効です。問題は見つかりませんでした。"

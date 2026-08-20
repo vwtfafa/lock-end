@@ -51,6 +51,7 @@ history-entry: "§7- %entry%"
 
 # v1.6: Undo command
 undo.success: "§6[§c末地Lock§6] 最后一个操作已成功撤销。末地现在是 §e%action%§6。"
+undo.empty: "§c[EndLock] 没有可撤销的操作。"
 
 # v1.6: Config validator
 config.valid: "§a配置有效。未发现任何问题。"

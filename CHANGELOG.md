@@ -6,13 +6,22 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
+- Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup
+- Configurable End world scope, End return blocking, and End gateway blocking
+- Countdown task for scheduled unlocks, plus `/endlock cancel` and `/endlock reason <reason>`
+- Persistent bounded lock history in `plugins/EndLock/history.yml`
 ### Changed
 - Update gradle wrapper to version 9.7.1 and improve startup scripts for consistency
 - Update version to 2.0.0-SNAPSHOT and add adventure-api dependency
 - Refactor: extract duplicate logging code into writeToLogFile method
 - Translated bStats startup log message from German to English
+- Reload and shutdown now cancel scheduled, preview, countdown, and grace-period tasks cleanly
+- Preview notifications honor `preview-notifications.enabled`
 ### Fixed
 - Update release configuration for v2.0 branch
+- Undo now restores the previous state through the normal state-transition path
+- Update checking, MiniMessage fallback, and configured log paths are more robust
+- Portal and teleport denial logic is shared and runs at high priority for consistent handling
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
