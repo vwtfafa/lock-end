@@ -9,11 +9,26 @@ import org.vwtfafa.lockEnd.LockEnd;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 /**
  * Command to validate configuration file.
  */
 public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
+    private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final List<String> SUPPORTED_LANGUAGES = List.of("de", "en", "es", "fr", "it", "ja", "ru", "zh");
+    private static final List<String> REQUIRED_MESSAGES = List.of(
+            "locked", "locked-reason", "toggle", "status", "permission", "open", "closed",
+            "already-locked", "already-unlocked", "broadcast-locked", "broadcast-unlocked",
+            "actionbar-locked", "actionbar-unlocked", "test-success", "test-info", "countdown-notification",
+            "history.header", "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
+            "schedule-cancelled", "reason-usage", "reason-set", "join-notification", "reload-success",
+            "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed"
+    );
+
     private final LockEnd plugin;
 
     public ConfigValidatorCommand(LockEnd plugin) {
@@ -29,7 +44,6 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
 
         List<String> issues = new ArrayList<>();
 
-        // Validate basic settings
         if (!plugin.getConfig().getBoolean("logging.enabled") &&
             !plugin.getConfig().getBoolean("broadcast.enabled") &&
             !plugin.getConfig().getBoolean("metrics.enabled")) {
@@ -39,6 +53,9 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
         // Validate scheduled unlock settings
         if (plugin.getConfig().getBoolean("scheduled-unlock.enabled")) {
             String mode = plugin.getConfig().getString("scheduled-unlock.mode", "days");
+            if (mode == null) {
+                mode = "";
+            }
             if ("days".equalsIgnoreCase(mode)) {
                 int days = plugin.getConfig().getInt("scheduled-unlock.days", 7);
                 if (days <= 0) {
@@ -46,9 +63,30 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
                 }
             } else if ("datetime".equalsIgnoreCase(mode)) {
                 String datetime = plugin.getConfig().getString("scheduled-unlock.datetime", "");
-                if (datetime.isEmpty()) {
+                if (datetime == null || datetime.isBlank()) {
                     issues.add("Error: scheduled-unlock.datetime is required when mode is 'datetime'.");
+                } else {
+                    try {
+                        LocalDateTime.parse(datetime, SCHEDULE_FORMAT);
+                    } catch (DateTimeParseException exception) {
+                        issues.add("Error: scheduled-unlock.datetime must use yyyy-MM-dd HH:mm.");
+                    }
                 }
+            } else {
+                issues.add("Error: scheduled-unlock.mode must be 'days' or 'datetime'.");
+            }
+        }
+
+        validateNumericSettings(issues);
+
+        String language = plugin.getConfig().getString("language", "en");
+        if (language == null || !SUPPORTED_LANGUAGES.contains(language.toLowerCase(Locale.ROOT))) {
+            issues.add("Error: language must be one of " + String.join(", ", SUPPORTED_LANGUAGES) + ".");
+        }
+
+        for (String key : REQUIRED_MESSAGES) {
+            if (!plugin.hasMessage(key)) {
+                issues.add("Error: Missing message key '" + key + "'.");
             }
         }
 
@@ -78,11 +116,40 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
         } else {
             sender.sendMessage(plugin.msg("config.issues"));
             for (String issue : issues) {
-                sender.sendMessage("  - " + issue);
+                sender.sendMessage(plugin.msg("config-issue").replace("%issue%", issue));
             }
         }
 
         return true;
+    }
+
+    private void validateNumericSettings(List<String> issues) {
+        validatePositive(issues, "preview-notifications.seconds");
+        validatePositive(issues, "grace-period.duration");
+        validatePositive(issues, "logging.rate-limit-seconds");
+        validatePositive(issues, "scheduled-unlock.countdown.interval");
+        validateNonNegative(issues, "scheduled-unlock.countdown.start-before");
+
+        double volume = plugin.getConfig().getDouble("sound-effects.volume", 1.0);
+        double pitch = plugin.getConfig().getDouble("sound-effects.pitch", 1.0);
+        if (volume < 0 || volume > 2) {
+            issues.add("Error: sound-effects.volume must be between 0 and 2.");
+        }
+        if (pitch < 0 || pitch > 2) {
+            issues.add("Error: sound-effects.pitch must be between 0 and 2.");
+        }
+    }
+
+    private void validatePositive(List<String> issues, String path) {
+        if (plugin.getConfig().getLong(path, 1) <= 0) {
+            issues.add("Error: " + path + " must be positive.");
+        }
+    }
+
+    private void validateNonNegative(List<String> issues, String path) {
+        if (plugin.getConfig().getLong(path, 0) < 0) {
+            issues.add("Error: " + path + " cannot be negative.");
+        }
     }
 
     @Override

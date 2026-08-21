@@ -258,6 +258,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return langConfig.getString(key, key);
     }
 
+    public boolean hasMessage(String key) {
+        return langConfig != null && langConfig.isString(key);
+    }
+
     private Component miniMsg(String key) {
         return messageComponent(msg(key));
     }
