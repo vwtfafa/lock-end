@@ -195,7 +195,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
-        historyCommand.addEntry(action + " by " + actor + " (previously " + (previousState ? "locked" : "unlocked") + ")");
+        historyCommand.addEntry(actor, action, previousState, action);
         if (recordStats && locked) {
             incrementStats(true);
         }

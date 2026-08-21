@@ -26,6 +26,7 @@
 - **Flexible bypass rules**: Allow players by name, UUID, world, or `endlock.bypass.world.<world>` permission
 - **Optional End evacuation**: Warn and move existing End players to a configured world spawn when locking
 - **PlaceholderAPI values**: Status, reason, remaining seconds, target time, blocked count, and schedule action
+- **Structured audit history**: Paginated history plus JSON/CSV export with `/endlock history <page> <json|csv>`
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -73,6 +74,8 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
+| `history <page>` | Show a history page | `endlock.history` |
+| `history <page> json|csv` | Export audit history | `endlock.history` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.

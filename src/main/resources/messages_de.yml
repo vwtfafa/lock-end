@@ -57,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 ge
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eSperrverlauf (letzte 10):"
+history-header-page: "§6[§cEndLock§6] §eSperrverlauf (Seite %page%):"
 history.empty: "§6[§cEndLock§6] Keine Sperrhistorie aufgenommen."
+history-page-empty: "§c[EndLock] Diese History-Seite ist leer."
+history-usage: "§cVerwendung: /endlock history [Seite] [json|csv]"
+history-exported: "§aHistory nach %file% exportiert."
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command

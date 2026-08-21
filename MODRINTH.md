@@ -32,6 +32,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 📅 Inspect and clear schedules with `/endlock schedule status` and `/endlock schedule clear`
 * 🛡️ Bypass rules by player name, UUID, world, or world-specific permission
 * 🧩 PlaceholderAPI values for status, reason, timing, blocked attempts, and schedules
+* 🧾 Structured audit history with pagination and JSON/CSV export
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
