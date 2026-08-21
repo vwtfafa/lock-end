@@ -385,6 +385,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return blockedCount;
     }
 
+    public String getLockReason() {
+        return lockReasonManager.getReason("default");
+    }
+
+    public boolean hasScheduledAction() {
+        return scheduledUnlockTime != null;
+    }
+
     private void loadScheduledUnlock() {
         scheduledUnlockTime = null;
         scheduledAction = getConfig().getString("scheduled-unlock.action", "unlock").toLowerCase(Locale.ROOT);

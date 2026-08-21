@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Schedule inspection and clearing with `/endlock schedule status` and `/endlock schedule clear`.
 - UUID-, world-, and world-permission-based bypass rules for End access.
 - Optional warning and evacuation of players already inside the End when locking.
+- Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
 - Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup

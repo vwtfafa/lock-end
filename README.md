@@ -25,6 +25,7 @@
 - **Schedule status**: Inspect or clear schedules with `/endlock schedule status` and `/endlock schedule clear`
 - **Flexible bypass rules**: Allow players by name, UUID, world, or `endlock.bypass.world.<world>` permission
 - **Optional End evacuation**: Warn and move existing End players to a configured world spawn when locking
+- **PlaceholderAPI values**: Status, reason, remaining seconds, target time, blocked count, and schedule action
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
