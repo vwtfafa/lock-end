@@ -3,16 +3,6 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.0.0] - 2026-08-21
-### Fixed
-- Configuration validation now checks schedule modes and dates, numeric ranges, supported languages, and required message keys.
-- Scheduled unlocks persist an absolute target time and no longer reset after restarts or reloads.
-- Long unlock and preview schedules use wall-clock rechecks instead of one large tick delay.
-- Command permissions are enforced per subcommand, keeping public status and test commands accessible through all aliases.
-
-### Changed
-- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
-- Synchronized command, permission, configuration, and language documentation.
-
 ### Maintenance
 - Replaced deprecated Paper metadata access with `getPluginMeta()`.
 - Replaced deprecated `URL(String)` construction with URI-based URL creation.
@@ -33,11 +23,18 @@ All notable changes to this project will be documented in this file.
 - Translated bStats startup log message from German to English
 - Reload and shutdown now cancel scheduled, preview, countdown, and grace-period tasks cleanly
 - Preview notifications honor `preview-notifications.enabled`
+- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
+- Synchronized command, permission, configuration, and language documentation.
+
 ### Fixed
 - Update release configuration for v2.0 branch
 - Undo now restores the previous state through the normal state-transition path
 - Update checking, MiniMessage fallback, and configured log paths are more robust
 - Portal and teleport denial logic is shared and runs at high priority for consistent handling
+- Configuration validation now checks schedule modes and dates, numeric ranges, supported languages, and required message keys.
+- Scheduled unlocks persist an absolute target time and no longer reset after restarts or reloads.
+- Long unlock and preview schedules use wall-clock rechecks instead of one large tick delay.
+- Command permissions are enforced per subcommand, keeping public status and test commands accessible through all aliases.
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
