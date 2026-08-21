@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -12,9 +13,15 @@ import java.io.IOException;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Command to view lock history.
@@ -31,6 +38,20 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
         loadHistory();
     }
 
+    /**
+     * Encapsulates a history filter (type + value) with matching logic.
+     */
+    private record HistoryFilter(String type, String value) {
+        boolean matches(HistoryEntry entry) {
+            if (type == null || value == null) return true;
+            return switch (type) {
+                case "player" -> entry.actor().equalsIgnoreCase(value);
+                case "action" -> entry.action().equalsIgnoreCase(value);
+                default -> true;
+            };
+        }
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("endlock.history")) {
@@ -43,38 +64,186 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // Parse arguments in fixed order: [page] [json|csv] [player|action] <value>
         int page = 1;
-        if (args.length > 1) {
-            try {
-                page = Math.max(1, Integer.parseInt(args[1]));
-            } catch (NumberFormatException ignored) {
-                sender.sendMessage(plugin.msg("history-usage"));
-                return true;
+        String format = null;
+        HistoryFilter filter = null;
+
+        int index = 0;
+        // Arg 0: page number OR filter type (if no page given)
+        if (args.length > 0) {
+            String arg0 = args[0];
+            if (arg0.matches("\\d+")) {
+                page = Math.max(1, Integer.parseInt(arg0));
+                index = 1;
             }
         }
-        if (args.length > 2 && (args[2].equalsIgnoreCase("json") || args[2].equalsIgnoreCase("csv"))) {
-            File exportFile = export(args[2]);
+
+        // Arg at current index: format (json|csv) OR filter type
+        if (index < args.length) {
+            String arg = args[index];
+            if (arg.equalsIgnoreCase("json") || arg.equalsIgnoreCase("csv")) {
+                format = arg.toLowerCase();
+                index++;
+            }
+        }
+
+        // Arg at current index: filter type (player|action)
+        if (index < args.length) {
+            String arg = args[index];
+            if (arg.equalsIgnoreCase("player") || arg.equalsIgnoreCase("action")) {
+                String filterType = arg.toLowerCase();
+                index++;
+                if (index < args.length) {
+                    filter = new HistoryFilter(filterType, args[index]);
+                    index++;
+                } else {
+                    sender.sendMessage(plugin.msg("history-usage"));
+                    return true;
+                }
+            }
+        }
+
+        // Apply export if format specified
+        if (format != null) {
+            File exportFile = export(format, filter);
             sender.sendMessage(plugin.msg("history-exported").replace("%file%", exportFile.getName()));
             return true;
         }
 
+        // Apply filtering
+        List<HistoryEntry> displayedHistory = history;
+        if (filter != null && filter.value() != null) {
+            displayedHistory = history.stream()
+                    .filter(filter::matches)
+                    .collect(Collectors.toList());
+            if (filter.type().equals("player")) {
+                sender.sendMessage(plugin.msg("history.filter-player").replace("%player%", filter.value()));
+            } else if (filter.type().equals("action")) {
+                sender.sendMessage(plugin.msg("history.filter-action").replace("%action%", filter.value()));
+            }
+            if (displayedHistory.isEmpty()) {
+                sender.sendMessage(plugin.msg("history.filter-no-results")
+                        .replace("%type%", filter.type())
+                        .replace("%value%", filter.value()));
+                return true;
+            }
+        }
+
+        // Pagination
         int pageSize = 10;
-        int end = history.size() - ((page - 1) * pageSize);
+        int end = displayedHistory.size() - ((page - 1) * pageSize);
         int start = Math.max(0, end - pageSize);
-        if (start >= history.size() || end <= 0) {
+        if (start >= displayedHistory.size() || end <= 0) {
             sender.sendMessage(plugin.msg("history-page-empty"));
             return true;
         }
         sender.sendMessage(plugin.msg("history-header-page").replace("%page%", String.valueOf(page)));
         for (int i = end - 1; i >= start; i--) {
-            sender.sendMessage("  " + history.get(i).display());
+            sender.sendMessage("  " + displayedHistory.get(i).display());
         }
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return new ArrayList<>();
+        List<String> completions = new ArrayList<>();
+        if (args.length == 0) {
+            return List.of("1");
+        }
+
+        // Determine what tokens have been used
+        boolean hasPage = false;
+        boolean hasFormat = false;
+        boolean hasFilterType = false;
+        String filterType = null;
+
+        // Scan args to determine state
+        int i = 0;
+        if (i < args.length && args[i].matches("\\d+")) {
+            hasPage = true;
+            i++;
+        }
+        if (i < args.length && (args[i].equalsIgnoreCase("json") || args[i].equalsIgnoreCase("csv"))) {
+            hasFormat = true;
+            i++;
+        }
+        if (i < args.length && (args[i].equalsIgnoreCase("player") || args[i].equalsIgnoreCase("action"))) {
+            hasFilterType = true;
+            filterType = args[i].toLowerCase();
+            i++;
+        }
+
+        // Now provide completions based on next expected token
+        if (!hasPage && args.length == 1) {
+            // First arg: page numbers, json, csv, player, action
+            Stream.of("1", "2", "3", "4", "5", "json", "csv", "player", "action")
+                    .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))
+                    .forEach(completions::add);
+            return completions;
+        }
+
+        if (hasPage && !hasFormat && !hasFilterType && args.length == (hasPage ? 2 : 1)) {
+            // Second arg after page: json, csv, player, action
+            Stream.of("json", "csv", "player", "action")
+                    .filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
+                    .forEach(completions::add);
+            return completions;
+        }
+
+        if (!hasPage && !hasFormat && hasFilterType && args.length == 2) {
+            // First arg was filter type: suggest filter values
+            return getFilterValueCompletions(filterType, args[1]);
+        }
+
+        if (hasPage && hasFormat && !hasFilterType && args.length == (hasPage ? 3 : 2)) {
+            // After page and format: suggest player, action
+            Stream.of("player", "action")
+                    .filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
+                    .forEach(completions::add);
+            return completions;
+        }
+
+        if (hasPage && !hasFormat && hasFilterType && args.length == 3) {
+            // After page and filter type: suggest filter values
+            return getFilterValueCompletions(filterType, args[2]);
+        }
+
+        if (!hasPage && hasFormat && !hasFilterType && args.length == 2) {
+            // After format (no page): suggest player, action
+            Stream.of("player", "action")
+                    .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .forEach(completions::add);
+            return completions;
+        }
+
+        if (hasFilterType && args.length > (hasPage ? 3 : 2) + (hasFormat ? 1 : 0)) {
+            // After filter type + value: nothing more
+            return completions;
+        }
+
+        return completions;
+    }
+
+    private List<String> getFilterValueCompletions(String filterType, String partial) {
+        List<String> completions = new ArrayList<>();
+        if ("player".equals(filterType)) {
+            // Online players + unique actors from history
+            Set<String> players = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            Bukkit.getOnlinePlayers().forEach(p -> players.add(p.getName()));
+            history.stream().map(HistoryEntry::actor).distinct().forEach(players::add);
+            players.stream()
+                    .filter(p -> p.toLowerCase().startsWith(partial.toLowerCase()))
+                    .forEach(completions::add);
+        } else if ("action".equals(filterType)) {
+            // Unique actions from history
+            Set<String> actions = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            history.stream().map(HistoryEntry::action).distinct().forEach(actions::add);
+            actions.stream()
+                    .filter(a -> a.toLowerCase().startsWith(partial.toLowerCase()))
+                    .forEach(completions::add);
+        }
+        return completions;
     }
 
     /**
@@ -147,19 +316,29 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private File export(String format) {
-        File exportFile = new File(plugin.getDataFolder(), "history." + format.toLowerCase());
+    private File export(String format, HistoryFilter filter) {
+        // Apply filter to export data
+        List<HistoryEntry> exportHistory = history;
+        if (filter != null && filter.value() != null) {
+            exportHistory = history.stream()
+                    .filter(filter::matches)
+                    .collect(Collectors.toList());
+        }
+
+        // Use timestamped filename to avoid overwrites
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss"));
+        File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + format.toLowerCase());
         try {
             if (format.equalsIgnoreCase("json")) {
                 StringBuilder json = new StringBuilder("[\n");
-                for (int i = 0; i < history.size(); i++) {
-                    HistoryEntry entry = history.get(i);
+                for (int i = 0; i < exportHistory.size(); i++) {
+                    HistoryEntry entry = exportHistory.get(i);
                     json.append("  {\"timestamp\":\"").append(escape(entry.timestamp().toString()))
                             .append("\",\"actor\":\"").append(escape(entry.actor()))
                             .append("\",\"action\":\"").append(escape(entry.action()))
                             .append("\",\"source\":\"").append(escape(entry.source()))
                             .append("\",\"previousState\":").append(entry.previousState()).append("}");
-                    if (i < history.size() - 1) json.append(',');
+                    if (i < exportHistory.size() - 1) json.append(',');
                     json.append('\n');
                 }
                 json.append(']');
@@ -167,7 +346,7 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
             } else {
                 try (FileWriter writer = new FileWriter(exportFile, StandardCharsets.UTF_8)) {
                     writer.write("timestamp,actor,action,source,previousState\n");
-                    for (HistoryEntry entry : history) {
+                    for (HistoryEntry entry : exportHistory) {
                         writer.write(csv(entry.timestamp().toString()) + "," + csv(entry.actor()) + ","
                                 + csv(entry.action()) + "," + csv(entry.source()) + ","
                                 + entry.previousState() + "\n");
