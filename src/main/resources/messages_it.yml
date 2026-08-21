@@ -30,6 +30,8 @@ schedule-cancelled: "§aSblocco programmato annullato."
 reason-usage: "§cUtilizzo: /endlock reason <motivo>"
 reason-set: "§aMotivo del blocco impostato: %reason%"
 join-notification: "§6La End è attualmente bloccata."
+evacuation-warning: "§eSarai spostato fuori dalla End tra §b%seconds% §esecondi perché è bloccata."
+evacuation-complete: "§aSei stato spostato fuori dalla End perché è bloccata."
 update-available: "§6[§cEndLock§6] Aggiornamento disponibile: §e%version%"
 update-download: "§7Apri: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfigurazione ricaricata con successo!"
@@ -44,6 +46,10 @@ schedule-resumed: "§6[§cEndLock§6] Lo sblocco programmato è stato §acontinu
 schedule-not-paused: "§6[§cEndLock§6] La pianificazione non è attualmente in pausa."
 schedule-pause-not-locked: "§6[§cEndLock§6] Impossibile mettere in pausa: la End non è bloccata."
 schedule-resume-not-paused: "§6[§cEndLock§6] Impossibile riprendere: nessuna pianificazione è in pausa."
+schedule-status-usage: "§cUtilizzo: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Azione: §e%action% §6| Obiettivo: §e%target% §6| Restante: §e%remaining% §6| In pausa: §e%paused%"
+schedule-none: "nessuna"
+schedule-cleared: "§aAzione programmata cancellata."
 countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%§6."
 
 # v2.0: Scheduled lock countdown
@@ -51,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] La End sarà bloccata tra §e%t
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"
+history-header-page: "§6[§cEndLock§6] §eStorico blocchi (pagina %page%):"
 history.empty: "§6[§cEndLock§6] Nessun storico di blocchi."
+history-page-empty: "§c[EndLock] Questa pagina dello storico è vuota."
+history-usage: "§cUtilizzo: /endlock history [pagina] [json|csv]"
+history-exported: "§aStorico esportato in %file%."
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command

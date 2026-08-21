@@ -25,8 +25,10 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
             "already-locked", "already-unlocked", "broadcast-locked", "broadcast-unlocked",
             "actionbar-locked", "actionbar-unlocked", "test-success", "test-info", "countdown-notification",
             "history.header", "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
-            "schedule-cancelled", "reason-usage", "reason-set", "join-notification", "reload-success",
-            "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed"
+            "schedule-cancelled", "schedule-status-usage", "schedule-status", "schedule-none", "schedule-cleared",
+            "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",
+            "reload-success", "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed",
+            "history-header-page", "history-page-empty", "history-usage", "history-exported"
     );
 
     private final LockEnd plugin;

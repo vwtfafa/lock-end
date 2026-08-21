@@ -30,6 +30,8 @@ schedule-cancelled: "§a已取消计划解锁。"
 reason-usage: "§c用法: /endlock reason <原因>"
 reason-set: "§a锁定原因已设置为: %reason%"
 join-notification: "§6末地当前被锁定。"
+evacuation-warning: "§e由于末地已锁定，你将在 §b%seconds% §e秒后离开末地。"
+evacuation-complete: "§a由于末地已锁定，你已被传送离开末地。"
 update-available: "§6[§c末地Lock§6] 有可用更新: §e%version%"
 update-download: "§7打开: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a配置重新加载成功！"
@@ -44,6 +46,10 @@ schedule-resumed: "§6[§c末地Lock§6] 计划解锁已 §a恢复§6。"
 schedule-not-paused: "§6[§c末地Lock§6] 时间计划当前未暂停。"
 schedule-pause-not-locked: "§6[§c末地Lock§6] 无法暂停：末地未锁定。"
 schedule-resume-not-paused: "§6[§c末地Lock§6] 无法恢复：没有时间计划被暂停。"
+schedule-status-usage: "§c用法: /endlock schedule <status|clear>"
+schedule-status: "§6[§c末地Lock§6] 操作: §e%action% §6| 目标: §e%target% §6| 剩余: §e%remaining% §6| 暂停: §e%paused%"
+schedule-none: "无"
+schedule-cleared: "§a已清除计划操作。"
 countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
 
 # v2.0: Scheduled lock countdown
@@ -51,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] 末地将在 §e%time%§6 后�
 
 # v1.6: History command
 history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
+history-header-page: "§6[§c末地Lock§6] §e锁定历史（第%page%页）:"
 history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
+history-page-empty: "§c[EndLock] 此历史页面为空。"
+history-usage: "§c用法: /endlock history [页码] [json|csv]"
+history-exported: "§a历史已导出到 %file%。"
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command

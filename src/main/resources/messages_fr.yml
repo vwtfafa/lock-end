@@ -30,6 +30,8 @@ schedule-cancelled: "§aDéverrouillage planifié annulé."
 reason-usage: "§cUtilisation : /endlock reason <raison>"
 reason-set: "§aRaison du verrouillage définie : %reason%"
 join-notification: "§6L'End est actuellement verrouillé."
+evacuation-warning: "§eVous serez déplacé hors de l'End dans §b%seconds% §esecondes car il est verrouillé."
+evacuation-complete: "§aVous avez été déplacé hors de l'End car il est verrouillé."
 update-available: "§6[§cEndLock§6] Mise à jour disponible : §e%version%"
 update-download: "§7Ouvrir : §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguration rechargée avec succès !"
@@ -44,6 +46,10 @@ schedule-resumed: "§6[§cEndLock§6] Le déverrouillage programmé a été §ar
 schedule-not-paused: "§6[§cEndLock§6] Le planning n'est pas actuellement en pause."
 schedule-pause-not-locked: "§6[§cEndLock§6] Impossible de mettre en pause : l'End n'est pas verrouillé."
 schedule-resume-not-paused: "§6[§cEndLock§6] Impossible de reprendre : aucun planning n'est en pause."
+schedule-status-usage: "§cUtilisation : /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Action : §e%action% §6| Cible : §e%target% §6| Restant : §e%remaining% §6| Pause : §e%paused%"
+schedule-none: "aucune"
+schedule-cleared: "§aAction planifiée supprimée."
 countdown-notification: "§6[§cEndLock§6] L'End sera déverrouillé dans §e%time%§6."
 
 # v2.0: Scheduled lock countdown
@@ -51,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] L'End sera verrouillé dans §e
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eHistorique de verrouillage (10 derniers):"
+history-header-page: "§6[§cEndLock§6] §eHistorique de verrouillage (page %page%):"
 history.empty: "§6[§cEndLock§6] Aucun historique de verrouillage."
+history-page-empty: "§c[EndLock] Cette page d'historique est vide."
+history-usage: "§cUtilisation : /endlock history [page] [json|csv]"
+history-exported: "§aHistorique exporté vers %file%."
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command

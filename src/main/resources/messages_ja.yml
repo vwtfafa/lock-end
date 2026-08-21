@@ -30,6 +30,8 @@ schedule-cancelled: "§a予定された解除をキャンセルしました。"
 reason-usage: "§c使用方法: /endlock reason <理由>"
 reason-set: "§aロック理由を設定しました: %reason%"
 join-notification: "§6ジ・エンドは現在ロックされています。"
+evacuation-warning: "§eロックされたため、§b%seconds% §e秒後にジ・エンドから移動します。"
+evacuation-complete: "§aロックされたため、ジ・エンドから移動しました。"
 update-available: "§6[§cEndLock§6] アップデートが利用可能です: §e%version%"
 update-download: "§7を開く: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a設定が正常に再読み込みされました！"
@@ -44,6 +46,10 @@ schedule-resumed: "§6[§cEndLock§6] 予約解除が §a再開§6されまし�
 schedule-not-paused: "§6[§cEndLock§6] スケジュールは現在一時停止されていません。"
 schedule-pause-not-locked: "§6[§cEndLock§6] 一時停止できません：ジ・エンドがロックされていません。"
 schedule-resume-not-paused: "§6[§cEndLock§6] 再開できません：一時停止されているスケジュールはありません。"
+schedule-status-usage: "§c使用方法: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] アクション: §e%action% §6| 目標: §e%target% §6| 残り: §e%remaining% §6| 一時停止: §e%paused%"
+schedule-none: "なし"
+schedule-cleared: "§a予約アクションを削除しました。"
 countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
 
 # v2.0: Scheduled lock countdown
@@ -51,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"
+history-header-page: "§6[§cEndLock§6] §eロック履歴（%page%ページ）:"
 history.empty: "§6[§cEndLock§6] ロック履歴はありません。"
+history-page-empty: "§c[EndLock] この履歴ページは空です。"
+history-usage: "§c使用方法: /endlock history [ページ] [json|csv]"
+history-exported: "§a履歴を%file%に出力しました。"
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command

@@ -30,6 +30,8 @@ schedule-cancelled: "§aЗапланированная разблокировк�
 reason-usage: "§cИспользование: /endlock reason <причина>"
 reason-set: "§aПричина блокировки установлена: %reason%"
 join-notification: "§6Край сейчас заблокирован."
+evacuation-warning: "§eЧерез §b%seconds% §eсекунд вы будете перемещены из Края, потому что он заблокирован."
+evacuation-complete: "§aВы перемещены из Края, потому что он заблокирован."
 update-available: "§6[§cEndLock§6] Обновление доступно: §e%version%"
 update-download: "§7Открыть: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aКонфигурация успешно перезагружена!"
@@ -44,6 +46,10 @@ schedule-resumed: "§6[§cEndLock§6] Запланированная разбл�
 schedule-not-paused: "§6[§cEndLock§6] Расписание в настоящее время не приостановлено."
 schedule-pause-not-locked: "§6[§cEndLock§6] Невозможно приостановить: Край не заблокирован."
 schedule-resume-not-paused: "§6[§cEndLock§6] Невозможно возобновить: нет приостановленного расписания."
+schedule-status-usage: "§cИспользование: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Действие: §e%action% §6| Цель: §e%target% §6| Осталось: §e%remaining% §6| Пауза: §e%paused%"
+schedule-none: "нет"
+schedule-cleared: "§aЗапланированное действие удалено."
 countdown-notification: "§6[§cEndLock§6] Край будет разблокирован через §e%time%§6."
 
 # v2.0: Scheduled lock countdown
@@ -51,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] Край будет забло�
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eИстория блокировок (последние 10):"
+history-header-page: "§6[§cEndLock§6] §eИстория блокировок (страница %page%):"
 history.empty: "§6[§cEndLock§6] Нет истории блокировок."
+history-page-empty: "§c[EndLock] Эта страница истории пуста."
+history-usage: "§cИспользование: /endlock history [страница] [json|csv]"
+history-exported: "§aИстория экспортирована в %file%."
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command
