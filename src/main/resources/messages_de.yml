@@ -26,6 +26,8 @@ stats-header: "§7Statistiken: §aSperrungen §f%lockcount% §7| §cBlockierunge
 stats-empty: "§7Noch keine Statistiken vorhanden."
 scheduled-unlock-set: "§aGeplantes Entsperren gesetzt."
 scheduled-unlock-invalid: "§cVerwendung: /endlock unlockin <Tage> oder /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aGeplante Sperrung gesetzt."
+scheduled-lock-invalid: "§cVerwendung: /endlock lockin <Minuten> oder /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§aGeplante Entsperrung abgebrochen."
 reason-usage: "§cVerwendung: /endlock reason <Grund>"
 reason-set: "§aSperrgrund gesetzt auf: %reason%"
@@ -45,6 +47,7 @@ schedule-not-paused: "§6[§cEndLock§6] Der Zeitplan ist aktuell nicht pausiert
 schedule-pause-not-locked: "§6[§cEndLock§6] Zeitplan kann nicht pausiert werden: Das End ist nicht gesperrt."
 schedule-resume-not-paused: "§6[§cEndLock§6] Zeitplan kann nicht fortgesetzt werden: Kein Zeitplan pausiert."
 countdown-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 entsperrt."
+countdown-lock-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 gesperrt."
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eSperrverlauf (letzte 10):"

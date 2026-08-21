@@ -24,6 +24,8 @@ stats-header: "§7Статистика: §aБлокировки §f%lockcount% �
 stats-empty: "§7Статистика пока не записана."
 scheduled-unlock-set: "§aЗапланированное разблокирование установлено."
 scheduled-unlock-invalid: "§cИспользование: /endlock unlockin <дней> или /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aЗапланированная блокировка установлена."
+scheduled-lock-invalid: "§cИспользование: /endlock lockin <минут> или /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§aЗапланированная разблокировка отменена."
 reason-usage: "§cИспользование: /endlock reason <причина>"
 reason-set: "§aПричина блокировки установлена: %reason%"
@@ -43,6 +45,9 @@ schedule-not-paused: "§6[§cEndLock§6] Расписание в настоящ�
 schedule-pause-not-locked: "§6[§cEndLock§6] Невозможно приостановить: Край не заблокирован."
 schedule-resume-not-paused: "§6[§cEndLock§6] Невозможно возобновить: нет приостановленного расписания."
 countdown-notification: "§6[§cEndLock§6] Край будет разблокирован через §e%time%§6."
+
+# v2.0: Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] Край будет заблокирован через §e%time%§6."
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eИстория блокировок (последние 10):"

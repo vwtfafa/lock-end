@@ -24,6 +24,8 @@ stats-header: "§7統計: §aロック数 §f%lockcount% §7| §cブロック数
 stats-empty: "§7統計はまだ記録されていません。"
 scheduled-unlock-set: "§a予約解除が設定されました。"
 scheduled-unlock-invalid: "§c使用方法: /endlock unlockin <日数> または /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§a予約ロックが設定されました。"
+scheduled-lock-invalid: "§c使用方法: /endlock lockin <分> または /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§a予定された解除をキャンセルしました。"
 reason-usage: "§c使用方法: /endlock reason <理由>"
 reason-set: "§aロック理由を設定しました: %reason%"
@@ -43,6 +45,9 @@ schedule-not-paused: "§6[§cEndLock§6] スケジュールは現在一時停止
 schedule-pause-not-locked: "§6[§cEndLock§6] 一時停止できません：ジ・エンドがロックされていません。"
 schedule-resume-not-paused: "§6[§cEndLock§6] 再開できません：一時停止されているスケジュールはありません。"
 countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
+
+# v2.0: Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後にロックされます。"
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"

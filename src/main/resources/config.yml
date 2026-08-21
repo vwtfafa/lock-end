@@ -87,6 +87,7 @@ join-notifications:
 # Optional scheduled unlock
 scheduled-unlock:
   enabled: false
+  action: "unlock"     # lock or unlock
   mode: "days"        # days or datetime
   days: 7
   datetime: ""

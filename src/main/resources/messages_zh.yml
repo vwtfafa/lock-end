@@ -24,6 +24,8 @@ stats-header: "§7统计: §a锁定次数 §f%lockcount% §7| §c阻止次数 §
 stats-empty: "§7暂无统计数据。"
 scheduled-unlock-set: "§a定时解锁已设置。"
 scheduled-unlock-invalid: "§c用法: /endlock unlockin <天数> 或 /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§a定时锁定已设置。"
+scheduled-lock-invalid: "§c用法: /endlock lockin <分钟> 或 /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§a已取消计划解锁。"
 reason-usage: "§c用法: /endlock reason <原因>"
 reason-set: "§a锁定原因已设置为: %reason%"
@@ -43,6 +45,9 @@ schedule-not-paused: "§6[§c末地Lock§6] 时间计划当前未暂停。"
 schedule-pause-not-locked: "§6[§c末地Lock§6] 无法暂停：末地未锁定。"
 schedule-resume-not-paused: "§6[§c末地Lock§6] 无法恢复：没有时间计划被暂停。"
 countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
+
+# v2.0: Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] 末地将在 §e%time%§6 后锁定。"
 
 # v1.6: History command
 history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"

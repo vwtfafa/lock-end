@@ -24,6 +24,8 @@ stats-header: "§7Statistiques : §aVerrouillages §f%lockcount% §7| §cDéverr
 stats-empty: "§7Aucune statistique enregistrée."
 scheduled-unlock-set: "§aDéblocage programmé défini."
 scheduled-unlock-invalid: "§cUtilisation : /endlock unlockin <jours> ou /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aVerrouillage programmé défini."
+scheduled-lock-invalid: "§cUtilisation : /endlock lockin <minutes> ou /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§aDéverrouillage planifié annulé."
 reason-usage: "§cUtilisation : /endlock reason <raison>"
 reason-set: "§aRaison du verrouillage définie : %reason%"
@@ -43,6 +45,9 @@ schedule-not-paused: "§6[§cEndLock§6] Le planning n'est pas actuellement en p
 schedule-pause-not-locked: "§6[§cEndLock§6] Impossible de mettre en pause : l'End n'est pas verrouillé."
 schedule-resume-not-paused: "§6[§cEndLock§6] Impossible de reprendre : aucun planning n'est en pause."
 countdown-notification: "§6[§cEndLock§6] L'End sera déverrouillé dans §e%time%§6."
+
+# v2.0: Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] L'End sera verrouillé dans §e%time%§6."
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eHistorique de verrouillage (10 derniers):"

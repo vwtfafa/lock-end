@@ -28,6 +28,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🚫 Blocks player teleportation to End (portals, `/tp`, `/execute`, plugin teleports)
 * 📢 Broadcast system (actionbar or chat) on lock/unlock
 * 🕒 Restart-safe scheduled unlocks with absolute target times
+* 🔒 Schedule a future lock with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
@@ -53,6 +54,8 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock stats` | Show basic lock and block counters | *(no permission)* |
 | `/endlock unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
 | `/endlock unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock at a specific time | `endlock.toggle` |
+| `/endlock lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
+| `/endlock lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock at a specific time | `endlock.toggle` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 

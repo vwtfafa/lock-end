@@ -50,6 +50,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private MiniMessage miniMessage;
     private boolean miniMessageEnabled;
     private LocalDateTime scheduledUnlockTime;
+    private String scheduledAction = "unlock";
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
     private int blockedCount = 0;
@@ -145,7 +146,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
 
         loadScheduledUnlock();
-        if (locked && scheduledUnlockTime != null) {
+        if (scheduledUnlockTime != null) {
             scheduleUnlock();
         }
 
@@ -327,6 +328,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     private void loadScheduledUnlock() {
         scheduledUnlockTime = null;
+        scheduledAction = getConfig().getString("scheduled-unlock.action", "unlock").toLowerCase(Locale.ROOT);
+        if (!scheduledAction.equals("lock") && !scheduledAction.equals("unlock")) {
+            scheduledAction = "unlock";
+        }
         if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
             return;
         }
@@ -364,26 +369,43 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
     }
 
+    private void saveScheduledAction() {
+        getConfig().set("scheduled-unlock.enabled", true);
+        getConfig().set("scheduled-unlock.action", scheduledAction);
+        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
+        saveConfig();
+    }
+
     private void scheduleUnlock() {
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
         cancelScheduledUnlock();
         cancelCountdown();
-        // Schedule preview notification before unlock
-        previewManager.schedulePreviewUnlock(scheduledUnlockTime);
+        if (scheduledAction.equals("lock")) {
+            previewManager.schedulePreviewLock(scheduledUnlockTime);
+        } else {
+            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
+        }
         scheduleCountdown();
         scheduleUnlockCheck();
     }
 
     private void scheduleUnlockCheck() {
-        if (scheduledUnlockTime == null || schedulePaused || !locked) {
+        if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
         long remainingMillis = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).toMillis();
         if (remainingMillis <= 0) {
-            changeLockState(false, "System", "SCHEDULED_UNLOCK", false);
-            getLogger().info("Scheduled unlock executed.");
+            boolean targetLocked = scheduledAction.equals("lock");
+            if (locked != targetLocked) {
+                changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT), false);
+                getLogger().info("Scheduled " + scheduledAction + " executed.");
+            }
+            scheduledUnlockTime = null;
+            getConfig().set("scheduled-unlock.enabled", false);
+            getConfig().set("scheduled-unlock.target-datetime", null);
+            saveConfig();
             return;
         }
 
@@ -409,14 +431,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
         long startBefore = getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
         long interval = Math.max(1, getConfig().getLong("scheduled-unlock.countdown.interval", 10));
         countdownTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
-            if (!locked || scheduledUnlockTime == null || schedulePaused) {
+            if (scheduledUnlockTime == null || schedulePaused) {
                 return;
             }
             long remaining = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds();
             if (remaining < 0 || remaining > startBefore) {
                 return;
             }
-            String message = msg("countdown-notification").replace("%time%", formatDuration(remaining));
+            String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
+            String message = msg(messageKey).replace("%time%", formatDuration(remaining));
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
                     player.sendMessage(messageComponent(message));
@@ -550,7 +573,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             List<String> options = List.of("status", "lock", "unlock", "test", "stats",
-                    "unlockin", "unlockat", "reload", "history", "undo", "validateconfig",
+                    "unlockin", "unlockat", "lockin", "lockat", "reload", "history", "undo", "validateconfig",
                     "pause", "resume", "cancel", "reason");
             StringUtil.copyPartialMatches(args[0], options, completions);
         } else if (args.length == 2) {
@@ -647,7 +670,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     try {
                         int days = Integer.parseInt(args[1]);
                         scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+                        scheduledAction = "unlock";
                         getConfig().set("scheduled-unlock.enabled", true);
+                        getConfig().set("scheduled-unlock.action", scheduledAction);
                         getConfig().set("scheduled-unlock.mode", "days");
                         getConfig().set("scheduled-unlock.days", days);
                         getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
@@ -662,6 +687,30 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     }
                     return true;
                 }
+                case "lockin" -> {
+                    if (!sender.hasPermission("endlock.toggle")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    if (args.length < 2) {
+                        sender.sendMessage(msg("scheduled-lock-invalid"));
+                        return true;
+                    }
+                    try {
+                        int minutes = Integer.parseInt(args[1]);
+                        if (minutes <= 0) {
+                            throw new IllegalArgumentException();
+                        }
+                        scheduledUnlockTime = LocalDateTime.now().plusMinutes(minutes);
+                        scheduledAction = "lock";
+                        saveScheduledAction();
+                        sender.sendMessage(msg("scheduled-lock-set"));
+                        scheduleUnlock();
+                    } catch (Exception exception) {
+                        sender.sendMessage(msg("scheduled-lock-invalid"));
+                    }
+                    return true;
+                }
                 case "unlockat" -> {
                     if (!sender.hasPermission("endlock.toggle")) {
                         sender.sendMessage(msg("permission"));
@@ -673,7 +722,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     }
                     try {
                         scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], SCHEDULE_FORMAT);
+                        scheduledAction = "unlock";
                         getConfig().set("scheduled-unlock.enabled", true);
+                        getConfig().set("scheduled-unlock.action", scheduledAction);
                         getConfig().set("scheduled-unlock.mode", "datetime");
                         getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
                         getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
@@ -685,6 +736,29 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         }
                     } catch (Exception e) {
                         sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
+                    }
+                    return true;
+                }
+                case "lockat" -> {
+                    if (!sender.hasPermission("endlock.toggle")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    if (args.length < 3) {
+                        sender.sendMessage(msg("scheduled-lock-invalid"));
+                        return true;
+                    }
+                    try {
+                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], SCHEDULE_FORMAT);
+                        if (scheduledUnlockTime.isBefore(LocalDateTime.now())) {
+                            throw new IllegalArgumentException();
+                        }
+                        scheduledAction = "lock";
+                        saveScheduledAction();
+                        sender.sendMessage(msg("scheduled-lock-set"));
+                        scheduleUnlock();
+                    } catch (Exception exception) {
+                        sender.sendMessage(msg("scheduled-lock-invalid"));
                     }
                     return true;
                 }

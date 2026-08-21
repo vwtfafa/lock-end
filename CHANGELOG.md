@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Removed redundant `TabCompleter` declaration and unused non-metrics fields.
 - Made `/endlock reload` refresh logging, MiniMessage, PlaceholderAPI, countdown, and update-checker settings.
 ### Added
+- Scheduled locking with `/endlock lockin <minutes>` and `/endlock lockat <yyyy-MM-dd> <HH:mm>`.
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
 - Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup

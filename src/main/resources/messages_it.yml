@@ -24,6 +24,8 @@ stats-header: "§7Statistiche: §aBlocchi §f%lockcount% §7| §cTentativi blocc
 stats-empty: "§7Nessuna statistica registrata."
 scheduled-unlock-set: "§aSblocco programmato impostato."
 scheduled-unlock-invalid: "§cUtilizzo: /endlock unlockin <giorni> o /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aBlocco programmato impostato."
+scheduled-lock-invalid: "§cUtilizzo: /endlock lockin <minuti> o /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§aSblocco programmato annullato."
 reason-usage: "§cUtilizzo: /endlock reason <motivo>"
 reason-set: "§aMotivo del blocco impostato: %reason%"
@@ -43,6 +45,9 @@ schedule-not-paused: "§6[§cEndLock§6] La pianificazione non è attualmente in
 schedule-pause-not-locked: "§6[§cEndLock§6] Impossibile mettere in pausa: la End non è bloccata."
 schedule-resume-not-paused: "§6[§cEndLock§6] Impossibile riprendere: nessuna pianificazione è in pausa."
 countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%§6."
+
+# v2.0: Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] La End sarà bloccata tra §e%time%§6."
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"

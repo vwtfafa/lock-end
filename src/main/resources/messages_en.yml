@@ -26,6 +26,8 @@ stats-header: "§7Stats: §aLock count §f%lockcount% §7| §cBlocked count §f%
 stats-empty: "§7No stats recorded yet."
 scheduled-unlock-set: "§aScheduled unlock set."
 scheduled-unlock-invalid: "§cUsage: /endlock unlockin <days> or /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aScheduled lock set."
+scheduled-lock-invalid: "§cUsage: /endlock lockin <minutes> or /endlock lockat <yyyy-MM-dd> <HH:mm>"
 schedule-cancelled: "§aScheduled unlock cancelled."
 reason-usage: "§cUsage: /endlock reason <reason>"
 reason-set: "§aLock reason set to: %reason%"
@@ -45,6 +47,7 @@ schedule-not-paused: "§6[§cEndLock§6] The schedule is not currently paused."
 schedule-pause-not-locked: "§6[§cEndLock§6] Cannot pause schedule: the End is not locked."
 schedule-resume-not-paused: "§6[§cEndLock§6] Cannot resume schedule: no schedule is paused."
 countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time%§6."
+countdown-lock-notification: "§6[§cEndLock§6] The End will be locked in §e%time%§6."
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eLock History (last 10):"

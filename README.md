@@ -21,6 +21,7 @@
 - **Scoped locking**: Restrict the lock to configured End worlds and optionally block End returns or End gateways
 - **Schedule controls**: Cancel scheduled unlocks and change the lock reason with `/endlock cancel` and `/endlock reason <reason>`
 - **Restart-safe scheduling**: Scheduled unlocks keep their absolute target time after reloads and restarts
+- **Scheduled locking**: Lock the End later with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -64,6 +65,8 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `reason <reason>` | Set the lock reason | `endlock.admin` |
 | `unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
 | `unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock | `endlock.toggle` |
+| `lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
+| `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
@@ -221,6 +224,7 @@ join-notifications:
 # Optional scheduled unlock
 scheduled-unlock:
   enabled: false
+  action: "unlock"     # lock or unlock
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
