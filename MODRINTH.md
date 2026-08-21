@@ -33,6 +33,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🛡️ Bypass rules by player name, UUID, world, or world-specific permission
 * 🧩 PlaceholderAPI values for status, reason, timing, blocked attempts, and schedules
 * 🧾 Structured audit history with pagination and JSON/CSV export
+* 🔍 Filter history by player or action with tab completion
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
@@ -51,6 +52,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock test` | Test if portal blocking works | *(no permission, configurable)* |
 | `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
+| `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
 | `/endlock pause` | Pause scheduled unlock timers | `endlock.admin` |

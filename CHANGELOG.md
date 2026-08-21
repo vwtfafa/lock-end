@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 - Optional warning and evacuation of players already inside the End when locking.
 - Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
 - Structured lock history with pagination and JSON/CSV export.
+- Filter lock history by player or action: `/endlock history [page] [json|csv] [player|action <value>]`**
+- History exports now use timestamped filenames to prevent overwrites.**
 - Verified and documented that Folia is not currently supported; Paper 26.2 remains the target platform.
 - Completed localized message keys for scheduling, evacuation, and audit history in all supported languages.
 - Add English messages for EndLock functionality including notifications and commands

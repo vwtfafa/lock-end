@@ -77,7 +77,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
-| `history <page> json|csv` | Export audit history | `endlock.history` |
+| `history <page> [json|csv] [player|action <value>]` | Filter and/or export history | `endlock.history` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
@@ -135,6 +135,7 @@ permissions:
 - **Countdown Timers**: Visible countdown before scheduled unlock
 - **Schedule Pause/Resume**: Override scheduled events temporarily
 - **Lock History**: View recent actions with `/endlock history`
+- **History Filter**: Filter history by player or action with `/endlock history [page] [json|csv] [player|action <value>]`
 - **Undo Command**: Reverse the last action with `/endlock undo`
 - **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
