@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Optional warning and evacuation of players already inside the End when locking.
 - Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
 - Structured lock history with pagination and JSON/CSV export.
+- Verified and documented that Folia is not currently supported; Paper 26.2 remains the target platform.
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
 - Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup

@@ -205,6 +205,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 | **Paper** 26.2+ | ✅ Recommended |
 | **Purpur** 26.2+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
+| **Folia** | ❌ Not supported |
 
 * **Minecraft:** `26.2`
 * **Java:** `25` 

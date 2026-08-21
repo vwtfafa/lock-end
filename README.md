@@ -40,6 +40,8 @@
 
 > Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.2`.
 
+> Folia is currently **not supported**. EndLock uses BukkitScheduler main-thread tasks and global player iteration. Folia support requires a separate scheduler and per-player execution model.
+
 ## Installation
 
 1. Download the latest `lock-end-2.0.0-SNAPSHOT.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
