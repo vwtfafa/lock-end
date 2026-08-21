@@ -57,7 +57,11 @@ countdown-lock-notification: "§6[§cEndLock§6] The End will be locked in §e%t
 
 # v1.6: History command
 history.header: "§6[§cEndLock§6] §eLock History (last 10):"
+history-header-page: "§6[§cEndLock§6] §eLock History (page %page%):"
 history.empty: "§6[§cEndLock§6] No lock history recorded."
+history-page-empty: "§c[EndLock] This history page is empty."
+history-usage: "§cUsage: /endlock history [page] [json|csv]"
+history-exported: "§aHistory exported to %file%."
 history-entry: "§7- %entry%"
 
 # v1.6: Undo command
