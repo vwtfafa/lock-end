@@ -60,9 +60,12 @@ history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
 history-header-page: "§6[§c末地Lock§6] §e锁定历史（第%page%页）:"
 history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
 history-page-empty: "§c[EndLock] 此历史页面为空。"
-history-usage: "§c用法: /endlock history [页码] [json|csv]"
+history-usage: "§c用法: /endlock history [页码] [json|csv] [player|action <值>]"
 history-exported: "§a历史已导出到 %file%。"
 history-entry: "§7- %entry%"
+history.filter-player: "§7按玩家筛选历史: §b%player%"
+history.filter-action: "§7按动作筛选历史: §e%action%"
+history.filter-no-results: "§c[EndLock] 没有匹配筛选条件的历史条目: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§c末地Lock§6] 最后一个操作已成功撤销。末地现在是 §e%action%§6。"

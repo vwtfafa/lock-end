@@ -60,9 +60,12 @@ history.header: "§6[§cEndLock§6] §eHistorial de bloqueos (últimos 10):"
 history-header-page: "§6[§cEndLock§6] §eHistorial de bloqueos (página %page%):"
 history.empty: "§6[§cEndLock§6] No hay historial de bloqueos."
 history-page-empty: "§c[EndLock] Esta página del historial está vacía."
-history-usage: "§cUso: /endlock history [página] [json|csv]"
+history-usage: "§cUso: /endlock history [página] [json|csv] [player|action <valor>]"
 history-exported: "§aHistorial exportado a %file%."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtrando historial por jugador: §b%player%"
+history.filter-action: "§7Filtrando historial por acción: §e%action%"
+history.filter-no-results: "§c[EndLock] No hay entradas de historial que coincidan con el filtro: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] Última acción deshecha exitosamente. El End ahora está §e%action%§6."

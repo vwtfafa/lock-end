@@ -60,9 +60,12 @@ history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"
 history-header-page: "§6[§cEndLock§6] §eロック履歴（%page%ページ）:"
 history.empty: "§6[§cEndLock§6] ロック履歴はありません。"
 history-page-empty: "§c[EndLock] この履歴ページは空です。"
-history-usage: "§c使用方法: /endlock history [ページ] [json|csv]"
+history-usage: "§c使用方法: /endlock history [ページ] [json|csv] [player|action <値>]"
 history-exported: "§a履歴を%file%に出力しました。"
 history-entry: "§7- %entry%"
+history.filter-player: "§7プレイヤーで履歴をフィルタ: §b%player%"
+history.filter-action: "§7アクションで履歴をフィルタ: §e%action%"
+history.filter-no-results: "§c[EndLock] フィルタに一致する履歴エントリがありません: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] 最後の操作が正常に元に戻されました。ジ・エンドは現在 §e%action%§6 です。"

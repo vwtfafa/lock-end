@@ -60,9 +60,12 @@ history.header: "§6[§cEndLock§6] §eLock History (last 10):"
 history-header-page: "§6[§cEndLock§6] §eLock History (page %page%):"
 history.empty: "§6[§cEndLock§6] No lock history recorded."
 history-page-empty: "§c[EndLock] This history page is empty."
-history-usage: "§cUsage: /endlock history [page] [json|csv]"
+history-usage: "§cUsage: /endlock history [page] [json|csv] [player|action <value>]"
 history-exported: "§aHistory exported to %file%."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtering history by player: §b%player%"
+history.filter-action: "§7Filtering history by action: §e%action%"
+history.filter-no-results: "§c[EndLock] No history entries match the filter: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] Successfully undone last action. End is now §e%action%§6."

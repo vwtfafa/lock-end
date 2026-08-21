@@ -60,9 +60,12 @@ history.header: "§6[§cEndLock§6] §eИстория блокировок (по
 history-header-page: "§6[§cEndLock§6] §eИстория блокировок (страница %page%):"
 history.empty: "§6[§cEndLock§6] Нет истории блокировок."
 history-page-empty: "§c[EndLock] Эта страница истории пуста."
-history-usage: "§cИспользование: /endlock history [страница] [json|csv]"
+history-usage: "§cИспользование: /endlock history [страница] [json|csv] [player|action <значение>]"
 history-exported: "§aИстория экспортирована в %file%."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Фильтрация истории по игроку: §b%player%"
+history.filter-action: "§7Фильтрация истории по действию: §e%action%"
+history.filter-no-results: "§c[EndLock] Нет записей истории, соответствующих фильтру: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] Последнее действие успешно отменено. Край теперь §e%action%§6."

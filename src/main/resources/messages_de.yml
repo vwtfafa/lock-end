@@ -60,9 +60,12 @@ history.header: "§6[§cEndLock§6] §eSperrverlauf (letzte 10):"
 history-header-page: "§6[§cEndLock§6] §eSperrverlauf (Seite %page%):"
 history.empty: "§6[§cEndLock§6] Keine Sperrhistorie aufgenommen."
 history-page-empty: "§c[EndLock] Diese History-Seite ist leer."
-history-usage: "§cVerwendung: /endlock history [Seite] [json|csv]"
+history-usage: "§cVerwendung: /endlock history [Seite] [json|csv] [player|action <Wert>]"
 history-exported: "§aHistory nach %file% exportiert."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtere Historie nach Spieler: §b%player%"
+history.filter-action: "§7Filtere Historie nach Aktion: §e%action%"
+history.filter-no-results: "§c[EndLock] Keine History-Einträge passen zum Filter: %type% = %value%"
 
 # v1.6: Undo command
 undo.success: "§6[§cEndLock§6] Letzte Aktion erfolgreich rückgängig gemacht. End ist jetzt §e%action%§6."
