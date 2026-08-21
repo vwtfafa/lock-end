@@ -24,6 +24,7 @@
 - **Scheduled locking**: Lock the End later with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
 - **Schedule status**: Inspect or clear schedules with `/endlock schedule status` and `/endlock schedule clear`
 - **Flexible bypass rules**: Allow players by name, UUID, world, or `endlock.bypass.world.<world>` permission
+- **Optional End evacuation**: Warn and move existing End players to a configured world spawn when locking
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -200,6 +201,13 @@ whitelists:
   uuids: []    # Player UUIDs that can bypass the lock
   worlds: []   # End world names where players can bypass the lock
   entities: []  # Entity types that can bypass the lock
+
+# Optional evacuation of players already inside the End when locking
+evacuation:
+  enabled: false
+  warning-seconds: 10
+  target-world: "world"
+  exclude-bypass: true
 
 # Logging & Analytics
 logging:

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -74,6 +75,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private boolean schedulePaused = false;
     private BukkitTask scheduledUnlockTask;
     private BukkitTask countdownTask;
+    private BukkitTask evacuationTask;
 
     @Override
     public void onEnable() {
@@ -159,6 +161,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         saveConfig();
         cancelScheduledUnlock();
         cancelCountdown();
+        cancelEvacuation();
         if (previewManager != null) {
             previewManager.cancelAll();
         }
@@ -188,6 +191,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!locked) {
             cancelScheduledUnlock();
             previewManager.cancelPreview("unlock");
+            cancelEvacuation();
         }
         broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
@@ -195,7 +199,62 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (recordStats && locked) {
             incrementStats(true);
         }
+        if (locked) {
+            scheduleEvacuation();
+        }
         return true;
+    }
+
+    private void scheduleEvacuation() {
+        if (!getConfig().getBoolean("evacuation.enabled", false)) {
+            return;
+        }
+        cancelEvacuation();
+        long warningSeconds = Math.max(0, getConfig().getLong("evacuation.warning-seconds", 10));
+        String warning = msg("evacuation-warning");
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == World.Environment.THE_END
+                    && (!getConfig().getBoolean("evacuation.exclude-bypass", true)
+                    || !whitelistChecker.canBypass(player, player.getWorld()))) {
+                player.sendMessage(messageComponent(warning.replace("%seconds%", String.valueOf(warningSeconds))));
+            }
+        }
+        evacuationTask = Bukkit.getScheduler().runTaskLater(this, this::evacuateEndPlayers, warningSeconds * 20L);
+    }
+
+    private void evacuateEndPlayers() {
+        evacuationTask = null;
+        if (!locked || !getConfig().getBoolean("evacuation.enabled", false)) {
+            return;
+        }
+        World targetWorld = Bukkit.getWorld(getConfig().getString("evacuation.target-world", "world"));
+        if (targetWorld == null) {
+            targetWorld = Bukkit.getWorlds().stream()
+                    .filter(world -> world.getEnvironment() == World.Environment.NORMAL)
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (targetWorld == null) {
+            getLogger().warning("Could not evacuate End players: no target world is available.");
+            return;
+        }
+        Location target = targetWorld.getSpawnLocation();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() != World.Environment.THE_END
+                    || (getConfig().getBoolean("evacuation.exclude-bypass", true)
+                    && whitelistChecker.canBypass(player, player.getWorld()))) {
+                continue;
+            }
+            player.teleport(target);
+            player.sendMessage(messageComponent(msg("evacuation-complete")));
+        }
+    }
+
+    private void cancelEvacuation() {
+        if (evacuationTask != null) {
+            evacuationTask.cancel();
+            evacuationTask = null;
+        }
     }
 
     public boolean undoLastAction(String actor) {

@@ -60,6 +60,13 @@ whitelists:
   worlds: []   # End world names where players can bypass the lock
   entities: []  # Entity types that can bypass the lock
 
+# Optional evacuation of players already inside the End when locking
+evacuation:
+  enabled: false
+  warning-seconds: 10
+  target-world: "world"
+  exclude-bypass: true
+
 # v1.6: Logging & Analytics
 logging:
   enabled: true

@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Scheduled locking with `/endlock lockin <minutes>` and `/endlock lockat <yyyy-MM-dd> <HH:mm>`.
 - Schedule inspection and clearing with `/endlock schedule status` and `/endlock schedule clear`.
 - UUID-, world-, and world-permission-based bypass rules for End access.
+- Optional warning and evacuation of players already inside the End when locking.
 - Add English messages for EndLock functionality including notifications and commands
 - Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
 - Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup
