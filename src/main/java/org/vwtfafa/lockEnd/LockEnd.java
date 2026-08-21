@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class LockEnd extends JavaPlugin implements Listener {
+    private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private boolean locked = false;
     private FileConfiguration langConfig;
     private String langCode = "en";
@@ -328,18 +329,37 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
             return;
         }
-        String mode = getConfig().getString("scheduled-unlock.mode", "days");
-        if ("datetime".equalsIgnoreCase(mode)) {
-            String date = getConfig().getString("scheduled-unlock.datetime", "");
-            if (!date.isBlank()) {
-                try {
-                    scheduledUnlockTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                } catch (Exception ignored) {
-                }
+        String persistedDate = getConfig().getString("scheduled-unlock.target-datetime", "");
+        if (persistedDate != null && !persistedDate.isBlank()) {
+            scheduledUnlockTime = parseScheduleTime(persistedDate);
+        }
+        if (scheduledUnlockTime == null) {
+            String mode = getConfig().getString("scheduled-unlock.mode", "days");
+            if ("datetime".equalsIgnoreCase(mode)) {
+                scheduledUnlockTime = parseScheduleTime(getConfig().getString("scheduled-unlock.datetime", ""));
+            } else {
+                int days = getConfig().getInt("scheduled-unlock.days", 7);
+                scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+                persistScheduledUnlockTime();
             }
-        } else {
-            int days = getConfig().getInt("scheduled-unlock.days", 7);
-            scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+        }
+    }
+
+    private LocalDateTime parseScheduleTime(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value, SCHEDULE_FORMAT);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private void persistScheduledUnlockTime() {
+        if (scheduledUnlockTime != null) {
+            getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
+            saveConfig();
         }
     }
 
@@ -614,6 +634,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         getConfig().set("scheduled-unlock.enabled", true);
                         getConfig().set("scheduled-unlock.mode", "days");
                         getConfig().set("scheduled-unlock.days", days);
+                        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
                         saveConfig();
                         sender.sendMessage("§aScheduled unlock in " + days + " days.");
                         if (locked) {
@@ -631,10 +652,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         return true;
                     }
                     try {
-                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], SCHEDULE_FORMAT);
                         getConfig().set("scheduled-unlock.enabled", true);
                         getConfig().set("scheduled-unlock.mode", "datetime");
-                        getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                        getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
+                        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
                         saveConfig();
                         sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
                         if (locked) {
@@ -653,6 +675,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     }
                     scheduledUnlockTime = null;
                     getConfig().set("scheduled-unlock.enabled", false);
+                    getConfig().set("scheduled-unlock.target-datetime", null);
                     saveConfig();
                     cancelScheduledUnlock();
                     cancelCountdown();
