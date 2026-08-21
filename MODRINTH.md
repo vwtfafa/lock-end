@@ -29,6 +29,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 📢 Broadcast system (actionbar or chat) on lock/unlock
 * 🕒 Restart-safe scheduled unlocks with absolute target times
 * 🔒 Schedule a future lock with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
+* 📅 Inspect and clear schedules with `/endlock schedule status` and `/endlock schedule clear`
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
@@ -56,6 +57,8 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock at a specific time | `endlock.toggle` |
 | `/endlock lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
 | `/endlock lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock at a specific time | `endlock.toggle` |
+| `/endlock schedule status` | Show the active schedule | `endlock.admin` |
+| `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 

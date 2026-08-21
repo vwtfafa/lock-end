@@ -508,6 +508,33 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
     }
 
+    public LocalDateTime getScheduledTime() {
+        return scheduledUnlockTime;
+    }
+
+    public String getScheduledAction() {
+        return scheduledAction;
+    }
+
+    public long getScheduledRemainingSeconds() {
+        if (scheduledUnlockTime == null) {
+            return -1;
+        }
+        return Math.max(0, java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds());
+    }
+
+    public void clearSchedule() {
+        scheduledUnlockTime = null;
+        scheduledAction = "unlock";
+        getConfig().set("scheduled-unlock.enabled", false);
+        getConfig().set("scheduled-unlock.action", scheduledAction);
+        getConfig().set("scheduled-unlock.target-datetime", null);
+        saveConfig();
+        cancelScheduledUnlock();
+        cancelCountdown();
+        previewManager.cancelAll();
+    }
+
     private void logAction(String player, String action) {
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
@@ -573,7 +600,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             List<String> options = List.of("status", "lock", "unlock", "test", "stats",
-                    "unlockin", "unlockat", "lockin", "lockat", "reload", "history", "undo", "validateconfig",
+                    "unlockin", "unlockat", "lockin", "lockat", "schedule", "reload", "history", "undo", "validateconfig",
                     "pause", "resume", "cancel", "reason");
             StringUtil.copyPartialMatches(args[0], options, completions);
         } else if (args.length == 2) {
@@ -589,6 +616,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     List<String> dates = List.of(dateHint);
                     StringUtil.copyPartialMatches(args[1], dates, completions);
                 }
+                case "schedule" -> StringUtil.copyPartialMatches(args[1], List.of("status", "clear"), completions);
             }
         } else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("unlockat")) {
@@ -656,6 +684,33 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 }
                 case "stats" -> {
                     sender.sendMessage("§7Stats: §aLock count §f" + getConfig().getInt("stats.lock-count", 0) + " §7| §cBlocked count §f" + getConfig().getInt("stats.blocked-count", 0));
+                    return true;
+                }
+                case "schedule" -> {
+                    if (args.length < 2) {
+                        sender.sendMessage(msg("schedule-status-usage"));
+                        return true;
+                    }
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
+                    switch (args[1].toLowerCase(Locale.ROOT)) {
+                        case "status" -> {
+                            String target = scheduledUnlockTime == null ? msg("schedule-none") : scheduledUnlockTime.format(SCHEDULE_FORMAT);
+                            String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getScheduledRemainingSeconds());
+                            sender.sendMessage(msg("schedule-status")
+                                    .replace("%action%", scheduledUnlockTime == null ? "-" : scheduledAction)
+                                    .replace("%target%", target)
+                                    .replace("%remaining%", remaining)
+                                    .replace("%paused%", String.valueOf(schedulePaused)));
+                        }
+                        case "clear" -> {
+                            clearSchedule();
+                            sender.sendMessage(msg("schedule-cleared"));
+                        }
+                        default -> sender.sendMessage(msg("schedule-status-usage"));
+                    }
                     return true;
                 }
                 case "unlockin" -> {
@@ -767,13 +822,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         sender.sendMessage(msg("permission"));
                         return true;
                     }
-                    scheduledUnlockTime = null;
-                    getConfig().set("scheduled-unlock.enabled", false);
-                    getConfig().set("scheduled-unlock.target-datetime", null);
-                    saveConfig();
-                    cancelScheduledUnlock();
-                    cancelCountdown();
-                    previewManager.cancelAll();
+                    clearSchedule();
                     sender.sendMessage(msg("schedule-cancelled"));
                     return true;
                 }

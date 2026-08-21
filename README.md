@@ -22,6 +22,7 @@
 - **Schedule controls**: Cancel scheduled unlocks and change the lock reason with `/endlock cancel` and `/endlock reason <reason>`
 - **Restart-safe scheduling**: Scheduled unlocks keep their absolute target time after reloads and restarts
 - **Scheduled locking**: Lock the End later with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
+- **Schedule status**: Inspect or clear schedules with `/endlock schedule status` and `/endlock schedule clear`
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -67,6 +68,8 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock | `endlock.toggle` |
 | `lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
 | `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
+| `schedule status` | Show the active schedule | `endlock.admin` |
+| `schedule clear` | Clear the active schedule | `endlock.admin` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
