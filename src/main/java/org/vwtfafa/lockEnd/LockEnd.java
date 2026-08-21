@@ -40,6 +40,7 @@ import java.util.UUID;
 
 public final class LockEnd extends JavaPlugin implements Listener {
     private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;
     private boolean locked = false;
     private FileConfiguration langConfig;
     private String langCode = "en";
@@ -372,15 +373,26 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // Schedule preview notification before unlock
         previewManager.schedulePreviewUnlock(scheduledUnlockTime);
         scheduleCountdown();
-        long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
-        long ticksDelay = Math.max(secondsDelay, 0) * 20L;
+        scheduleUnlockCheck();
+    }
+
+    private void scheduleUnlockCheck() {
+        if (scheduledUnlockTime == null || schedulePaused || !locked) {
+            return;
+        }
+        long remainingMillis = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).toMillis();
+        if (remainingMillis <= 0) {
+            changeLockState(false, "System", "SCHEDULED_UNLOCK", false);
+            getLogger().info("Scheduled unlock executed.");
+            return;
+        }
+
+        long remainingTicks = Math.max(1L, (remainingMillis + 49L) / 50L);
+        long delay = Math.min(remainingTicks, SCHEDULE_RECHECK_TICKS);
         scheduledUnlockTask = Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (locked && !schedulePaused) {
-                changeLockState(false, "System", "SCHEDULED_UNLOCK", false);
-                getLogger().info("Scheduled unlock executed.");
-            }
             scheduledUnlockTask = null;
-        }, ticksDelay);
+            scheduleUnlockCheck();
+        }, delay);
     }
 
     private void cancelScheduledUnlock() {

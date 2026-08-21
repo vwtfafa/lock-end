@@ -13,6 +13,7 @@ import java.util.Map;
  * Manages preview notifications before automatic lock/unlock events.
  */
 public class PreviewNotificationManager {
+    private static final long PREVIEW_RECHECK_TICKS = 20L * 60L;
     private final LockEnd plugin;
     private final Map<String, BukkitTask> previewTasks = new HashMap<>();
 
@@ -31,18 +32,13 @@ public class PreviewNotificationManager {
         cancelPreview("lock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Math.max(0, Duration.between(LocalDateTime.now(), lockTime).getSeconds() - previewSeconds);
-
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        schedulePreview("lock", lockTime, previewSeconds, () -> {
             if (plugin.isLocked()) {
-                return; // Already locked
+                return;
             }
             String message = plugin.msg("preview-lock").replace("%seconds%", String.valueOf(previewSeconds));
             sendPreviewToAll(message);
-            previewTasks.remove("lock");
-        }, previewDelay * 20L);
-
-        previewTasks.put("lock", task);
+        });
     }
 
     /**
@@ -56,18 +52,32 @@ public class PreviewNotificationManager {
         cancelPreview("unlock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Math.max(0, Duration.between(LocalDateTime.now(), unlockTime).getSeconds() - previewSeconds);
-
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        schedulePreview("unlock", unlockTime, previewSeconds, () -> {
             if (!plugin.isLocked()) {
-                return; // Already unlocked
+                return;
             }
             String message = plugin.msg("preview-unlock").replace("%seconds%", String.valueOf(previewSeconds));
             sendPreviewToAll(message);
-            previewTasks.remove("unlock");
-        }, previewDelay * 20L);
+        });
+    }
 
-        previewTasks.put("unlock", task);
+    private void schedulePreview(String type, LocalDateTime targetTime, int previewSeconds, Runnable notification) {
+        long remainingMillis = Duration.between(LocalDateTime.now(), targetTime).toMillis();
+        long previewMillis = previewSeconds * 1000L;
+        long delayMillis = Math.max(0L, remainingMillis - previewMillis);
+        long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
+        delayTicks = Math.min(delayTicks, PREVIEW_RECHECK_TICKS);
+
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            long remaining = Duration.between(LocalDateTime.now(), targetTime).toMillis();
+            if (remaining > previewMillis) {
+                schedulePreview(type, targetTime, previewSeconds, notification);
+                return;
+            }
+            notification.run();
+            previewTasks.remove(type);
+        }, delayTicks);
+        previewTasks.put(type, task);
     }
 
     /**
