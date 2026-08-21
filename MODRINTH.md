@@ -27,6 +27,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🖥️ Console can toggle without permission
 * 🚫 Blocks player teleportation to End (portals, `/tp`, `/execute`, plugin teleports)
 * 📢 Broadcast system (actionbar or chat) on lock/unlock
+* 🕒 Restart-safe scheduled unlocks with absolute target times
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
@@ -43,7 +44,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock unlock` | Unlock the End | `endlock.admin` |
 | `/endlock status` | Show current lock status | — |
 | `/endlock test` | Test if portal blocking works | *(no permission, configurable)* |
-| `/endlock reload` | Reload configuration and dependent components | *(no permission)* |
+| `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
@@ -54,6 +55,8 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock at a specific time | `endlock.toggle` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
+
+The base commands do not have a global permission in `plugin.yml`; each subcommand checks its own permission. This keeps public commands such as `status`, `stats`, and `test` available while protecting administrative actions.
 
 ---
 
@@ -156,6 +159,7 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
+  target-datetime: "" # Persisted absolute target; maintained by EndLock
   # v1.6: Countdown timer
   countdown:
     enabled: true

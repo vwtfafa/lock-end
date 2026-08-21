@@ -636,6 +636,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     return true;
                 }
                 case "unlockin" -> {
+                    if (!sender.hasPermission("endlock.toggle")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
                     if (args.length < 2) {
                         sender.sendMessage("§cUsage: /endlock unlockin <days>");
                         return true;
@@ -659,6 +663,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     return true;
                 }
                 case "unlockat" -> {
+                    if (!sender.hasPermission("endlock.toggle")) {
+                        sender.sendMessage(msg("permission"));
+                        return true;
+                    }
                     if (args.length < 3) {
                         sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
                         return true;

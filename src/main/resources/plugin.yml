@@ -33,13 +33,10 @@ commands:
   endlock:
     description: Globally locks or unlocks access to the End dimension
     usage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|cancel|reason|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.toggle
   lock:
     description: Alias for /endlock
     usage: /lock [status|lock|unlock|test|stats|unlockin|unlockat|cancel|reason|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.admin
   el:
     description: Short alias for /endlock (mobile-friendly)
     usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|cancel|reason|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.admin
   

@@ -90,6 +90,7 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
+  target-datetime: ""  # Internal absolute target, persisted across restarts
   # v1.6: Countdown timer
   countdown:
     enabled: true

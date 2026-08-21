@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Configuration validation now checks schedule modes and dates, numeric ranges, supported languages, and required message keys.
+- Scheduled unlocks persist an absolute target time and no longer reset after restarts or reloads.
+- Long unlock and preview schedules use wall-clock rechecks instead of one large tick delay.
+- Command permissions are enforced per subcommand, keeping public status and test commands accessible through all aliases.
+
+### Changed
+- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
+- Synchronized command, permission, configuration, and language documentation.
+
 ## [2.0.0] - 2026-08-20
 ### Maintenance
 - Replaced deprecated Paper metadata access with `getPluginMeta()`.

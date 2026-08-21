@@ -20,6 +20,7 @@
 - **Mobile alias**: `/el` as short command alias
 - **Scoped locking**: Restrict the lock to configured End worlds and optionally block End returns or End gateways
 - **Schedule controls**: Cancel scheduled unlocks and change the lock reason with `/endlock cancel` and `/endlock reason <reason>`
+- **Restart-safe scheduling**: Scheduled unlocks keep their absolute target time after reloads and restarts
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -52,15 +53,17 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `unlock` | Explicitly unlock the End | `endlock.admin` |
 | `status` | Show whether the End is locked or open | *(none)* |
 | `test` | Test if portal blocking works | *(no permission, configurable)* |
+| `stats` | Show lock and blocked-attempt counters | *(none)* |
 | `reload` | Reload configuration without restart | `endlock.reload` |
-| `history` | View recent lock/unlock history | `endlock.admin` |
-| `undo` | Undo the last lock/unlock action | `endlock.admin` |
-| `validateconfig` | Validate configuration file | `endlock.admin` |
+| `history` | View recent lock/unlock history | `endlock.history` |
+| `undo` | Undo the last lock/unlock action | `endlock.undo` |
+| `validateconfig` | Validate configuration file | `endlock.validate` |
 | `pause` | Pause scheduled unlock timers | `endlock.admin` |
 | `resume` | Resume paused scheduled unlock timers | `endlock.admin` |
 | `cancel` | Cancel the scheduled unlock | `endlock.admin` |
 | `reason <reason>` | Set the lock reason | `endlock.admin` |
-| `stats` | Show basic lock and block counters | *(no permission)* |
+| `unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
+| `unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock | `endlock.toggle` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
@@ -221,6 +224,7 @@ scheduled-unlock:
   mode: "days"        # days or datetime
   days: 7
   datetime: ""
+  target-datetime: "" # Persisted absolute target; maintained by EndLock
   # Countdown timer
   countdown:
     enabled: true
