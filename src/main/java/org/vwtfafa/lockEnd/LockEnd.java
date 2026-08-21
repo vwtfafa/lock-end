@@ -684,7 +684,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     StringUtil.copyPartialMatches(args[1], dates, completions);
                 }
                 case "schedule" -> StringUtil.copyPartialMatches(args[1], List.of("status", "clear"), completions);
+                case "history" -> StringUtil.copyPartialMatches(args[1], List.of("1", "2", "3"), completions);
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("history")) {
+            StringUtil.copyPartialMatches(args[2], List.of("json", "csv"), completions);
         } else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("unlockat")) {
                 List<String> times = List.of("00:00", "12:00", "23:59");
