@@ -23,6 +23,7 @@
 - **Restart-safe scheduling**: Scheduled unlocks keep their absolute target time after reloads and restarts
 - **Scheduled locking**: Lock the End later with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
 - **Schedule status**: Inspect or clear schedules with `/endlock schedule status` and `/endlock schedule clear`
+- **Flexible bypass rules**: Allow players by name, UUID, world, or `endlock.bypass.world.<world>` permission
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
 
@@ -196,6 +197,8 @@ grace-period:
 # Whitelists
 whitelists:
   players: []  # Player names that can bypass the lock
+  uuids: []    # Player UUIDs that can bypass the lock
+  worlds: []   # End world names where players can bypass the lock
   entities: []  # Entity types that can bypass the lock
 
 # Logging & Analytics

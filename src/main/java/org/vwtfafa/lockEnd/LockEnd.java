@@ -978,7 +978,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 && !getConfig().getBoolean("end.block-end-gateway", true)) {
             return;
         }
-        if (whitelistChecker.canBypass(player)) return;
+        if (whitelistChecker.canBypass(player, event.getTo().getWorld())) return;
         event.setCancelled(true);
         String reason = lockReasonManager.getReason("default");
         player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));

@@ -30,6 +30,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🕒 Restart-safe scheduled unlocks with absolute target times
 * 🔒 Schedule a future lock with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
 * 📅 Inspect and clear schedules with `/endlock schedule status` and `/endlock schedule clear`
+* 🛡️ Bypass rules by player name, UUID, world, or world-specific permission
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics

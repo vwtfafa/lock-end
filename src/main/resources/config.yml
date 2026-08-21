@@ -56,6 +56,8 @@ grace-period:
 # v1.6: Whitelists
 whitelists:
   players: []  # Player names that can bypass the lock
+  uuids: []    # Player UUIDs that can bypass the lock
+  worlds: []   # End world names where players can bypass the lock
   entities: []  # Entity types that can bypass the lock
 
 # v1.6: Logging & Analytics

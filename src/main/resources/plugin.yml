@@ -20,6 +20,9 @@ permissions:
   endlock.whitelist.bypass:
     description: Bypass the End lock via whitelist
     default: op
+  endlock.bypass.world.*:
+    description: Bypass the End lock in a configured world
+    default: false
   endlock.history:
     description: View lock history
     default: op
