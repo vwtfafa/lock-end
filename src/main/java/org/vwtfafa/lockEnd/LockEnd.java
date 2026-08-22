@@ -193,6 +193,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             cancelScheduledUnlock();
             previewManager.cancelPreview("unlock");
             cancelEvacuation();
+            gracePeriodTask.cancel();
         }
         broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);

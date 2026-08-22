@@ -18,20 +18,19 @@ public class GracePeriodTask {
 
     /**
      * Starts the grace period after a lock is set.
+     * Any previously running grace period is cancelled first.
      * @param durationSeconds Duration of grace period in seconds
      */
     public void startGracePeriod(int durationSeconds) {
-        if (active) {
-            return;
-        }
+        cancel();
         active = true;
         task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            task = null;
+            active = false;
             if (plugin.isLocked()) {
                 plugin.changeLockState(false, "System", "GRACE_PERIOD_END", false);
                 plugin.getLogger().info("Grace period ended, End is now unlocked.");
             }
-            active = false;
-            task = null;
         }, durationSeconds * 20L);
         plugin.getLogger().info("Grace period started for " + durationSeconds + " seconds.");
     }
