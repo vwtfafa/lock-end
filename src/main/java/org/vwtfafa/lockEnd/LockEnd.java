@@ -30,6 +30,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -300,13 +301,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!langFile.exists()) {
             try (InputStream in = getResource(fileName)) {
                 if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
+                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
                     return;
                 }
             } catch (Exception ignored) {}
             try (InputStream in = getResource("messages_de.yml")) {
                 if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
+                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
                     return;
                 }
             } catch (Exception ignored) {}
