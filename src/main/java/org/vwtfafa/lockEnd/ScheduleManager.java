@@ -6,6 +6,8 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Locale;
 
 /**
@@ -174,7 +176,16 @@ public class ScheduleManager {
         if (scheduledUnlockTime == null) {
             return -1;
         }
-        return Math.max(0, Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds());
+        return Math.max(0, remainingTime().getSeconds());
+    }
+
+    /**
+     * Real time until the pending action, computed against the system zone so
+     * DST transitions do not shift the effective duration.
+     */
+    private Duration remainingTime() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        return Duration.between(now, scheduledUnlockTime.atZone(ZoneId.systemDefault()));
     }
 
     /**
@@ -259,7 +270,7 @@ public class ScheduleManager {
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
-        long remainingMillis = Duration.between(LocalDateTime.now(), scheduledUnlockTime).toMillis();
+        long remainingMillis = remainingTime().toMillis();
         if (remainingMillis <= 0) {
             executeDueAction();
             return;
@@ -295,7 +306,7 @@ public class ScheduleManager {
             if (scheduledUnlockTime == null || schedulePaused) {
                 return;
             }
-            long remaining = Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds();
+            long remaining = remainingTime().getSeconds();
             if (remaining < 0 || remaining > startBefore) {
                 return;
             }
