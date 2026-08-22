@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -104,12 +105,13 @@ public class PreviewNotificationManager {
 
     /**
      * Sends a preview message to all online players.
-     * @param message The message to send
+     * @param message The raw (MiniMessage or legacy) message to send
      */
     private void sendPreviewToAll(String message) {
+        Component component = plugin.messageComponent(message);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("endlock.admin") || player.isOp()) {
-                player.sendMessage(message);
+                player.sendMessage(component);
             }
         }
     }

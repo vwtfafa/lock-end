@@ -329,7 +329,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return messageComponent(msg(key));
     }
 
-    private Component messageComponent(String raw) {
+    public Component messageComponent(String raw) {
         if (miniMessageEnabled && miniMessage != null) {
             return miniMessage.deserialize(raw);
         }
