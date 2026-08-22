@@ -242,14 +242,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
         Location target = targetWorld.getSpawnLocation();
+        Component completeMessage = messageComponent(msg("evacuation-complete"));
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() != World.Environment.THE_END
                     || (getConfig().getBoolean("evacuation.exclude-bypass", true)
                     && whitelistChecker.canBypass(player, player.getWorld()))) {
                 continue;
             }
-            player.teleport(target);
-            player.sendMessage(messageComponent(msg("evacuation-complete")));
+            player.teleportAsync(target).thenAccept(success -> {
+                if (success) {
+                    player.sendMessage(completeMessage);
+                }
+            });
         }
     }
 
