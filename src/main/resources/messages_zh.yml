@@ -5,6 +5,12 @@ status: "末地当前是%status%。"
 permission: "§c你没有权限锁定或解锁末地。"
 open: "§a开放"
 closed: "§c已锁定"
+already-locked: "§c末地已经被锁定！"
+already-unlocked: "§c末地已经被解锁！"
+usage: "§c用法：/endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§c测试命令已禁用。"
+scheduled-unlock-set-days: "§a已计划在 %days% 天后解锁。"
+scheduled-unlock-set-at: "§a已计划在 %datetime% 解锁。"
 
 # 广播消息
 broadcast-locked: "§6[§c末地Lock§6] 末地已被 §b%player% §c锁定"

@@ -5,6 +5,12 @@ status: "La End è attualmente %status%."
 permission: "§cNon hai il permesso di bloccare o sbloccare la End."
 open: "§aaperta"
 closed: "§cbloccata"
+already-locked: "§cLa End è già bloccata!"
+already-unlocked: "§cLa End è già sbloccata!"
+usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cIl comando di test è disabilitato."
+scheduled-unlock-set-days: "§aSblocco programmato tra %days% giorni."
+scheduled-unlock-set-at: "§aSblocco programmato per il %datetime%."
 
 # Messaggi di trasmissione
 broadcast-locked: "§6[§cEndLock§6] La End è stata §cbloccata§6 da §b%player%"

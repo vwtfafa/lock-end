@@ -5,6 +5,12 @@ status: "ジ・エンドは現在%status%です。"
 permission: "§cジ・エンドのロック/解除の権限がありません。"
 open: "§a開放"
 closed: "§cロック中"
+already-locked: "§cジ・エンドはすでにロックされています！"
+already-unlocked: "§cジ・エンドはすでにロック解除されています！"
+usage: "§c使用法: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cテストコマンドは無効です。"
+scheduled-unlock-set-days: "§a%days%日後にロック解除を予定しました。"
+scheduled-unlock-set-at: "§a%datetime%にロック解除を予定しました。"
 
 # ブロードキャストメッセージ
 broadcast-locked: "§6[§cEndLock§6] ジ・エンドが §b%player% §cによってロックされました"

@@ -5,6 +5,12 @@ status: "L'End est actuellement %status%."
 permission: "§cVous n'avez pas la permission de verrouiller ou déverrouiller l'End."
 open: "§aouvert"
 closed: "§cverrouillé"
+already-locked: "§cL'End est déjà verrouillé !"
+already-unlocked: "§cL'End est déjà déverrouillé !"
+usage: "§cUtilisation : /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cLa commande de test est désactivée."
+scheduled-unlock-set-days: "§aDéverrouillage programmé dans %days% jours."
+scheduled-unlock-set-at: "§aDéverrouillage programmé le %datetime%."
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] L'End a été §cverrouillé§6 par §b%player%"

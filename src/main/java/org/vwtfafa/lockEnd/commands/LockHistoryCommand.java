@@ -1,10 +1,6 @@
 package org.vwtfafa.lockEnd.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.vwtfafa.lockEnd.LockEnd;
 
@@ -18,15 +14,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Command to view lock history.
  */
-public class LockHistoryCommand implements CommandExecutor, TabCompleter {
+public class LockHistoryCommand {
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final File historyFile;
@@ -52,8 +45,13 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    /**
+     * Executes the history display/export.
+     * @param sender The command sender
+     * @param args The command arguments
+     * @return true when handled
+     */
+    public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.history")) {
             sender.sendMessage(plugin.msg("permission"));
             return true;
@@ -143,107 +141,6 @@ public class LockHistoryCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("  " + displayedHistory.get(i).display());
         }
         return true;
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
-        if (args.length == 0) {
-            return List.of("1");
-        }
-
-        // Determine what tokens have been used
-        boolean hasPage = false;
-        boolean hasFormat = false;
-        boolean hasFilterType = false;
-        String filterType = null;
-
-        // Scan args to determine state
-        int i = 0;
-        if (i < args.length && args[i].matches("\\d+")) {
-            hasPage = true;
-            i++;
-        }
-        if (i < args.length && (args[i].equalsIgnoreCase("json") || args[i].equalsIgnoreCase("csv"))) {
-            hasFormat = true;
-            i++;
-        }
-        if (i < args.length && (args[i].equalsIgnoreCase("player") || args[i].equalsIgnoreCase("action"))) {
-            hasFilterType = true;
-            filterType = args[i].toLowerCase();
-            i++;
-        }
-
-        // Now provide completions based on next expected token
-        if (!hasPage && args.length == 1) {
-            // First arg: page numbers, json, csv, player, action
-            Stream.of("1", "2", "3", "4", "5", "json", "csv", "player", "action")
-                    .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))
-                    .forEach(completions::add);
-            return completions;
-        }
-
-        if (hasPage && !hasFormat && !hasFilterType && args.length == (hasPage ? 2 : 1)) {
-            // Second arg after page: json, csv, player, action
-            Stream.of("json", "csv", "player", "action")
-                    .filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
-                    .forEach(completions::add);
-            return completions;
-        }
-
-        if (!hasPage && !hasFormat && hasFilterType && args.length == 2) {
-            // First arg was filter type: suggest filter values
-            return getFilterValueCompletions(filterType, args[1]);
-        }
-
-        if (hasPage && hasFormat && !hasFilterType && args.length == (hasPage ? 3 : 2)) {
-            // After page and format: suggest player, action
-            Stream.of("player", "action")
-                    .filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase()))
-                    .forEach(completions::add);
-            return completions;
-        }
-
-        if (hasPage && !hasFormat && hasFilterType && args.length == 3) {
-            // After page and filter type: suggest filter values
-            return getFilterValueCompletions(filterType, args[2]);
-        }
-
-        if (!hasPage && hasFormat && !hasFilterType && args.length == 2) {
-            // After format (no page): suggest player, action
-            Stream.of("player", "action")
-                    .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
-                    .forEach(completions::add);
-            return completions;
-        }
-
-        if (hasFilterType && args.length > (hasPage ? 3 : 2) + (hasFormat ? 1 : 0)) {
-            // After filter type + value: nothing more
-            return completions;
-        }
-
-        return completions;
-    }
-
-    private List<String> getFilterValueCompletions(String filterType, String partial) {
-        List<String> completions = new ArrayList<>();
-        if ("player".equals(filterType)) {
-            // Online players + unique actors from history
-            Set<String> players = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            Bukkit.getOnlinePlayers().forEach(p -> players.add(p.getName()));
-            history.stream().map(HistoryEntry::actor).distinct().forEach(players::add);
-            players.stream()
-                    .filter(p -> p.toLowerCase().startsWith(partial.toLowerCase()))
-                    .forEach(completions::add);
-        } else if ("action".equals(filterType)) {
-            // Unique actions from history
-            Set<String> actions = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            history.stream().map(HistoryEntry::action).distinct().forEach(actions::add);
-            actions.stream()
-                    .filter(a -> a.toLowerCase().startsWith(partial.toLowerCase()))
-                    .forEach(completions::add);
-        }
-        return completions;
     }
 
     /**

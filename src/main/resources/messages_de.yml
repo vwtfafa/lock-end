@@ -7,6 +7,10 @@ open: "§aoffen"
 closed: "§cgesperrt"
 already-locked: "§cDas End ist bereits gesperrt!"
 already-unlocked: "§cDas End ist bereits entsperrt!"
+usage: "§cVerwendung: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cDer Test-Befehl ist deaktiviert."
+scheduled-unlock-set-days: "§aGeplantes Entsperren in %days% Tagen."
+scheduled-unlock-set-at: "§aGeplantes Entsperren am %datetime%."
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End wurde von §b%player% §cgesperrt"

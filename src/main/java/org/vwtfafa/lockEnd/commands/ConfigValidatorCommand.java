@@ -1,13 +1,9 @@
 package org.vwtfafa.lockEnd.commands;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.vwtfafa.lockEnd.LockEnd;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,7 +13,7 @@ import java.util.Locale;
 /**
  * Command to validate configuration file.
  */
-public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
+public class ConfigValidatorCommand {
     private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final List<String> SUPPORTED_LANGUAGES = List.of("de", "en", "es", "fr", "it", "ja", "ru", "zh");
     private static final List<String> REQUIRED_MESSAGES = List.of(
@@ -29,7 +25,8 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
             "schedule-cancelled", "schedule-status-usage", "schedule-status", "schedule-none", "schedule-cleared",
             "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",
             "reload-success", "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed",
-            "history-header-page", "history-page-empty", "history-usage", "history-exported"
+            "history-header-page", "history-page-empty", "history-usage", "history-exported",
+            "usage", "test-disabled", "scheduled-unlock-set-days", "scheduled-unlock-set-at"
     );
 
     private final LockEnd plugin;
@@ -38,8 +35,13 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
         this.plugin = plugin;
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    /**
+     * Executes the config validation.
+     * @param sender The command sender
+     * @param args The command arguments
+     * @return true when handled
+     */
+    public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.validate")) {
             sender.sendMessage(plugin.msg("permission"));
             return true;
@@ -153,10 +155,5 @@ public class ConfigValidatorCommand implements CommandExecutor, TabCompleter {
         if (plugin.getConfig().getLong(path, 0) < 0) {
             issues.add("Error: " + path + " cannot be negative.");
         }
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return Collections.emptyList();
     }
 }

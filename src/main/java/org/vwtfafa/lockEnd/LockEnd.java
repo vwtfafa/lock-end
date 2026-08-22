@@ -3,11 +3,10 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.Location;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,8 +18,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.StringUtil;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
+import org.vwtfafa.lockEnd.commands.EndLockCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
@@ -34,14 +33,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 public final class LockEnd extends JavaPlugin implements Listener {
-    private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;
     private boolean locked = false;
     private FileConfiguration langConfig;
@@ -115,19 +113,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        // Register commands
-        if (getCommand("endlock") != null) {
-            getCommand("endlock").setExecutor(this);
-            getCommand("endlock").setTabCompleter(this);
-        }
-        if (getCommand("lock") != null) {
-            getCommand("lock").setExecutor(this);
-            getCommand("lock").setTabCompleter(this);
-        }
-        if (getCommand("el") != null) {
-            getCommand("el").setExecutor(this);
-            getCommand("el").setTabCompleter(this);
-        }
+        // Register /endlock (aliases: /lock, /el) via Paper's Brigadier lifecycle API
+        EndLockCommand endLockCommand = new EndLockCommand(this);
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
+                event.registrar().register(
+                        "endlock",
+                        "Globally locks or unlocks access to the End dimension",
+                        List.of("lock", "el"),
+                        endLockCommand));
 
         // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
@@ -391,6 +384,149 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return lockReasonManager.getReason("default");
     }
 
+    /**
+     * Starts the grace period if it is enabled in the config.
+     */
+    public void startGracePeriodIfEnabled() {
+        if (getConfig().getBoolean("grace-period.enabled", false)) {
+            int duration = getConfig().getInt("grace-period.duration", 10);
+            gracePeriodTask.startGracePeriod(duration);
+        }
+    }
+
+    /**
+     * Schedules an unlock in the given number of days and persists the schedule.
+     */
+    public void scheduleUnlockInDays(int days) {
+        scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+        scheduledAction = "unlock";
+        getConfig().set("scheduled-unlock.enabled", true);
+        getConfig().set("scheduled-unlock.action", scheduledAction);
+        getConfig().set("scheduled-unlock.mode", "days");
+        getConfig().set("scheduled-unlock.days", days);
+        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
+        saveConfig();
+        if (locked) {
+            scheduleUnlock();
+        }
+    }
+
+    /**
+     * Schedules an unlock at an absolute point in time and persists the schedule.
+     */
+    public void scheduleUnlockAt(LocalDateTime time) {
+        scheduledUnlockTime = time;
+        scheduledAction = "unlock";
+        getConfig().set("scheduled-unlock.enabled", true);
+        getConfig().set("scheduled-unlock.action", scheduledAction);
+        getConfig().set("scheduled-unlock.mode", "datetime");
+        getConfig().set("scheduled-unlock.datetime", time.format(SCHEDULE_FORMAT));
+        getConfig().set("scheduled-unlock.target-datetime", time.format(SCHEDULE_FORMAT));
+        saveConfig();
+        if (locked) {
+            scheduleUnlock();
+        }
+    }
+
+    /**
+     * Schedules a lock in the given number of minutes and persists the schedule.
+     */
+    public void scheduleLockInMinutes(int minutes) {
+        scheduledUnlockTime = LocalDateTime.now().plusMinutes(minutes);
+        scheduledAction = "lock";
+        saveScheduledAction();
+        scheduleUnlock();
+    }
+
+    /**
+     * Schedules a lock at an absolute point in time and persists the schedule.
+     */
+    public void scheduleLockAt(LocalDateTime time) {
+        scheduledUnlockTime = time;
+        scheduledAction = "lock";
+        saveScheduledAction();
+        scheduleUnlock();
+    }
+
+    /**
+     * Updates and persists the default lock reason.
+     */
+    public void setLockReason(String reason) {
+        getConfig().set("lock-reason", reason);
+        getConfig().set("lock-reasons.default", reason);
+        saveConfig();
+        lockReasonManager = new LockReasonManager(getConfig());
+    }
+
+    /**
+     * Builds the localized schedule status line for commands and placeholders.
+     */
+    public String buildScheduleStatusMessage() {
+        String target = scheduledUnlockTime == null ? msg("schedule-none") : scheduledUnlockTime.format(SCHEDULE_FORMAT);
+        String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getScheduledRemainingSeconds());
+        return msg("schedule-status")
+                .replace("%action%", scheduledUnlockTime == null ? "-" : scheduledAction)
+                .replace("%target%", target)
+                .replace("%remaining%", remaining)
+                .replace("%paused%", String.valueOf(schedulePaused));
+    }
+
+    /**
+     * Logs a test command invocation.
+     */
+    public void logTestAction(String actor) {
+        logAction(actor, "TEST");
+    }
+
+    /**
+     * Reloads configuration, language files and all dependent managers.
+     */
+    public void reloadPlugin() {
+        cancelScheduledUnlock();
+        previewManager.cancelAll();
+        cancelCountdown();
+        reloadConfig();
+        langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
+        loadLanguage(langCode);
+        lockReasonManager = new LockReasonManager(getConfig());
+        whitelistChecker = new WhitelistChecker(getConfig());
+        rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        schedulePaused = getConfig().getBoolean("schedule.paused", false);
+        configureAsyncLogger();
+        miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
+        miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
+        loadScheduledUnlock();
+        soundPlayer.loadConfig();
+        if (locked && scheduledUnlockTime != null) {
+            scheduleUnlock();
+        }
+        boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
+                && getConfig().getBoolean("hooks.placeholderapi", true);
+        if (placeholderEnabled && placeholderExpansion == null) {
+            placeholderExpansion = new LockEndExpansion(this);
+            placeholderExpansion.register();
+        } else if (!placeholderEnabled && placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            updateChecker = new UpdateChecker(this);
+            updateChecker.checkForUpdates();
+        }
+    }
+
+    public LockHistoryCommand getHistoryCommand() {
+        return historyCommand;
+    }
+
+    public UndoCommand getUndoCommand() {
+        return undoCommand;
+    }
+
+    public ConfigValidatorCommand getConfigValidatorCommand() {
+        return configValidatorCommand;
+    }
+
     public boolean hasScheduledAction() {
         return scheduledUnlockTime != null;
     }
@@ -524,7 +660,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
     }
 
-    private String formatDuration(long seconds) {
+    public String formatDuration(long seconds) {
         long days = seconds / 86400;
         long hours = (seconds % 86400) / 3600;
         long minutes = (seconds % 3600) / 60;
@@ -661,361 +797,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
             }
         } catch (IOException e) {
             getLogger().warning("Error writing to log file: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
-        if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test", "stats",
-                    "unlockin", "unlockat", "lockin", "lockat", "schedule", "reload", "history", "undo", "validateconfig",
-                    "pause", "resume", "cancel", "reason");
-            StringUtil.copyPartialMatches(args[0], options, completions);
-        } else if (args.length == 2) {
-            String sub = args[0].toLowerCase(Locale.ROOT);
-            switch (sub) {
-                case "unlockin" -> {
-                    List<String> days = List.of("1", "7", "30");
-                    StringUtil.copyPartialMatches(args[1], days, completions);
-                }
-                case "unlockat" -> {
-                    java.time.LocalDate tomorrow = java.time.LocalDate.now().plusDays(1);
-                    String dateHint = tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                    List<String> dates = List.of(dateHint);
-                    StringUtil.copyPartialMatches(args[1], dates, completions);
-                }
-                case "schedule" -> StringUtil.copyPartialMatches(args[1], List.of("status", "clear"), completions);
-                case "history" -> StringUtil.copyPartialMatches(args[1], List.of("1", "2", "3"), completions);
-            }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("history")) {
-            StringUtil.copyPartialMatches(args[2], List.of("json", "csv"), completions);
-        } else if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("unlockat")) {
-                List<String> times = List.of("00:00", "12:00", "23:59");
-                StringUtil.copyPartialMatches(args[2], times, completions);
-            }
-        }
-        return completions;
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-
-        if (args.length >= 1) {
-            String sub = args[0].toLowerCase(Locale.ROOT);
-            switch (sub) {
-                case "status" -> {
-                    String status = locked ? msg("closed") : msg("open");
-                    sender.sendMessage(msg("status").replace("%status%", status));
-                    return true;
-                }
-                case "lock" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (!locked) {
-                        sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
-                        changeLockState(true, sender.getName(), "LOCK", true);
-
-                        // v1.6: Grace period
-                        if (getConfig().getBoolean("grace-period.enabled", false)) {
-                            int duration = getConfig().getInt("grace-period.duration", 10);
-                            gracePeriodTask.startGracePeriod(duration);
-                        }
-                    } else {
-                        sender.sendMessage(msg("already-locked"));
-                    }
-                    return true;
-                }
-                case "unlock" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (locked) {
-                        sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
-                        changeLockState(false, sender.getName(), "UNLOCK", false);
-                    } else {
-                        sender.sendMessage(msg("already-unlocked"));
-                    }
-                    return true;
-                }
-                case "test" -> {
-                    if (getConfig().getBoolean("test-command.enabled", true)) {
-                        String status = locked ? msg("closed") : msg("open");
-                        sender.sendMessage(msg("test-success"));
-                        sender.sendMessage(msg("test-info").replace("%status%", status));
-                        logAction(sender.getName(), "TEST");
-                        return true;
-                    } else {
-                        sender.sendMessage("§cTest command is disabled!");
-                        return false;
-                    }
-                }
-                case "stats" -> {
-                    sender.sendMessage("§7Stats: §aLock count §f" + lockCount + " §7| §cBlocked count §f" + blockedCount);
-                    return true;
-                }
-                case "schedule" -> {
-                    if (args.length < 2) {
-                        sender.sendMessage(msg("schedule-status-usage"));
-                        return true;
-                    }
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    switch (args[1].toLowerCase(Locale.ROOT)) {
-                        case "status" -> {
-                            String target = scheduledUnlockTime == null ? msg("schedule-none") : scheduledUnlockTime.format(SCHEDULE_FORMAT);
-                            String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getScheduledRemainingSeconds());
-                            sender.sendMessage(msg("schedule-status")
-                                    .replace("%action%", scheduledUnlockTime == null ? "-" : scheduledAction)
-                                    .replace("%target%", target)
-                                    .replace("%remaining%", remaining)
-                                    .replace("%paused%", String.valueOf(schedulePaused)));
-                        }
-                        case "clear" -> {
-                            clearSchedule();
-                            sender.sendMessage(msg("schedule-cleared"));
-                        }
-                        default -> sender.sendMessage(msg("schedule-status-usage"));
-                    }
-                    return true;
-                }
-                case "unlockin" -> {
-                    if (!sender.hasPermission("endlock.toggle")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (args.length < 2) {
-                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
-                        return true;
-                    }
-                    try {
-                        int days = Integer.parseInt(args[1]);
-                        scheduledUnlockTime = LocalDateTime.now().plusDays(days);
-                        scheduledAction = "unlock";
-                        getConfig().set("scheduled-unlock.enabled", true);
-                        getConfig().set("scheduled-unlock.action", scheduledAction);
-                        getConfig().set("scheduled-unlock.mode", "days");
-                        getConfig().set("scheduled-unlock.days", days);
-                        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-                        saveConfig();
-                        sender.sendMessage("§aScheduled unlock in " + days + " days.");
-                        if (locked) {
-                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-                            scheduleUnlock();
-                        }
-                    } catch (Exception e) {
-                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
-                    }
-                    return true;
-                }
-                case "lockin" -> {
-                    if (!sender.hasPermission("endlock.toggle")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (args.length < 2) {
-                        sender.sendMessage(msg("scheduled-lock-invalid"));
-                        return true;
-                    }
-                    try {
-                        int minutes = Integer.parseInt(args[1]);
-                        if (minutes <= 0) {
-                            throw new IllegalArgumentException();
-                        }
-                        scheduledUnlockTime = LocalDateTime.now().plusMinutes(minutes);
-                        scheduledAction = "lock";
-                        saveScheduledAction();
-                        sender.sendMessage(msg("scheduled-lock-set"));
-                        scheduleUnlock();
-                    } catch (Exception exception) {
-                        sender.sendMessage(msg("scheduled-lock-invalid"));
-                    }
-                    return true;
-                }
-                case "unlockat" -> {
-                    if (!sender.hasPermission("endlock.toggle")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (args.length < 3) {
-                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
-                        return true;
-                    }
-                    try {
-                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], SCHEDULE_FORMAT);
-                        scheduledAction = "unlock";
-                        getConfig().set("scheduled-unlock.enabled", true);
-                        getConfig().set("scheduled-unlock.action", scheduledAction);
-                        getConfig().set("scheduled-unlock.mode", "datetime");
-                        getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-                        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-                        saveConfig();
-                        sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
-                        if (locked) {
-                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-                            scheduleUnlock();
-                        }
-                    } catch (Exception e) {
-                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
-                    }
-                    return true;
-                }
-                case "lockat" -> {
-                    if (!sender.hasPermission("endlock.toggle")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (args.length < 3) {
-                        sender.sendMessage(msg("scheduled-lock-invalid"));
-                        return true;
-                    }
-                    try {
-                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], SCHEDULE_FORMAT);
-                        if (scheduledUnlockTime.isBefore(LocalDateTime.now())) {
-                            throw new IllegalArgumentException();
-                        }
-                        scheduledAction = "lock";
-                        saveScheduledAction();
-                        sender.sendMessage(msg("scheduled-lock-set"));
-                        scheduleUnlock();
-                    } catch (Exception exception) {
-                        sender.sendMessage(msg("scheduled-lock-invalid"));
-                    }
-                    return true;
-                }
-                case "cancel" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    clearSchedule();
-                    sender.sendMessage(msg("schedule-cancelled"));
-                    return true;
-                }
-                case "reason" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (args.length < 2) {
-                        sender.sendMessage(msg("reason-usage"));
-                        return true;
-                    }
-                    String newReason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
-                    getConfig().set("lock-reason", newReason);
-                    getConfig().set("lock-reasons.default", newReason);
-                    saveConfig();
-                    lockReasonManager = new LockReasonManager(getConfig());
-                    sender.sendMessage(msg("reason-set").replace("%reason%", newReason));
-                    return true;
-                }
-                case "pause" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    pauseSchedule();
-                    sender.sendMessage(msg("schedule-paused"));
-                    return true;
-                }
-                case "resume" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    resumeSchedule();
-                    sender.sendMessage(msg("schedule-resumed"));
-                    return true;
-                }
-                case "history" -> {
-                    if (!sender.hasPermission("endlock.history")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    historyCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "undo" -> {
-                    if (!sender.hasPermission("endlock.undo")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    undoCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "validateconfig" -> {
-                    if (!sender.hasPermission("endlock.validate")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    configValidatorCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "reload" -> {
-                    if (!sender.hasPermission("endlock.reload")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    cancelScheduledUnlock();
-                    previewManager.cancelAll();
-                    cancelCountdown();
-                    reloadConfig();
-                    langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
-                    loadLanguage(langCode);
-                    // Refresh managers with new config
-                    lockReasonManager = new LockReasonManager(getConfig());
-                    whitelistChecker = new WhitelistChecker(getConfig());
-                    rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
-                    schedulePaused = getConfig().getBoolean("schedule.paused", false);
-                    configureAsyncLogger();
-                    miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
-                    miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
-                    loadScheduledUnlock();
-                    soundPlayer.loadConfig();
-                    if (locked && scheduledUnlockTime != null) {
-                        scheduleUnlock();
-                    }
-                    boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
-                            && getConfig().getBoolean("hooks.placeholderapi", true);
-                    if (placeholderEnabled && placeholderExpansion == null) {
-                        placeholderExpansion = new LockEndExpansion(this);
-                        placeholderExpansion.register();
-                    } else if (!placeholderEnabled && placeholderExpansion != null) {
-                        placeholderExpansion.unregister();
-                        placeholderExpansion = null;
-                    }
-                    if (getConfig().getBoolean("update-checker.enabled", true)) {
-                        updateChecker = new UpdateChecker(this);
-                        updateChecker.checkForUpdates();
-                    }
-                    sender.sendMessage(msg("reload-success"));
-                    return true;
-                }
-            }
-        }
-
-        if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {
-            boolean newLocked = !locked;
-            String status = newLocked ? msg("closed") : msg("open");
-            sender.sendMessage(msg("toggle").replace("%status%", status));
-            changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK", newLocked);
-            if (newLocked) {
-                // Grace period on lock
-                if (getConfig().getBoolean("grace-period.enabled", false)) {
-                    int duration = getConfig().getInt("grace-period.duration", 10);
-                    gracePeriodTask.startGracePeriod(duration);
-                }
-            }
-            return true;
-        } else {
-            sender.sendMessage(msg("permission"));
-            return true;
         }
     }
 

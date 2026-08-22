@@ -5,6 +5,12 @@ status: "Край сейчас %status%."
 permission: "§cУ вас нет прав для блокировки или разблокировки Края."
 open: "§aоткрыт"
 closed: "§cзаблокирован"
+already-locked: "§cКрай уже заблокирован!"
+already-unlocked: "§cКрай уже разблокирован!"
+usage: "§cИспользование: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cТестовая команда отключена."
+scheduled-unlock-set-days: "§aРазблокировка запланирована через %days% дн."
+scheduled-unlock-set-at: "§aРазблокировка запланирована на %datetime%."
 
 # Сообщения трансляции
 broadcast-locked: "§6[§cEndLock§6] Край был §cзаблокирован§6 игроком §b%player%"

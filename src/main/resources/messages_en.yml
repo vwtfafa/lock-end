@@ -7,6 +7,10 @@ open: "§aopen"
 closed: "§clocked"
 already-locked: "§cThe End is already locked!"
 already-unlocked: "§cThe End is already unlocked!"
+usage: "§cUsage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cThe test command is disabled."
+scheduled-unlock-set-days: "§aScheduled unlock in %days% days."
+scheduled-unlock-set-at: "§aScheduled unlock at %datetime%."
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End has been §clocked§6 by §b%player%"
