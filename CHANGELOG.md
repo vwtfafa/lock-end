@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- `/endlock` (with aliases `/lock`, `/el`) is now registered as a native Brigadier command via Paper's lifecycle API.
+- New localized message keys in all 8 languages: `usage`, `test-disabled`, `scheduled-unlock-set-days`, `scheduled-unlock-set-at`.
+- Added missing `already-locked` / `already-unlocked` keys to the ES, FR, IT, JA, RU, and ZH language files.
+
+### Fixed
+- Update checker: `update-checker.notify-ops` (console) and `update-checker.notify-chat` (in-game) are now independent channels; disabling chat no longer suppresses all notifications.
+- Default lock reason is now resolved from `lock-reasons.default` with fallback to the top-level `lock-reason` key (previously read a non-existent key).
+- Bundled language files are loaded as UTF-8, fixing mojibake for JA/ZH/RU on platforms with a non-UTF-8 default charset.
+- Preview notifications are parsed through the MiniMessage/legacy pipeline instead of being sent as raw strings.
+- Grace period restarts cleanly when re-locking during an active grace period and is cancelled on manual unlock.
+- Unknown subcommands now show usage instead of silently toggling the lock state.
+- Rate-limit map entries are cleared on player quit, preventing unbounded memory growth.
+
+### Performance
+- Blocked-attempt stats are kept in memory and persisted on lock/disable instead of saving the whole config on every denied access.
+- End evacuation teleports players asynchronously (`teleportAsync`).
+- Hot-path config values (End scope, gateway blocking, logging/stats toggles) are cached and refreshed on enable/reload.
+- Remaining schedule time is computed via `ZonedDateTime`, so DST transitions no longer shift effective durations.
+
+### Changed
+- Portal and teleport denial share a single event listener (`PlayerPortalEvent` extends `PlayerTeleportEvent`).
+- Main class split into focused services: `MessageService`, `ScheduleManager`, and `EvacuationService`.
+- Remaining German log messages and comments translated to English.
+
+### Removed
+- Unused `PermissionCache` class.
+- Redundant try/catch around Adventure's `sendActionBar`.
+- `commands` section from `plugin.yml` (commands register programmatically via Brigadier).
+- Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
+
 ## [2.0.0] - 2026-08-21
 ### Maintenance
 - Replaced deprecated Paper metadata access with `getPluginMeta()`.

@@ -29,6 +29,9 @@
 - **Structured audit history**: Paginated history plus JSON/CSV export with `/endlock history <page> <json|csv>`
 - **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
 - **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
+- **Brigadier commands**: `/endlock` registers through Paper's Brigadier lifecycle API with native tab completion
+- **Performance**: Cached hot-path config lookups, async evacuation teleports, in-memory stats (no disk write per blocked attempt)
+- **Robustness**: UTF-8 language loading, DST-safe schedule timing, independent update-notification channels, clean grace-period restarts
 
 ## Requirements
 
@@ -118,7 +121,7 @@ permissions:
 - Blocks player travel into the End (portals, `/tp`, `/execute`, and most plugin teleports)
 - Lock state persists in `config.yml` across restarts
 - Eight built-in languages (configurable)
-- **Tab Completion**: Full command completion support for all subcommands
+- **Tab Completion**: Native Brigadier command completion for all subcommands
 - **Explicit Subcommands**: All subcommands accessible via `/endlock`, `/lock`, and `/el` (e.g., `/endlock lock`, `/endlock history`, `/el stats`)
 - **Broadcast System**: Optional alerts when End is locked/unlocked (actionbar or chat)
 - **Logging & History**: Automatic log file tracking lock/unlock events and access attempts
@@ -302,7 +305,7 @@ Run a local test server (downloads Paper 26.2):
 ## Limitations
 
 - Only **player** movement is blocked; entity whitelist entries do not control entity teleport events.
-- Players **already in the End** when you lock it are not teleported out.
+- Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is allowed unless `end.block-return` is enabled.
 

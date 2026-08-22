@@ -23,7 +23,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 ## ✨ Features
 
 * 🔐 Lock/unlock the End with `/endlock` (alias: `/lock`, `/el`) — `endlock.toggle`
-* 📋 Full tab completion for all commands
+* 📋 Full tab completion for all commands (native Brigadier suggestions)
 * 🖥️ Console can toggle without permission
 * 🚫 Blocks player teleportation to End (portals, `/tp`, `/execute`, plugin teleports)
 * 📢 Broadcast system (actionbar or chat) on lock/unlock
@@ -34,6 +34,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🧩 PlaceholderAPI values for status, reason, timing, blocked attempts, and schedules
 * 🧾 Structured audit history with pagination and JSON/CSV export
 * 🔍 Filter history by player or action with tab completion
+* 🚨 Optional evacuation: warn and move players out of the End after locking
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
 * 📊 bStats integration for anonymous usage statistics
@@ -217,7 +218,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## ⚠️ Notes
 
 * Only **players** are blocked — not mobs or items
-* Players already inside the End when locking are **not** removed
+* Players already inside the End when locking stay there unless `evacuation.enabled` is set (then they are warned and teleported out)
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
@@ -244,7 +245,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-1.6.0.jar` into your `plugins` folder
+2. Put `lock-end-2.0.0-SNAPSHOT.jar` into your `plugins` folder
 3. Restart your server (Paper 26.2+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
