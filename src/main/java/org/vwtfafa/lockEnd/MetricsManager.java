@@ -18,7 +18,7 @@ public class MetricsManager {
     }
 
     /**
-     * Initialisiert benutzerdefinierte Charts für Metriken
+     * Initializes custom charts for metrics
      */
     private void initializeCharts() {
         metrics.addCustomChart(new SimplePie("lock_state", () -> {
@@ -69,7 +69,7 @@ public class MetricsManager {
     }
 
     /**
-     * Gibt die Metrics-Instanz zurück (für erweiterte Nutzung)
+     * Returns the Metrics instance (for advanced usage)
      */
     public Metrics getMetrics() {
         return metrics;

@@ -26,7 +26,7 @@ public class UpdateChecker {
     }
 
     /**
-     * Lädt die neueste Version von GitHub asynchron und benachrichtigt Ops
+     * Fetches the latest version from GitHub asynchronously and notifies admins
      */
     public void checkForUpdates() {
         boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
@@ -48,7 +48,7 @@ public class UpdateChecker {
                     }
                 }
 
-                // Parse die Version aus der JSON-Antwort
+                // Parse the version from the JSON response
                 Matcher matcher = Pattern.compile("\\\"tag_name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"").matcher(response);
                 if (matcher.find()) {
                     latestVersion = matcher.group(1);
@@ -71,7 +71,7 @@ public class UpdateChecker {
                     }
                 }
             } catch (Exception e) {
-                plugin.getLogger().warning("Update-Check fehlgeschlagen: " + e.getMessage());
+                plugin.getLogger().warning("Update check failed: " + e.getMessage());
             }
         });
     }
@@ -95,7 +95,7 @@ public class UpdateChecker {
     }
 
     /**
-     * Vergleicht zwei Versionsnummern
+     * Compares two version numbers
      */
     private boolean isNewerVersion(String newVersion, String currentVersion) {
         try {
