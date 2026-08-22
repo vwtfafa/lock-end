@@ -60,6 +60,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
     private int rateLimitSeconds = 5;
 
+    // Cached hot-path config values (refreshed on enable/reload)
+    private boolean blockReturn;
+    private boolean blockEndGateway;
+    private List<String> endWorlds = List.of();
+    private boolean logAttempts;
+    private boolean statsEnabled;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -91,6 +98,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         endLockCommand));
 
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        refreshCachedConfig();
 
         schedules = new ScheduleManager(this);
         schedules.loadFromConfig();
@@ -221,7 +229,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * save) to avoid file I/O on every blocked access.
      */
     private void incrementStats(boolean lockAction) {
-        if (!getConfig().getBoolean("stats.enabled", true)) {
+        if (!statsEnabled) {
             return;
         }
         if (lockAction) {
@@ -273,6 +281,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * Caches frequently read config values so event handlers avoid
+     * repeated FileConfiguration lookups.
+     */
+    private void refreshCachedConfig() {
+        blockReturn = getConfig().getBoolean("end.block-return", false);
+        blockEndGateway = getConfig().getBoolean("end.block-end-gateway", true);
+        endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
+        logAttempts = getConfig().getBoolean("logging.log-attempts", true);
+        statsEnabled = getConfig().getBoolean("stats.enabled", true);
+    }
+
+    /**
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
@@ -281,6 +301,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        refreshCachedConfig();
         configureAsyncLogger();
         soundPlayer.loadConfig();
         schedules.reload();
@@ -401,7 +422,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * v1.6: Logs attempt with rate limiting and detailed info.
      */
     private void logAttempt(Player player, World sourceWorld, String method) {
-        if (!getConfig().getBoolean("logging.log-attempts", true)) {
+        if (!logAttempts) {
             return;
         }
         UUID playerId = player.getUniqueId();
@@ -458,17 +479,16 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (event.getTo().getWorld().getEnvironment() != World.Environment.THE_END) {
             return;
         }
-        if (!getConfig().getBoolean("end.block-return", false)
+        if (!blockReturn
                 && event.getFrom().getWorld().getEnvironment() == World.Environment.THE_END) {
             return;
         }
-        List<String> configuredWorlds = getConfig().getStringList("end.worlds");
-        if (!configuredWorlds.isEmpty() && configuredWorlds.stream().noneMatch(name ->
+        if (!endWorlds.isEmpty() && endWorlds.stream().noneMatch(name ->
                 name.equalsIgnoreCase(event.getTo().getWorld().getName()))) {
             return;
         }
         if (event.getCause() == PlayerTeleportEvent.TeleportCause.END_GATEWAY
-                && !getConfig().getBoolean("end.block-end-gateway", true)) {
+                && !blockEndGateway) {
             return;
         }
         if (whitelistChecker.canBypass(player, event.getTo().getWorld())) return;
@@ -476,7 +496,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         String reason = lockReasonManager.getReason("default");
         player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
         soundPlayer.playDenialSound(player);
-        if (getConfig().getBoolean("logging.log-attempts", true)) {
+        if (logAttempts) {
             logAttempt(player, player.getWorld(), method);
         }
         incrementStats(false);
