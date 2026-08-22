@@ -14,7 +14,15 @@ public class LockReasonManager {
 
     public LockReasonManager(FileConfiguration config) {
         this.config = config;
-        this.defaultReason = config.getString("lock-reason.default", "Maintenance");
+        this.defaultReason = resolveDefaultReason(config);
+    }
+
+    private static String resolveDefaultReason(FileConfiguration config) {
+        String configured = config.getString("lock-reasons.default");
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+        return config.getString("lock-reason", "Maintenance");
     }
 
     /**
