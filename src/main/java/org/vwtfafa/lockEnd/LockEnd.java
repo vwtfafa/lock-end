@@ -1,14 +1,9 @@
 package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.Location;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,7 +12,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
 import org.vwtfafa.lockEnd.commands.EndLockCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
@@ -27,30 +21,27 @@ import org.vwtfafa.lockEnd.util.AsyncLogger;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Main plugin class: owns the lock state and wires messaging, scheduling,
+ * evacuation, logging and commands together.
+ */
 public final class LockEnd extends JavaPlugin implements Listener {
     public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;
     private boolean locked = false;
-    private FileConfiguration langConfig;
-    private String langCode = "en";
+    private MessageService messages;
+    private ScheduleManager schedules;
+    private EvacuationService evacuation;
     private UpdateChecker updateChecker;
     private File logDir;
     private File logFile;
-    private MiniMessage miniMessage;
-    private boolean miniMessageEnabled;
-    private LocalDateTime scheduledUnlockTime;
-    private String scheduledAction = "unlock";
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
     private int blockedCount = 0;
@@ -59,7 +50,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private LockReasonManager lockReasonManager;
     private GracePeriodTask gracePeriodTask;
     private WhitelistChecker whitelistChecker;
-    private PreviewNotificationManager previewManager;
     private SoundEffectPlayer soundPlayer;
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
@@ -67,14 +57,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private AsyncLogger asyncLogger;
 
     // Logging & Analytics
-    private final Map<UUID, Long> lastAttemptTimes = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
     private int rateLimitSeconds = 5;
-
-    // Schedule pause/resume
-    private boolean schedulePaused = false;
-    private BukkitTask scheduledUnlockTask;
-    private BukkitTask countdownTask;
-    private BukkitTask evacuationTask;
 
     @Override
     public void onEnable() {
@@ -82,34 +66,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
         locked = getConfig().getBoolean("locked", false);
         lockCount = getConfig().getInt("stats.lock-count", 0);
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
-        langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
-        loadLanguage(langCode);
-        // v1.6: Lock reason manager
+
+        messages = new MessageService(this);
+        messages.loadFromConfig();
+
         lockReasonManager = new LockReasonManager(getConfig());
-
-        // v1.6: Grace period task
         gracePeriodTask = new GracePeriodTask(this);
-
-        // v1.6: Whitelist checker
         whitelistChecker = new WhitelistChecker(getConfig());
-
-        // v1.6: Preview notifications
-        previewManager = new PreviewNotificationManager(this);
-
-        // v1.6: Sound effects
         soundPlayer = new SoundEffectPlayer(this);
-
-        // v1.6: Admin commands
         historyCommand = new LockHistoryCommand(this);
         undoCommand = new UndoCommand(this);
         configValidatorCommand = new ConfigValidatorCommand(this);
-
         configureAsyncLogger();
-
-        miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
-        if (miniMessageEnabled) {
-            this.miniMessage = MiniMessage.miniMessage();
-        }
 
         Bukkit.getPluginManager().registerEvents(this, this);
 
@@ -122,9 +90,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         List.of("lock", "el"),
                         endLockCommand));
 
-        // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
-        schedulePaused = getConfig().getBoolean("schedule.paused", false);
+
+        schedules = new ScheduleManager(this);
+        schedules.loadFromConfig();
+        if (schedules.hasAction()) {
+            schedules.arm();
+        }
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
@@ -141,11 +113,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
             new MetricsManager(this);
         }
 
-        loadScheduledUnlock();
-        if (scheduledUnlockTime != null) {
-            scheduleUnlock();
-        }
-
         getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.2+)");
     }
 
@@ -153,11 +120,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
     public void onDisable() {
         getConfig().set("locked", locked);
         saveConfig();
-        cancelScheduledUnlock();
-        cancelCountdown();
-        cancelEvacuation();
-        if (previewManager != null) {
-            previewManager.cancelAll();
+        if (schedules != null) {
+            schedules.cancelAll();
+        }
+        if (evacuation != null) {
+            evacuation.cancel();
         }
         if (gracePeriodTask != null) {
             gracePeriodTask.cancel();
@@ -186,74 +153,17 @@ public final class LockEnd extends JavaPlugin implements Listener {
         saveConfig();
 
         if (!locked) {
-            cancelScheduledUnlock();
-            previewManager.cancelPreview("unlock");
-            cancelEvacuation();
+            schedules.handleUnlocked();
+            evacuation.cancel();
             gracePeriodTask.cancel();
         }
-        broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+        messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
         historyCommand.addEntry(actor, action, previousState, action);
         if (locked) {
-            scheduleEvacuation();
+            evacuation.schedule();
         }
         return true;
-    }
-
-    private void scheduleEvacuation() {
-        if (!getConfig().getBoolean("evacuation.enabled", false)) {
-            return;
-        }
-        cancelEvacuation();
-        long warningSeconds = Math.max(0, getConfig().getLong("evacuation.warning-seconds", 10));
-        String warning = msg("evacuation-warning");
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getWorld().getEnvironment() == World.Environment.THE_END
-                    && (!getConfig().getBoolean("evacuation.exclude-bypass", true)
-                    || !whitelistChecker.canBypass(player, player.getWorld()))) {
-                player.sendMessage(messageComponent(warning.replace("%seconds%", String.valueOf(warningSeconds))));
-            }
-        }
-        evacuationTask = Bukkit.getScheduler().runTaskLater(this, this::evacuateEndPlayers, warningSeconds * 20L);
-    }
-
-    private void evacuateEndPlayers() {
-        evacuationTask = null;
-        if (!locked || !getConfig().getBoolean("evacuation.enabled", false)) {
-            return;
-        }
-        World targetWorld = Bukkit.getWorld(getConfig().getString("evacuation.target-world", "world"));
-        if (targetWorld == null) {
-            targetWorld = Bukkit.getWorlds().stream()
-                    .filter(world -> world.getEnvironment() == World.Environment.NORMAL)
-                    .findFirst()
-                    .orElse(null);
-        }
-        if (targetWorld == null) {
-            getLogger().warning("Could not evacuate End players: no target world is available.");
-            return;
-        }
-        Location target = targetWorld.getSpawnLocation();
-        Component completeMessage = messageComponent(msg("evacuation-complete"));
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getWorld().getEnvironment() != World.Environment.THE_END
-                    || (getConfig().getBoolean("evacuation.exclude-bypass", true)
-                    && whitelistChecker.canBypass(player, player.getWorld()))) {
-                continue;
-            }
-            player.teleportAsync(target).thenAccept(success -> {
-                if (success) {
-                    player.sendMessage(completeMessage);
-                }
-            });
-        }
-    }
-
-    private void cancelEvacuation() {
-        if (evacuationTask != null) {
-            evacuationTask.cancel();
-            evacuationTask = null;
-        }
     }
 
     public boolean undoLastAction(String actor) {
@@ -293,65 +203,16 @@ public final class LockEnd extends JavaPlugin implements Listener {
         asyncLogger.initialize(logFile);
     }
 
-    private void loadLanguage(String code) {
-        String fileName = "messages_" + code + ".yml";
-        File langFile = new File(getDataFolder(), fileName);
-        if (!langFile.exists()) {
-            try (InputStream in = getResource(fileName)) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try (InputStream in = getResource("messages_de.yml")) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                    return;
-                }
-            } catch (Exception ignored) {}
-        } else {
-            langConfig = YamlConfiguration.loadConfiguration(langFile);
-        }
-    }
-
     public String msg(String key) {
-        if (langConfig == null) return key;
-        return langConfig.getString(key, key);
+        return messages.msg(key);
     }
 
     public boolean hasMessage(String key) {
-        return langConfig != null && langConfig.isString(key);
-    }
-
-    private Component miniMsg(String key) {
-        return messageComponent(msg(key));
+        return messages.hasMessage(key);
     }
 
     public Component messageComponent(String raw) {
-        if (miniMessageEnabled && miniMessage != null) {
-            return miniMessage.deserialize(raw);
-        }
-        return LegacyComponentSerializer.legacySection().deserialize(raw);
-    }
-
-    private void broadcastMessage(String key, String playerName) {
-        if (!getConfig().getBoolean("broadcast.enabled", true)) {
-            return;
-        }
-
-        boolean notifyAll = getConfig().getBoolean("broadcast.notify-all", true);
-        boolean useActionbar = getConfig().getBoolean("broadcast.use-actionbar", true);
-        String rawMessage = msg(key).replace("%player%", playerName);
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
-                if (useActionbar) {
-                    player.sendActionBar(locked ? miniMsg("actionbar-locked") : miniMsg("actionbar-unlocked"));
-                } else {
-                    player.sendMessage(messageComponent(rawMessage));
-                }
-            }
-        }
+        return messages.messageComponent(raw);
     }
 
     /**
@@ -395,60 +256,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
-     * Schedules an unlock in the given number of days and persists the schedule.
-     */
-    public void scheduleUnlockInDays(int days) {
-        scheduledUnlockTime = LocalDateTime.now().plusDays(days);
-        scheduledAction = "unlock";
-        getConfig().set("scheduled-unlock.enabled", true);
-        getConfig().set("scheduled-unlock.action", scheduledAction);
-        getConfig().set("scheduled-unlock.mode", "days");
-        getConfig().set("scheduled-unlock.days", days);
-        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-        saveConfig();
-        if (locked) {
-            scheduleUnlock();
-        }
-    }
-
-    /**
-     * Schedules an unlock at an absolute point in time and persists the schedule.
-     */
-    public void scheduleUnlockAt(LocalDateTime time) {
-        scheduledUnlockTime = time;
-        scheduledAction = "unlock";
-        getConfig().set("scheduled-unlock.enabled", true);
-        getConfig().set("scheduled-unlock.action", scheduledAction);
-        getConfig().set("scheduled-unlock.mode", "datetime");
-        getConfig().set("scheduled-unlock.datetime", time.format(SCHEDULE_FORMAT));
-        getConfig().set("scheduled-unlock.target-datetime", time.format(SCHEDULE_FORMAT));
-        saveConfig();
-        if (locked) {
-            scheduleUnlock();
-        }
-    }
-
-    /**
-     * Schedules a lock in the given number of minutes and persists the schedule.
-     */
-    public void scheduleLockInMinutes(int minutes) {
-        scheduledUnlockTime = LocalDateTime.now().plusMinutes(minutes);
-        scheduledAction = "lock";
-        saveScheduledAction();
-        scheduleUnlock();
-    }
-
-    /**
-     * Schedules a lock at an absolute point in time and persists the schedule.
-     */
-    public void scheduleLockAt(LocalDateTime time) {
-        scheduledUnlockTime = time;
-        scheduledAction = "lock";
-        saveScheduledAction();
-        scheduleUnlock();
-    }
-
-    /**
      * Updates and persists the default lock reason.
      */
     public void setLockReason(String reason) {
@@ -456,19 +263,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
         getConfig().set("lock-reasons.default", reason);
         saveConfig();
         lockReasonManager = new LockReasonManager(getConfig());
-    }
-
-    /**
-     * Builds the localized schedule status line for commands and placeholders.
-     */
-    public String buildScheduleStatusMessage() {
-        String target = scheduledUnlockTime == null ? msg("schedule-none") : scheduledUnlockTime.format(SCHEDULE_FORMAT);
-        String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getScheduledRemainingSeconds());
-        return msg("schedule-status")
-                .replace("%action%", scheduledUnlockTime == null ? "-" : scheduledAction)
-                .replace("%target%", target)
-                .replace("%remaining%", remaining)
-                .replace("%paused%", String.valueOf(schedulePaused));
     }
 
     /**
@@ -482,24 +276,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
-        cancelScheduledUnlock();
-        previewManager.cancelAll();
-        cancelCountdown();
         reloadConfig();
-        langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
-        loadLanguage(langCode);
+        messages.loadFromConfig();
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
-        schedulePaused = getConfig().getBoolean("schedule.paused", false);
         configureAsyncLogger();
-        miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
-        miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
-        loadScheduledUnlock();
         soundPlayer.loadConfig();
-        if (locked && scheduledUnlockTime != null) {
-            scheduleUnlock();
-        }
+        schedules.reload();
+
         boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
                 && getConfig().getBoolean("hooks.placeholderapi", true);
         if (placeholderEnabled && placeholderExpansion == null) {
@@ -527,217 +312,77 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return configValidatorCommand;
     }
 
+    public WhitelistChecker getWhitelistChecker() {
+        return whitelistChecker;
+    }
+
+    // --- Schedule delegates ---
+
     public boolean hasScheduledAction() {
-        return scheduledUnlockTime != null;
+        return schedules.hasAction();
     }
 
-    private void loadScheduledUnlock() {
-        scheduledUnlockTime = null;
-        scheduledAction = getConfig().getString("scheduled-unlock.action", "unlock").toLowerCase(Locale.ROOT);
-        if (!scheduledAction.equals("lock") && !scheduledAction.equals("unlock")) {
-            scheduledAction = "unlock";
-        }
-        if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
-            return;
-        }
-        String persistedDate = getConfig().getString("scheduled-unlock.target-datetime", "");
-        if (persistedDate != null && !persistedDate.isBlank()) {
-            scheduledUnlockTime = parseScheduleTime(persistedDate);
-        }
-        if (scheduledUnlockTime == null) {
-            String mode = getConfig().getString("scheduled-unlock.mode", "days");
-            if ("datetime".equalsIgnoreCase(mode)) {
-                scheduledUnlockTime = parseScheduleTime(getConfig().getString("scheduled-unlock.datetime", ""));
-            } else {
-                int days = getConfig().getInt("scheduled-unlock.days", 7);
-                scheduledUnlockTime = LocalDateTime.now().plusDays(days);
-                persistScheduledUnlockTime();
-            }
-        }
+    public LocalDateTime getScheduledTime() {
+        return schedules.getTime();
     }
 
-    private LocalDateTime parseScheduleTime(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(value, SCHEDULE_FORMAT);
-        } catch (Exception exception) {
-            return null;
-        }
+    public String getScheduledAction() {
+        return schedules.getAction();
     }
 
-    private void persistScheduledUnlockTime() {
-        if (scheduledUnlockTime != null) {
-            getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-            saveConfig();
-        }
-    }
-
-    private void saveScheduledAction() {
-        getConfig().set("scheduled-unlock.enabled", true);
-        getConfig().set("scheduled-unlock.action", scheduledAction);
-        getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(SCHEDULE_FORMAT));
-        saveConfig();
-    }
-
-    private void scheduleUnlock() {
-        if (scheduledUnlockTime == null || schedulePaused) {
-            return;
-        }
-        cancelScheduledUnlock();
-        cancelCountdown();
-        if (scheduledAction.equals("lock")) {
-            previewManager.schedulePreviewLock(scheduledUnlockTime);
-        } else {
-            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-        }
-        scheduleCountdown();
-        scheduleUnlockCheck();
-    }
-
-    private void scheduleUnlockCheck() {
-        if (scheduledUnlockTime == null || schedulePaused) {
-            return;
-        }
-        long remainingMillis = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).toMillis();
-        if (remainingMillis <= 0) {
-            boolean targetLocked = scheduledAction.equals("lock");
-            if (locked != targetLocked) {
-                changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT), false);
-                getLogger().info("Scheduled " + scheduledAction + " executed.");
-            }
-            scheduledUnlockTime = null;
-            getConfig().set("scheduled-unlock.enabled", false);
-            getConfig().set("scheduled-unlock.target-datetime", null);
-            saveConfig();
-            return;
-        }
-
-        long remainingTicks = Math.max(1L, (remainingMillis + 49L) / 50L);
-        long delay = Math.min(remainingTicks, SCHEDULE_RECHECK_TICKS);
-        scheduledUnlockTask = Bukkit.getScheduler().runTaskLater(this, () -> {
-            scheduledUnlockTask = null;
-            scheduleUnlockCheck();
-        }, delay);
-    }
-
-    private void cancelScheduledUnlock() {
-        if (scheduledUnlockTask != null) {
-            scheduledUnlockTask.cancel();
-            scheduledUnlockTask = null;
-        }
-    }
-
-    private void scheduleCountdown() {
-        if (!getConfig().getBoolean("scheduled-unlock.countdown.enabled", false)) {
-            return;
-        }
-        long startBefore = getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
-        long interval = Math.max(1, getConfig().getLong("scheduled-unlock.countdown.interval", 10));
-        countdownTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
-            if (scheduledUnlockTime == null || schedulePaused) {
-                return;
-            }
-            long remaining = java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds();
-            if (remaining < 0 || remaining > startBefore) {
-                return;
-            }
-            String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
-            String message = msg(messageKey).replace("%time%", formatDuration(remaining));
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.isOp() || player.hasPermission("endlock.admin")) {
-                    player.sendMessage(messageComponent(message));
-                }
-            }
-        }, 0L, interval * 20L);
-    }
-
-    private void cancelCountdown() {
-        if (countdownTask != null) {
-            countdownTask.cancel();
-            countdownTask = null;
-        }
-    }
-
-    public String formatDuration(long seconds) {
-        long days = seconds / 86400;
-        long hours = (seconds % 86400) / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long remainingSeconds = seconds % 60;
-        if (days > 0) return days + "d " + hours + "h";
-        if (hours > 0) return hours + "h " + minutes + "m";
-        if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
-        return remainingSeconds + "s";
-    }
-
-    public void pauseSchedule() {
-        schedulePaused = true;
-        getConfig().set("schedule.paused", true);
-        saveConfig();
-        cancelScheduledUnlock();
-        cancelCountdown();
-        previewManager.cancelPreview("unlock");
-        getLogger().info("Schedule paused by " + "System");
-    }
-
-    public void resumeSchedule() {
-        schedulePaused = false;
-        getConfig().set("schedule.paused", false);
-        saveConfig();
-        if (locked && scheduledUnlockTime != null) {
-            scheduleUnlock();
-        }
-        getLogger().info("Schedule resumed by " + "System");
+    public long getScheduledRemainingSeconds() {
+        return schedules.getRemainingSeconds();
     }
 
     public boolean isSchedulePaused() {
-        return schedulePaused;
+        return schedules.isPaused();
     }
 
-    private void sendJoinNotification(Player player) {
-        if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
-            return;
-        }
-        player.sendMessage(messageComponent(msg("join-notification")));
+    public void pauseSchedule() {
+        schedules.pause();
     }
 
-    public boolean isLocked() {
-        return locked;
+    public void resumeSchedule() {
+        schedules.resume();
+    }
+
+    public void clearSchedule() {
+        schedules.clear();
+    }
+
+    public String buildScheduleStatusMessage() {
+        return schedules.buildStatusMessage();
+    }
+
+    public void scheduleUnlockInDays(int days) {
+        schedules.scheduleUnlockInDays(days);
+    }
+
+    public void scheduleUnlockAt(LocalDateTime time) {
+        schedules.scheduleUnlockAt(time);
+    }
+
+    public void scheduleLockInMinutes(int minutes) {
+        schedules.scheduleLockInMinutes(minutes);
+    }
+
+    public void scheduleLockAt(LocalDateTime time) {
+        schedules.scheduleLockAt(time);
     }
 
     public String getRemainingText() {
         if (!locked) {
             return "Unlocked";
         }
-        return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
+        return schedules.hasAction() ? schedules.getTime().toString() : "Permanent";
     }
 
-    public LocalDateTime getScheduledTime() {
-        return scheduledUnlockTime;
+    private void sendJoinNotification(Player player) {
+        player.sendMessage(messageComponent(msg("join-notification")));
     }
 
-    public String getScheduledAction() {
-        return scheduledAction;
-    }
-
-    public long getScheduledRemainingSeconds() {
-        if (scheduledUnlockTime == null) {
-            return -1;
-        }
-        return Math.max(0, java.time.Duration.between(LocalDateTime.now(), scheduledUnlockTime).getSeconds());
-    }
-
-    public void clearSchedule() {
-        scheduledUnlockTime = null;
-        scheduledAction = "unlock";
-        getConfig().set("scheduled-unlock.enabled", false);
-        getConfig().set("scheduled-unlock.action", scheduledAction);
-        getConfig().set("scheduled-unlock.target-datetime", null);
-        saveConfig();
-        cancelScheduledUnlock();
-        cancelCountdown();
-        previewManager.cancelAll();
+    public boolean isLocked() {
+        return locked;
     }
 
     private void logAction(String player, String action) {
@@ -763,22 +408,20 @@ public final class LockEnd extends JavaPlugin implements Listener {
         long now = System.currentTimeMillis();
 
         // Rate limit check
-        if (lastAttemptTimes.containsKey(playerId)) {
-            long lastAttempt = lastAttemptTimes.get(playerId);
-            if (now - lastAttempt < rateLimitSeconds * 1000L) {
-                return;
-            }
+        Long lastAttempt = lastAttemptTimes.get(playerId);
+        if (lastAttempt != null && now - lastAttempt < rateLimitSeconds * 1000L) {
+            return;
         }
         lastAttemptTimes.put(playerId, now);
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED\n",
+        String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
                 timestamp, player.getName(), sourceWorld.getName(), method);
 
         if (asyncLogger != null) {
-            asyncLogger.log(logMessage.trim());
+            asyncLogger.log(logMessage);
         } else {
-            writeToLogFile(logMessage.trim());
+            writeToLogFile(logMessage);
         }
     }
 
