@@ -55,15 +55,19 @@ public class UpdateChecker {
                     updateAvailable = isNewerVersion(latestVersion, currentVersion);
 
                     if (updateAvailable) {
-                        plugin.getLogger().info("========================================");
-                        plugin.getLogger().info("EndLock update available!");
-                        plugin.getLogger().info("Current version: " + currentVersion);
-                        plugin.getLogger().info("New version: " + latestVersion);
-                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
-                        plugin.getLogger().info("========================================");
+                        if (notifyOps) {
+                            plugin.getLogger().info("========================================");
+                            plugin.getLogger().info("EndLock update available!");
+                            plugin.getLogger().info("Current version: " + currentVersion);
+                            plugin.getLogger().info("New version: " + latestVersion);
+                            plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
+                            plugin.getLogger().info("========================================");
+                        }
 
-                        // Notify online operators
-                        notifyOps(notifyOps, notifyChat);
+                        // Notify online operators via chat
+                        if (notifyChat) {
+                            notifyOnlineAdmins();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -73,13 +77,9 @@ public class UpdateChecker {
     }
 
     /**
-     * Sends a chat notification to online operators about available updates
+     * Sends a chat notification with the release link to online operators
      */
-    private void notifyOps(boolean notifyOps, boolean notifyChat) {
-        if (!notifyOps || !notifyChat) {
-            return;
-        }
-
+    private void notifyOnlineAdmins() {
         Bukkit.getScheduler().runTask(plugin, () -> {
             String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
             Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
