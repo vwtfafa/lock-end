@@ -354,19 +354,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
                 if (useActionbar) {
-                    sendActionBar(player, locked ? miniMsg("actionbar-locked") : miniMsg("actionbar-unlocked"));
+                    player.sendActionBar(locked ? miniMsg("actionbar-locked") : miniMsg("actionbar-unlocked"));
                 } else {
                     player.sendMessage(messageComponent(rawMessage));
                 }
             }
-        }
-    }
-
-    private void sendActionBar(Player player, Component message) {
-        try {
-            player.sendActionBar(message);
-        } catch (Exception e) {
-            player.sendMessage(message);
         }
     }
 
