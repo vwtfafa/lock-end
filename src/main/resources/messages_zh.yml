@@ -42,11 +42,11 @@ update-available: "§6[§c末地Lock§6] 有可用更新: §e%version%"
 update-download: "§7打开: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a配置重新加载成功！"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§e末地将在 §b%seconds% §e秒后锁定！"
 preview-unlock: "§a末地将在 §e%seconds% §a秒后解锁！"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§c末地Lock§6] 计划解锁已 §c暂停§6。使用 §e/endlock resume§6 继续。"
 schedule-resumed: "§6[§c末地Lock§6] 计划解锁已 §a恢复§6。"
 schedule-not-paused: "§6[§c末地Lock§6] 时间计划当前未暂停。"
@@ -58,10 +58,10 @@ schedule-none: "无"
 schedule-cleared: "§a已清除计划操作。"
 countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
 
-# v2.0: Scheduled lock countdown
+# Scheduled lock countdown
 countdown-lock-notification: "§6[§cEndLock§6] 末地将在 §e%time%§6 后锁定。"
 
-# v1.6: History command
+# History command
 history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
 history-header-page: "§6[§c末地Lock§6] §e锁定历史（第%page%页）:"
 history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
@@ -73,15 +73,15 @@ history.filter-player: "§7按玩家筛选历史: §b%player%"
 history.filter-action: "§7按动作筛选历史: §e%action%"
 history.filter-no-results: "§c[EndLock] 没有匹配筛选条件的历史条目: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§c末地Lock§6] 最后一个操作已成功撤销。末地现在是 §e%action%§6。"
 undo.empty: "§c[EndLock] 没有可撤销的操作。"
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§a配置有效。未发现任何问题。"
 config.issues: "§6[§c末地Lock§6] §e发现配置问题："
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§c末地Lock§6] 时间计划当前 §c已暂停§6。"
 countdown-status-active: "§6[§c末地Lock§6] 时间计划当前 §a活跃§6。解锁倒计时： %time%"

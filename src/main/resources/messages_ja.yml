@@ -42,11 +42,11 @@ update-available: "§6[§cEndLock§6] アップデートが利用可能です: �
 update-download: "§7を開く: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§a設定が正常に再読み込みされました！"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§eジ・エンドは §b%seconds% §e秒後にロックされます！"
 preview-unlock: "§aジ・エンドは §e%seconds% §a秒後にロック解除されます！"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§cEndLock§6] 予約解除が §c一時停止§6されました。再開するには §e/endlock resume§6 を使用してください。"
 schedule-resumed: "§6[§cEndLock§6] 予約解除が §a再開§6されました。"
 schedule-not-paused: "§6[§cEndLock§6] スケジュールは現在一時停止されていません。"
@@ -58,10 +58,10 @@ schedule-none: "なし"
 schedule-cleared: "§a予約アクションを削除しました。"
 countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
 
-# v2.0: Scheduled lock countdown
+# Scheduled lock countdown
 countdown-lock-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後にロックされます。"
 
-# v1.6: History command
+# History command
 history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"
 history-header-page: "§6[§cEndLock§6] §eロック履歴（%page%ページ）:"
 history.empty: "§6[§cEndLock§6] ロック履歴はありません。"
@@ -73,15 +73,15 @@ history.filter-player: "§7プレイヤーで履歴をフィルタ: §b%player%"
 history.filter-action: "§7アクションで履歴をフィルタ: §e%action%"
 history.filter-no-results: "§c[EndLock] フィルタに一致する履歴エントリがありません: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§cEndLock§6] 最後の操作が正常に元に戻されました。ジ・エンドは現在 §e%action%§6 です。"
 undo.empty: "§c[EndLock] 元に戻す操作はありません。"
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§a設定は有効です。問題は見つかりませんでした。"
 config.issues: "§6[§cEndLock§6] §e設定に問題が見つかりました:"
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§cEndLock§6] スケジュールは現在 §c一時停止中§6 です。"
 countdown-status-active: "§6[§cEndLock§6] スケジュールは現在 §a有効§6 です。解除まで: %time%"

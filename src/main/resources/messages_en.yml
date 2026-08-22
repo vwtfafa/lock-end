@@ -46,11 +46,11 @@ update-available: "§6[§cEndLock§6] Update available: §e%version%"
 update-download: "§7Open: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguration reloaded successfully!"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§eThe End will be locked in §b%seconds% §eseconds!"
 preview-unlock: "§aThe End will be unlocked in §e%seconds% §aseconds!"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§cEndLock§6] Scheduled unlock has been §cpaused§6. Use §e/endlock resume§6 to resume."
 schedule-resumed: "§6[§cEndLock§6] Scheduled unlock has been §aresumed§6."
 schedule-not-paused: "§6[§cEndLock§6] The schedule is not currently paused."
@@ -59,7 +59,7 @@ schedule-resume-not-paused: "§6[§cEndLock§6] Cannot resume schedule: no sched
 countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time%§6."
 countdown-lock-notification: "§6[§cEndLock§6] The End will be locked in §e%time%§6."
 
-# v1.6: History command
+# History command
 history.header: "§6[§cEndLock§6] §eLock History (last 10):"
 history-header-page: "§6[§cEndLock§6] §eLock History (page %page%):"
 history.empty: "§6[§cEndLock§6] No lock history recorded."
@@ -71,15 +71,15 @@ history.filter-player: "§7Filtering history by player: §b%player%"
 history.filter-action: "§7Filtering history by action: §e%action%"
 history.filter-no-results: "§c[EndLock] No history entries match the filter: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§cEndLock§6] Successfully undone last action. End is now §e%action%§6."
 undo.empty: "§c[EndLock] There is no action to undo."
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§aConfiguration is valid. No issues found."
 config.issues: "§6[§cEndLock§6] §eConfiguration issues found:"
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Schedule is currently §cpaused§6."
 countdown-status-active: "§6[§cEndLock§6] Schedule is currently §aactive§6. Unlocking in: %time%"

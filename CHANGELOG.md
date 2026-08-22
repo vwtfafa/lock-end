@@ -2,11 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.0] - 2026-08-22
+### Maintenance
+- Replaced deprecated Paper metadata access with `getPluginMeta()`.
+- Replaced deprecated `URL(String)` construction with URI-based URL creation.
+- Fixed update checks for `-SNAPSHOT` versions.
+- Removed redundant `TabCompleter` declaration and unused non-metrics fields.
+- Made `/endlock reload` refresh logging, MiniMessage, PlaceholderAPI, countdown, and update-checker settings.
 ### Added
 - `/endlock` (with aliases `/lock`, `/el`) is now registered as a native Brigadier command via Paper's lifecycle API.
 - New localized message keys in all 8 languages: `usage`, `test-disabled`, `scheduled-unlock-set-days`, `scheduled-unlock-set-at`.
 - Added missing `already-locked` / `already-unlocked` keys to the ES, FR, IT, JA, RU, and ZH language files.
+- Scheduled locking with `/endlock lockin <minutes>` and `/endlock lockat <yyyy-MM-dd> <HH:mm>`.
+- Schedule inspection and clearing with `/endlock schedule status` and `/endlock schedule clear`.
+- UUID-, world-, and world-permission-based bypass rules for End access.
+- Optional warning and evacuation of players already inside the End when locking.
+- Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
+- Structured lock history with pagination and JSON/CSV export.
+- Filter lock history by player or action: `/endlock history [page] [json|csv] [player|action <value>]`
+- History exports now use timestamped filenames to prevent overwrites.
+- Verified and documented that Folia is not currently supported; Paper 26.2 remains the target platform.
+- Completed localized message keys for scheduling, evacuation, and audit history in all supported languages.
+- English messages for EndLock functionality including notifications and commands
+- Enhanced MiniMessage formatting for broadcast messages and join notification
+- Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup
+- Configurable End world scope, End return blocking, and End gateway blocking
+- Countdown task for scheduled unlocks, plus `/endlock cancel` and `/endlock reason <reason>`
+- Persistent bounded lock history in `plugins/EndLock/history.yml`
+### Performance
+- Blocked-attempt stats are kept in memory and persisted on lock/disable instead of saving the whole config on every denied access.
+- End evacuation teleports players asynchronously (`teleportAsync`).
+- Hot-path config values (End scope, gateway blocking, logging/stats toggles) are cached and refreshed on enable/reload.
+- Remaining schedule time is computed via `ZonedDateTime`, so DST transitions no longer shift effective durations.
+### Changed
+- Portal and teleport denial share a single event listener (`PlayerPortalEvent` extends `PlayerTeleportEvent`).
+- Main class split into focused services: `MessageService`, `ScheduleManager`, and `EvacuationService`.
+- Remaining German log messages and comments translated to English.
+- Update gradle wrapper to version 9.7.1 and improve startup scripts for consistency
+- Update version to 2.0.0-SNAPSHOT
+- Refactor: extract duplicate logging code into writeToLogFile method
+- Translated bStats startup log message from German to English
+- Reload and shutdown now cancel scheduled, preview, countdown, and grace-period tasks cleanly
+- Preview notifications honor `preview-notifications.enabled`
+- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
+- Synchronized command, permission, configuration, and language documentation.
+
+### Removed
+- Unused `PermissionCache` class.
+- Redundant try/catch around Adventure's `sendActionBar`.
+- `commands` section from `plugin.yml` (commands register programmatically via Brigadier).
+- Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
 
 ### Fixed
 - Update checker: `update-checker.notify-ops` (console) and `update-checker.notify-chat` (in-game) are now independent channels; disabling chat no longer suppresses all notifications.
@@ -16,59 +61,6 @@ All notable changes to this project will be documented in this file.
 - Grace period restarts cleanly when re-locking during an active grace period and is cancelled on manual unlock.
 - Unknown subcommands now show usage instead of silently toggling the lock state.
 - Rate-limit map entries are cleared on player quit, preventing unbounded memory growth.
-
-### Performance
-- Blocked-attempt stats are kept in memory and persisted on lock/disable instead of saving the whole config on every denied access.
-- End evacuation teleports players asynchronously (`teleportAsync`).
-- Hot-path config values (End scope, gateway blocking, logging/stats toggles) are cached and refreshed on enable/reload.
-- Remaining schedule time is computed via `ZonedDateTime`, so DST transitions no longer shift effective durations.
-
-### Changed
-- Portal and teleport denial share a single event listener (`PlayerPortalEvent` extends `PlayerTeleportEvent`).
-- Main class split into focused services: `MessageService`, `ScheduleManager`, and `EvacuationService`.
-- Remaining German log messages and comments translated to English.
-
-### Removed
-- Unused `PermissionCache` class.
-- Redundant try/catch around Adventure's `sendActionBar`.
-- `commands` section from `plugin.yml` (commands register programmatically via Brigadier).
-- Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
-
-## [2.0.0] - 2026-08-21
-### Maintenance
-- Replaced deprecated Paper metadata access with `getPluginMeta()`.
-- Replaced deprecated `URL(String)` construction with URI-based URL creation.
-- Fixed update checks for `-SNAPSHOT` versions.
-- Removed redundant `TabCompleter` declaration and unused non-metrics fields.
-- Made `/endlock reload` refresh logging, MiniMessage, PlaceholderAPI, countdown, and update-checker settings.
-### Added
-- Scheduled locking with `/endlock lockin <minutes>` and `/endlock lockat <yyyy-MM-dd> <HH:mm>`.
-- Schedule inspection and clearing with `/endlock schedule status` and `/endlock schedule clear`.
-- UUID-, world-, and world-permission-based bypass rules for End access.
-- Optional warning and evacuation of players already inside the End when locking.
-- Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
-- Structured lock history with pagination and JSON/CSV export.
-- Filter lock history by player or action: `/endlock history [page] [json|csv] [player|action <value>]`**
-- History exports now use timestamped filenames to prevent overwrites.**
-- Verified and documented that Folia is not currently supported; Paper 26.2 remains the target platform.
-- Completed localized message keys for scheduling, evacuation, and audit history in all supported languages.
-- Add English messages for EndLock functionality including notifications and commands
-- Integrate Adventure API 5.2.0 and implement Enhanced MiniMessage formatting for broadcast messages and join notification
-- Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup
-- Configurable End world scope, End return blocking, and End gateway blocking
-- Countdown task for scheduled unlocks, plus `/endlock cancel` and `/endlock reason <reason>`
-- Persistent bounded lock history in `plugins/EndLock/history.yml`
-### Changed
-- Update gradle wrapper to version 9.7.1 and improve startup scripts for consistency
-- Update version to 2.0.0-SNAPSHOT and add adventure-api dependency
-- Refactor: extract duplicate logging code into writeToLogFile method
-- Translated bStats startup log message from German to English
-- Reload and shutdown now cancel scheduled, preview, countdown, and grace-period tasks cleanly
-- Preview notifications honor `preview-notifications.enabled`
-- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
-- Synchronized command, permission, configuration, and language documentation.
-
-### Fixed
 - Update release configuration for v2.0 branch
 - Undo now restores the previous state through the normal state-transition path
 - Update checking, MiniMessage fallback, and configured log paths are more robust
