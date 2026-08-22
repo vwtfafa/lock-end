@@ -186,6 +186,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         boolean previousState = locked;
         locked = newLocked;
         historyCommand.recordPreviousState(previousState);
+        if (recordStats && locked) {
+            incrementStats(true);
+        }
         getConfig().set("locked", locked);
         saveConfig();
 
@@ -198,9 +201,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
         broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
         historyCommand.addEntry(actor, action, previousState, action);
-        if (recordStats && locked) {
-            incrementStats(true);
-        }
         if (locked) {
             scheduleEvacuation();
         }
@@ -365,6 +365,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
     }
 
+    /**
+     * Updates the in-memory stat counters. Blocked attempts are only written
+     * back to disk when the plugin disables (or on the next explicit config
+     * save) to avoid file I/O on every blocked access.
+     */
     private void incrementStats(boolean lockAction) {
         if (!getConfig().getBoolean("stats.enabled", true)) {
             return;
@@ -376,7 +381,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
             blockedCount++;
             getConfig().set("stats.blocked-count", blockedCount);
         }
-        saveConfig();
     }
 
     public int getLockCount() {
@@ -755,7 +759,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                     }
                 }
                 case "stats" -> {
-                    sender.sendMessage("§7Stats: §aLock count §f" + getConfig().getInt("stats.lock-count", 0) + " §7| §cBlocked count §f" + getConfig().getInt("stats.blocked-count", 0));
+                    sender.sendMessage("§7Stats: §aLock count §f" + lockCount + " §7| §cBlocked count §f" + blockedCount);
                     return true;
                 }
                 case "schedule" -> {
