@@ -110,6 +110,8 @@ All notable changes to this project will be documented in this file.
 - `/endlock reason` no longer re-creates the removed legacy `lock-reason` key after a migration cleaned it up.
 - bStats charts read only volatile state from the async submission thread instead of touching the main-thread-bound configuration (removes a rare ConcurrentModificationException risk) and use locale-safe uppercase for language codes.
 - The config validator requires the newer grace period and stats message keys.
+- Parsed message templates are cached per language key (invalidated on reload); hot paths such as broadcasts, countdowns, denial hints and previews parse once and reuse the rendered component for every recipient. Placeholder values are inserted as literal components, making MiniMessage injection impossible by construction.
+- `/endlock` is now a native Brigadier command tree: permissions are enforced per node so clients only see executable subcommands, arguments carry server-side suggestions, and `lock in <duration>` / `unlock in <duration>` are modeled natively. Unknown subcommands show Brigadier's built-in error instead of the custom usage line.
 - Bundled language files are resolved under `lang/messages_<code>.yml` inside the jar again, fixing fresh installs that showed raw message keys instead of localized text.
 - `EvacuationService` is now instantiated on enable; previously the field stayed null and every lock/unlock crashed with a NullPointerException (pre-existing bug).
 
