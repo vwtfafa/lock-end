@@ -311,7 +311,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * Updates and persists the default lock reason.
      */
     public void setLockReason(String reason) {
-        getConfig().set("lock-reason", reason);
         getConfig().set("lock-reasons.default", reason);
         saveConfig();
         lockReasonManager = new LockReasonManager(getConfig());
