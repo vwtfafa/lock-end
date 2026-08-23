@@ -116,14 +116,16 @@ public class LockHistoryCommand {
                     .filter(filter::matches)
                     .collect(Collectors.toList());
             if (filter.type().equals("player")) {
-                sender.sendMessage(plugin.msg("history.filter-player").replace("%player%", filter.value()));
+                sender.sendMessage(plugin.msg("history.filter-player")
+                        .replace("%player%", plugin.sanitize(filter.value())));
             } else if (filter.type().equals("action")) {
-                sender.sendMessage(plugin.msg("history.filter-action").replace("%action%", filter.value()));
+                sender.sendMessage(plugin.msg("history.filter-action")
+                        .replace("%action%", plugin.sanitize(filter.value())));
             }
             if (displayedHistory.isEmpty()) {
                 sender.sendMessage(plugin.msg("history.filter-no-results")
                         .replace("%type%", filter.type())
-                        .replace("%value%", filter.value()));
+                        .replace("%value%", plugin.sanitize(filter.value())));
                 return true;
             }
         }

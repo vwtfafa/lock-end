@@ -189,7 +189,7 @@ public class EndLockCommand implements BasicCommand {
                     }
                     String reason = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
                     plugin.setLockReason(reason);
-                    sender.sendMessage(plugin.msg("reason-set").replace("%reason%", reason));
+                    sender.sendMessage(plugin.msg("reason-set").replace("%reason%", plugin.sanitize(reason)));
                     return;
                 }
                 case "pause" -> {
