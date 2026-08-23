@@ -42,7 +42,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * evacuation, logging and commands together.
  */
 public final class LockEnd extends JavaPlugin implements Listener {
-    public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    /**
+     * Strict schedule format: impossible dates like 2026-02-30 are rejected
+     * instead of being silently rounded to the end of the month.
+     */
+    public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
+            .ofPattern("uuuu-MM-dd HH:mm")
+            .withResolverStyle(java.time.format.ResolverStyle.STRICT);
     private boolean locked = false;
     private MessageService messages;
     private ScheduleManager schedules;

@@ -6,7 +6,6 @@ import org.vwtfafa.lockEnd.LockEnd;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
@@ -14,7 +13,6 @@ import java.util.Locale;
  * Command to validate configuration file.
  */
 public class ConfigValidatorCommand {
-    private static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final List<String> SUPPORTED_LANGUAGES = List.of("de", "en", "es", "fr", "it", "ja", "ru", "zh");
     private static final List<String> REQUIRED_MESSAGES = List.of(
             "locked", "locked-reason", "toggle", "status", "permission", "open", "closed",
@@ -71,7 +69,7 @@ public class ConfigValidatorCommand {
                     issues.add("Error: scheduled-unlock.datetime is required when mode is 'datetime'.");
                 } else {
                     try {
-                        LocalDateTime.parse(datetime, SCHEDULE_FORMAT);
+                        LocalDateTime.parse(datetime, LockEnd.SCHEDULE_FORMAT);
                     } catch (DateTimeParseException exception) {
                         issues.add("Error: scheduled-unlock.datetime must use yyyy-MM-dd HH:mm.");
                     }
