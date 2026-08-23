@@ -1,35 +1,35 @@
 plugins {
-    id 'java'
+    java
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.6.1"
-    id "checkstyle"
-    id "com.github.spotbugs" version "6.5.10"
+    checkstyle
+    id("com.github.spotbugs") version "6.5.10"
 }
 
-group = 'org.vwtfafa'
-version = '2.0.0-SNAPSHOT'
+group = "org.vwtfafa"
+version = "2.0.0-SNAPSHOT"
 
-def paperApiVersion = '26.2.build.112-stable'
+val paperApiVersion = "26.2.build.112-stable"
 
 repositories {
     mavenCentral()
     maven {
         name = "papermc-repo"
-        url = "https://repo.papermc.io/repository/maven-public/"
+        url = uri("https://repo.papermc.io/repository/maven-public/")
     }
     maven {
         name = "placeholderapi"
-        url = "https://repo.extendedclip.com/content/repositories/placeholderapi/"
+        url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     }
     gradlePluginPortal()
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:${paperApiVersion}")
+    compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
     compileOnly("me.clip:placeholderapi:2.12.3")
     implementation("org.bstats:bstats-bukkit:3.2.1")
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
-    testImplementation("io.papermc.paper:paper-api:${paperApiVersion}")
+    testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     // Gradle 9+ no longer injects the platform launcher automatically
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
@@ -50,7 +50,7 @@ tasks {
         archiveBaseName.set("lock-end")
         archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
-        configurations = [project.configurations.runtimeClasspath]
+        configurations = listOf(project.configurations.runtimeClasspath.get())
 
         dependencies {
             // Only merge bStats into the final jar, no other dependencies
@@ -63,33 +63,33 @@ tasks {
     }
 }
 
-def targetJavaVersion = 25
+val targetJavaVersion = 25
 
 java {
-    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    val javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
 
     if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+        toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
 
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
         options.release.set(targetJavaVersion)
     }
 }
 
-processResources {
-    def props = [version: version]
-    inputs.properties props
-    filteringCharset = 'UTF-8'
+tasks.processResources {
+    val props = mapOf("version" to project.version)
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
 
-    filesMatching('plugin.yml') {
-        expand props
+    filesMatching("plugin.yml") {
+        expand(props)
     }
 }
 
@@ -99,19 +99,19 @@ checkstyle {
 }
 
 spotbugs {
-    toolVersion = "4.10.3"
-    ignoreFailures = false
-    effort = com.github.spotbugs.snom.Effort.valueOf('MAX')
-    reportLevel = com.github.spotbugs.snom.Confidence.valueOf('LOW')
-    reportsDir = file("build/reports/spotbugs")
-    includeFilter = file("config/spotbugs/spotbugs.xml")
+    toolVersion.set("4.10.3")
+    ignoreFailures.set(false)
+    effort.set(com.github.spotbugs.snom.Effort.MAX)
+    reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)
+    reportsDir.set(file("build/reports/spotbugs"))
+    includeFilter.set(file("config/spotbugs/spotbugs.xml"))
 }
 
 // Static analysis targets production code; unit tests are exempt.
-spotbugsTest {
+tasks.named("spotbugsTest") {
     enabled = false
 }
 
-tasks.withType(Test).configureEach {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }

@@ -53,6 +53,7 @@ All notable changes to this project will be documented in this file.
 - New localized message key `grace-period-active` added in all 8 languages.
 - README, MODRINTH.md and config.yml document only existing options again.
 - Tab completion only offers subcommands the sender may execute; status and stats remain public.
+- Migrated the build scripts to the Kotlin DSL (`build.gradle.kts` / `settings.gradle.kts`) with identical task behavior; the release workflow extracts the version from `build.gradle.kts` now.
 
 ### Added
 - JUnit 5 unit tests for update version comparison, schedule time parsing and duration formatting, whitelist bypass resolution (names, UUIDs, worlds, permissions), and history filters.
