@@ -110,6 +110,9 @@ public class PreviewNotificationManager {
     private void sendPreviewToAll(String message) {
         Component component = plugin.messageComponent(message);
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player == null) {
+                continue;
+            }
             if (player.hasPermission("endlock.admin") || player.isOp()) {
                 player.sendMessage(component);
             }

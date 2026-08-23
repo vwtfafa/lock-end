@@ -307,6 +307,9 @@ public class ScheduleManager {
             String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
             String message = plugin.msg(messageKey).replace("%time%", formatDuration(remaining));
             for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player == null) {
+                    continue;
+                }
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
                     player.sendMessage(plugin.messageComponent(message));
                 }
