@@ -97,13 +97,13 @@ public class UpdateChecker {
     /**
      * Compares two version numbers
      */
-    private boolean isNewerVersion(String newVersion, String currentVersion) {
+    static boolean isNewerVersion(String candidateVersion, String currentVersion) {
         try {
-            newVersion = normalizeVersion(newVersion);
-            currentVersion = normalizeVersion(currentVersion);
+            String newVersion = normalizeVersion(candidateVersion);
+            String normalizedCurrent = normalizeVersion(currentVersion);
 
             String[] newParts = newVersion.split("\\.");
-            String[] currentParts = currentVersion.split("\\.");
+            String[] currentParts = normalizedCurrent.split("\\.");
 
             for (int i = 0; i < Math.max(newParts.length, currentParts.length); i++) {
                 int newNum = i < newParts.length ? Integer.parseInt(newParts[i]) : 0;
@@ -118,7 +118,7 @@ public class UpdateChecker {
         }
     }
 
-    private String normalizeVersion(String version) {
+    private static String normalizeVersion(String version) {
         String normalized = version.trim().replaceFirst("^[vV]", "");
         int prereleaseSeparator = normalized.indexOf('-');
         return prereleaseSeparator >= 0 ? normalized.substring(0, prereleaseSeparator) : normalized;

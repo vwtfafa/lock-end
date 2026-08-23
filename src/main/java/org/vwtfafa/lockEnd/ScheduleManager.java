@@ -241,7 +241,7 @@ public class ScheduleManager {
         scheduledAction = action;
     }
 
-    private LocalDateTime parseScheduleTime(String value) {
+    static LocalDateTime parseScheduleTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
@@ -342,7 +342,7 @@ public class ScheduleManager {
     /**
      * Formats a duration as a compact human readable string.
      */
-    public String formatDuration(long seconds) {
+    public static String formatDuration(long seconds) {
         long days = seconds / 86400;
         long hours = (seconds % 86400) / 3600;
         long minutes = (seconds % 3600) / 60;

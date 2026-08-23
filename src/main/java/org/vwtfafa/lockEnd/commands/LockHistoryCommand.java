@@ -34,7 +34,7 @@ public class LockHistoryCommand {
     /**
      * Encapsulates a history filter (type + value) with matching logic.
      */
-    private record HistoryFilter(String type, String value) {
+    record HistoryFilter(String type, String value) {
         boolean matches(HistoryEntry entry) {
             if (type == null || value == null) return true;
             return switch (type) {
