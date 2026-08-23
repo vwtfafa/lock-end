@@ -77,6 +77,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         gracePeriodTask = new GracePeriodTask(this);
         whitelistChecker = new WhitelistChecker(getConfig());
         soundPlayer = new SoundEffectPlayer(this);
+        evacuation = new EvacuationService(this);
         historyCommand = new LockHistoryCommand(this);
         undoCommand = new UndoCommand(this);
         configValidatorCommand = new ConfigValidatorCommand(this);
