@@ -1,6 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -16,12 +17,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Loads language files and converts raw message strings into Adventure components.
  * Bundled files live under lang/; customized files are read from
  * plugins/EndLock/lang/ and legacy files from the plugin root are migrated there.
+ * Parsed templates are cached and reused until the next reload.
  */
 public class MessageService {
     private static final String LANG_FOLDER = "lang";
@@ -31,6 +35,7 @@ public class MessageService {
     private FileConfiguration langConfig;
     private MiniMessage miniMessage;
     private boolean miniMessageEnabled;
+    private final Map<String, Component> templateCache = new HashMap<>();
 
     public MessageService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -45,6 +50,7 @@ public class MessageService {
         loadLanguage(langCode);
         miniMessageEnabled = plugin.getConfig().getBoolean("hooks.mini-message", true);
         miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
+        templateCache.clear();
     }
 
     /**
@@ -153,6 +159,35 @@ public class MessageService {
             return miniMessage.deserialize(raw);
         }
         return LegacyComponentSerializer.legacySection().deserialize(raw);
+    }
+
+    /**
+     * Renders a cached, parsed template and inserts %placeholder% values as
+     * literal text. Because values are never re-parsed, MiniMessage tags in
+     * user-provided input cannot inject formatting.
+     *
+     * @param key          language key of the template
+     * @param placeholders placeholder tokens (including %) mapped to values
+     * @return the rendered component; safe to reuse across players
+     */
+    public Component message(@NotNull String key, @NotNull Map<String, String> placeholders) {
+        Component template = templateCache.computeIfAbsent(key, this::miniMsg);
+        return applyPlaceholders(template, placeholders);
+    }
+
+    /**
+     * Inserts %token% placeholder values into an already parsed component.
+     */
+    static Component applyPlaceholders(Component template, Map<String, String> placeholders) {
+        Component result = template;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            String value = entry.getValue();
+            result = result.replaceText(TextReplacementConfig.builder()
+                    .matchLiteral(entry.getKey())
+                    .replacement(value != null ? value : "")
+                    .build());
+        }
+        return result;
     }
 
     /**
