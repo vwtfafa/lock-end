@@ -52,9 +52,12 @@ All notable changes to this project will be documented in this file.
 - Access attempts during an active grace period are no longer counted or logged as blocked attempts.
 - New localized message key `grace-period-active` added in all 8 languages.
 - README, MODRINTH.md and config.yml document only existing options again.
+- Tab completion only offers subcommands the sender may execute; status and stats remain public.
 
 ### Added
 - JUnit 5 unit tests for update version comparison, schedule time parsing and duration formatting, whitelist bypass resolution (names, UUIDs, worlds, permissions), and history filters.
+- Language files live in a `lang` folder: bundled files ship under `lang/`, custom files belong in `plugins/EndLock/lang/`; legacy files sitting in the plugin root are migrated there automatically on load (nothing is deleted; if the move fails the legacy location keeps working).
+- Bundled English messages act as defaults for missing keys, so partial or outdated custom language files no longer blank out messages.
 
 ### Removed
 - Unused `PermissionCache` class.
@@ -63,6 +66,8 @@ All notable changes to this project will be documented in this file.
 - Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
 - Dead config options: `end.block-return` (its guard could never take effect), `actionbar.use-alt-char` / `actionbar.alt-char`, and `join-notifications.show-remaining`.
 - Unused entity whitelist (`whitelists.entities`) including `WhitelistChecker#canBypass(Entity)`.
+- The `metrics.enabled` option: bStats opt-out is handled globally via the bStats plugin config (`plugins/bStats/config.json`) instead of a duplicate switch in EndLock's config.
+- The misleading literal `endlock.bypass.world.*` entry from plugin.yml; per-world bypass permissions are granted dynamically as `endlock.bypass.world.<worldname>`.
 
 ### Fixed
 - Update checker: `update-checker.notify-ops` (console) and `update-checker.notify-chat` (in-game) are now independent channels; disabling chat no longer suppresses all notifications.
@@ -88,6 +93,10 @@ All notable changes to this project will be documented in this file.
 - Unknown language codes fall back to English instead of German.
 - The `%lockend_remaining%` PlaceholderAPI value renders as `yyyy-MM-dd HH:mm` instead of a raw ISO timestamp.
 - MiniMessage tags in user-provided input (lock reasons, history filter values, actor names) are escaped via `MiniMessage#escapeTags` so they render literally instead of injecting formatting.
+- Pending scheduled actions survive manual toggles: a scheduled lock still executes after a manual unlock instead of silently dying until reload or restart, and pause/resume no longer depends on the current lock state.
+- `/endlock unlockin` validates positive day counts like `/endlock lockin` does for minutes, and both commands catch their own invalid input instead of leaking an exception into the executor.
+- bStats charts report fresh values after `/endlock reload` instead of re-reading a stale config object captured at startup.
+- Custom namespaced sound keys keep their underscores (`mymod:epic_sound_blast`); only enum style constants like `BLOCK_ANVIL_LAND` are translated to dotted keys.
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
