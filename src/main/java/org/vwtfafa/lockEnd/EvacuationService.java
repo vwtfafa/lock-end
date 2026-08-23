@@ -7,6 +7,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.Map;
+
 /**
  * Warns and moves players out of the End after a lock becomes active.
  */
@@ -27,7 +29,8 @@ public class EvacuationService {
         }
         cancel();
         long warningSeconds = Math.max(0, plugin.getConfig().getLong("evacuation.warning-seconds", 10));
-        String warning = plugin.msg("evacuation-warning");
+        Component warning = plugin.message("evacuation-warning",
+                Map.of("%seconds%", String.valueOf(warningSeconds)));
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;
@@ -35,7 +38,7 @@ public class EvacuationService {
             if (plugin.isGuardedEndWorld(player.getWorld())
                     && (!plugin.getConfig().getBoolean("evacuation.exclude-bypass", true)
                     || !plugin.getWhitelistChecker().canBypass(player, player.getWorld()))) {
-                player.sendMessage(plugin.messageComponent(warning.replace("%seconds%", String.valueOf(warningSeconds))));
+                player.sendMessage(warning);
             }
         }
         task = Bukkit.getScheduler().runTaskLater(plugin, this::evacuate, warningSeconds * 20L);
@@ -68,7 +71,7 @@ public class EvacuationService {
             return;
         }
         Location target = targetWorld.getSpawnLocation();
-        Component completeMessage = plugin.messageComponent(plugin.msg("evacuation-complete"));
+        Component completeMessage = plugin.message("evacuation-complete", Map.of());
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;

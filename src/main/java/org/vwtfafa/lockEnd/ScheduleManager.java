@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Owns the scheduled lock/unlock action: persistence, countdown, preview
@@ -305,13 +307,13 @@ public class ScheduleManager {
                 return;
             }
             String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
-            String message = plugin.msg(messageKey).replace("%time%", formatDuration(remaining));
+            Component rendered = plugin.message(messageKey, Map.of("%time%", formatDuration(remaining)));
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player == null) {
                     continue;
                 }
                 if (player.isOp() || player.hasPermission("endlock.admin")) {
-                    player.sendMessage(plugin.messageComponent(message));
+                    player.sendMessage(rendered);
                 }
             }
         }, 0L, interval * 20L);

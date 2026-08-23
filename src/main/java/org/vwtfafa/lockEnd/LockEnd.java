@@ -247,6 +247,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * Renders a cached message template with %placeholder% values inserted
+     * as literal text. The returned component is safe to reuse across players.
+     */
+    public Component message(String key, Map<String, String> placeholders) {
+        return messages.message(key, placeholders);
+    }
+
+    /**
      * Updates the in-memory stat counters. Values are only written back to
      * disk when the plugin disables (or on the next explicit config save) to
      * avoid file I/O on every blocked access or state change.
@@ -508,7 +516,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     private void sendJoinNotification(Player player) {
-        player.sendMessage(messageComponent(msg("join-notification")));
+        player.sendMessage(messages.message("join-notification", Map.of()));
     }
 
     public boolean isLocked() {
@@ -572,11 +580,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
         switch (verdict) {
             case ALLOWED -> {}
-            case GRACE_PERIOD -> player.sendMessage(messageComponent(msg("grace-period-active")));
+            case GRACE_PERIOD -> player.sendMessage(messages.message("grace-period-active", Map.of()));
             case BLOCKED -> {
                 event.setCancelled(true);
-                String reason = messages.sanitize(lockReasonManager.getReason("default"));
-                player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
+                player.sendMessage(messages.message("locked-reason",
+                        Map.of("%reason%", lockReasonManager.getReason("default"))));
                 soundPlayer.playDenialSound(player);
                 if (logAttempts) {
                     logAttempt(player, player.getWorld(), method);

@@ -8,9 +8,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Map;
-
-/**
+import java.util.Map;/**
  * Manages preview notifications before automatic lock/unlock events.
  */
 public class PreviewNotificationManager {
@@ -37,8 +35,8 @@ public class PreviewNotificationManager {
             if (plugin.isLocked()) {
                 return;
             }
-            String message = plugin.msg("preview-lock").replace("%seconds%", String.valueOf(previewSeconds));
-            sendPreviewToAll(message);
+            sendPreviewToAll(plugin.message("preview-lock",
+                    Map.of("%seconds%", String.valueOf(previewSeconds))));
         });
     }
 
@@ -57,8 +55,8 @@ public class PreviewNotificationManager {
             if (!plugin.isLocked()) {
                 return;
             }
-            String message = plugin.msg("preview-unlock").replace("%seconds%", String.valueOf(previewSeconds));
-            sendPreviewToAll(message);
+            sendPreviewToAll(plugin.message("preview-unlock",
+                    Map.of("%seconds%", String.valueOf(previewSeconds))));
         });
     }
 
@@ -105,16 +103,15 @@ public class PreviewNotificationManager {
 
     /**
      * Sends a preview message to all online players.
-     * @param message The raw (MiniMessage or legacy) message to send
+     * @param message The rendered component to send
      */
-    private void sendPreviewToAll(String message) {
-        Component component = plugin.messageComponent(message);
+    private void sendPreviewToAll(Component message) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;
             }
             if (player.hasPermission("endlock.admin") || player.isOp()) {
-                player.sendMessage(component);
+                player.sendMessage(message);
             }
         }
     }

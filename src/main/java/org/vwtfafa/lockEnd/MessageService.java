@@ -215,16 +215,23 @@ public class MessageService {
         boolean notifyAll = plugin.getConfig().getBoolean("broadcast.notify-all", true);
         boolean useActionbar = plugin.getConfig().getBoolean("broadcast.use-actionbar", true);
 
+        // Parse the template once and reuse the component for every recipient.
+        Component component;
+        if (useActionbar) {
+            component = message(locked ? "actionbar-locked" : "actionbar-unlocked", Map.of());
+        } else {
+            component = message(broadcastKey, Map.of("%player%", sanitize(playerName)));
+        }
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;
             }
             if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
                 if (useActionbar) {
-                    player.sendActionBar(miniMsg(locked ? "actionbar-locked" : "actionbar-unlocked"));
+                    player.sendActionBar(component);
                 } else {
-                    String rawMessage = msg(broadcastKey).replace("%player%", sanitize(playerName));
-                    player.sendMessage(messageComponent(rawMessage));
+                    player.sendMessage(component);
                 }
             }
         }
