@@ -106,6 +106,10 @@ All notable changes to this project will be documented in this file.
 - Custom namespaced sound keys keep their underscores (`mymod:epic_sound_blast`); only enum style constants like `BLOCK_ANVIL_LAND` are translated to dotted keys.
 - Impossible dates in scheduled commands are rejected with a strict resolver instead of being silently rounded: `/endlock lockat 2026-02-30 12:00` previously planned February 28th without any warning.
 - Stats now record every real state change: scheduled locks/unlocks and undo count towards the lock/unlock totals (the old `recordStats` flag suppressed them).
+- Evacuation warning and teleport respect the `end.worlds` scope; players in unscoped End worlds are no longer evacuated although entering there is allowed.
+- `/endlock reason` no longer re-creates the removed legacy `lock-reason` key after a migration cleaned it up.
+- bStats charts read only volatile state from the async submission thread instead of touching the main-thread-bound configuration (removes a rare ConcurrentModificationException risk) and use locale-safe uppercase for language codes.
+- The config validator requires the newer grace period and stats message keys.
 - Bundled language files are resolved under `lang/messages_<code>.yml` inside the jar again, fixing fresh installs that showed raw message keys instead of localized text.
 - `EvacuationService` is now instantiated on enable; previously the field stayed null and every lock/unlock crashed with a NullPointerException (pre-existing bug).
 
