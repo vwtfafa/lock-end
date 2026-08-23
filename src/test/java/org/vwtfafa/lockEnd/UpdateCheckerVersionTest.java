@@ -36,7 +36,8 @@ class UpdateCheckerVersionTest {
     @Test
     void prereleaseSuffixIsIgnored() {
         assertFalse(UpdateChecker.isNewerVersion("2.0.0", "2.0.0-SNAPSHOT"));
-        assertTrue(UpdateChecker.isNewerVersion("2.0.0-beta.1", "2.0.0"));
+        assertFalse(UpdateChecker.isNewerVersion("2.0.0-beta.1", "2.0.0"));
+        assertTrue(UpdateChecker.isNewerVersion("2.1.0-rc.1", "2.0.9"));
     }
 
     @Test
