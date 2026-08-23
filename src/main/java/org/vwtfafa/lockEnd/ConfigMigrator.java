@@ -37,25 +37,23 @@ public final class ConfigMigrator {
             // Already current, or written by a newer release: leave untouched.
             return false;
         }
-        boolean changed = false;
         if (version < 2) {
-            changed |= migrateTo2(config);
+            migrateTo2(config);
         }
         if (bundledDefaults != null) {
             config.setDefaults(bundledDefaults);
             config.options().copyDefaults(true);
-            changed = true;
         }
         config.set("config-version", CURRENT_VERSION);
+        // Something always changed: dead keys removed, defaults merged or the
+        // version marker set.
         return true;
     }
 
-    private static boolean migrateTo2(FileConfiguration config) {
-        boolean changed = false;
+    private static void migrateTo2(FileConfiguration config) {
         for (String key : DEAD_KEYS_SINCE_V2) {
             if (config.isSet(key)) {
                 config.set(key, null);
-                changed = true;
             }
         }
         // The duplicated top-level lock-reason moved into lock-reasons.default;
@@ -67,8 +65,6 @@ public final class ConfigMigrator {
         }
         if (config.isSet("lock-reason")) {
             config.set("lock-reason", null);
-            changed = true;
         }
-        return changed;
     }
 }
