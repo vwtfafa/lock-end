@@ -212,10 +212,6 @@ public class ScheduleManager {
         previewManager.cancelAll();
     }
 
-    public void cancelPreviews(String type) {
-        previewManager.cancelPreview(type);
-    }
-
     /**
      * Builds the localized schedule status line for commands and placeholders.
      */

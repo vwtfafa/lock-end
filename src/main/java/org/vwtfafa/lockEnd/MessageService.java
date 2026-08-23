@@ -175,13 +175,13 @@ public class MessageService {
 
         boolean notifyAll = plugin.getConfig().getBoolean("broadcast.notify-all", true);
         boolean useActionbar = plugin.getConfig().getBoolean("broadcast.use-actionbar", true);
-        String rawMessage = msg(broadcastKey).replace("%player%", sanitize(playerName));
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
                 if (useActionbar) {
                     player.sendActionBar(miniMsg(locked ? "actionbar-locked" : "actionbar-unlocked"));
                 } else {
+                    String rawMessage = msg(broadcastKey).replace("%player%", sanitize(playerName));
                     player.sendMessage(messageComponent(rawMessage));
                 }
             }

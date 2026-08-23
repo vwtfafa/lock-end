@@ -348,12 +348,12 @@ public class EndLockCommand implements BasicCommand {
     }
 
     private void handleSchedule(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            sender.sendMessage(plugin.msg("schedule-status-usage"));
-            return;
-        }
         if (!sender.hasPermission("endlock.admin")) {
             sender.sendMessage(plugin.msg("permission"));
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(plugin.msg("schedule-status-usage"));
             return;
         }
         switch (args[1].toLowerCase(Locale.ROOT)) {

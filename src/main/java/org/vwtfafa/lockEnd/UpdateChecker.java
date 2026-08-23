@@ -5,6 +5,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
@@ -54,19 +55,22 @@ public class UpdateChecker {
                     latestVersion = matcher.group(1);
                     updateAvailable = isNewerVersion(latestVersion, currentVersion);
 
-                    if (updateAvailable) {
-                        if (notifyOps) {
-                            plugin.getLogger().info("========================================");
-                            plugin.getLogger().info("EndLock update available!");
-                            plugin.getLogger().info("Current version: " + currentVersion);
-                            plugin.getLogger().info("New version: " + latestVersion);
-                            plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
-                            plugin.getLogger().info("========================================");
-                        }
+                    if (updateAvailable && notifyOps) {
+                        plugin.getLogger().info("========================================");
+                        plugin.getLogger().info("EndLock update available!");
+                        plugin.getLogger().info("Current version: " + currentVersion);
+                        plugin.getLogger().info("New version: " + latestVersion);
+                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
+                        plugin.getLogger().info("========================================");
+                    }
 
-                        // Notify online operators via chat
-                        if (notifyChat) {
+                    // Notify online operators via chat; the server may shut down
+                    // before the follow-up task can be scheduled.
+                    if (updateAvailable && notifyChat) {
+                        try {
                             notifyOnlineAdmins();
+                        } catch (IllegalPluginAccessException exception) {
+                            plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
                         }
                     }
                 }
