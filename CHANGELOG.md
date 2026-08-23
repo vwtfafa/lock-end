@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0] - 2026-08-22
+## [2.0.0] - 2026-08-23
 ### Maintenance
 - Replaced deprecated Paper metadata access with `getPluginMeta()`.
 - Replaced deprecated `URL(String)` construction with URI-based URL creation.
@@ -60,6 +60,11 @@ All notable changes to this project will be documented in this file.
 - Language files live in a `lang` folder: bundled files ship under `lang/`, custom files belong in `plugins/EndLock/lang/`; legacy files sitting in the plugin root are migrated there automatically on load (nothing is deleted; if the move fails the legacy location keeps working).
 - Bundled English messages act as defaults for missing keys, so partial or outdated custom language files no longer blank out messages.
 - Natural duration aliases for scheduled locks: `/endlock lock in 5m` and `unlock in 7d` behave like `lockin`/`unlockin`, and both accept unit suffixes (`90m`, `2h`, `7d`, case-insensitive) that schedule the exact point in time. Bare numbers keep their legacy meaning (minutes/days).
+- Non-player entities are blocked from entering the End too (`end.block-entities`, default on). A single handler covers portals, gateways and plugin teleports via `EntityTeleportEvent` inheritance, and gateway travel honors `block-end-gateway` for entities like it does for players.
+- Config migration via `config-version` (currently 2): legacy configs are upgraded automatically on enable and reload - obsolete keys (`end.block-return`, `actionbar`, `join-notifications.show-remaining`, `whitelists.entities`, `metrics`) are removed, missing options are merged from the bundled defaults, and every user value survives.
+- History rotation: `history.max-entries` (default 1000) replaces the hardcoded 100-entry cap and `history.retention-days` (default 30, <=0 keeps forever) drops entries older than the window; both apply after reload and are validated by `/endlock validateconfig`.
+- `/endlock stats` now also lists unlocks and evacuated players; new placeholders `%lockend_unlock_count%` and `%lockend_evacuated%`.
+- Unit tests covering the full End access rule matrix (locked/unlocked/bypass/gateway/world scope/grace period, players and entities), config migration, history rotation and schedule date edge cases.
 
 ### Removed
 - Unused `PermissionCache` class.
@@ -99,6 +104,8 @@ All notable changes to this project will be documented in this file.
 - `/endlock unlockin` validates positive day counts like `/endlock lockin` does for minutes, and both commands catch their own invalid input instead of leaking an exception into the executor.
 - bStats charts report fresh values after `/endlock reload` instead of re-reading a stale config object captured at startup.
 - Custom namespaced sound keys keep their underscores (`mymod:epic_sound_blast`); only enum style constants like `BLOCK_ANVIL_LAND` are translated to dotted keys.
+- Impossible dates in scheduled commands are rejected with a strict resolver instead of being silently rounded: `/endlock lockat 2026-02-30 12:00` previously planned February 28th without any warning.
+- Stats now record every real state change: scheduled locks/unlocks and undo count towards the lock/unlock totals (the old `recordStats` flag suppressed them).
 - Bundled language files are resolved under `lang/messages_<code>.yml` inside the jar again, fixing fresh installs that showed raw message keys instead of localized text.
 - `EvacuationService` is now instantiated on enable; previously the field stayed null and every lock/unlock crashed with a NullPointerException (pre-existing bug).
 
