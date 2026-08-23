@@ -2,7 +2,7 @@ name: Code Quality Checks
 
 on:
   push:
-    branches: [master, main, beta]
+    branches: [master, main, beta, v2.0]
   pull_request:
     branches: [master, main, beta]
 
