@@ -142,7 +142,7 @@ public class ScheduleManager {
         plugin.saveConfig();
         cancelCheck();
         cancelCountdown();
-        previewManager.cancelPreview("unlock");
+        previewManager.cancelAll();
         plugin.getLogger().info("Schedule paused by System");
     }
 
@@ -291,9 +291,14 @@ public class ScheduleManager {
             plugin.getLogger().info("Scheduled " + scheduledAction + " executed.");
         }
         scheduledUnlockTime = null;
+        scheduledAction = "unlock";
         plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
         plugin.getConfig().set("scheduled-unlock.target-datetime", null);
         plugin.saveConfig();
+        // Stop the countdown and any pending previews; the action is done.
+        cancelCountdown();
+        previewManager.cancelAll();
     }
 
     private void scheduleCountdown() {
