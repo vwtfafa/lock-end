@@ -48,7 +48,8 @@ lock-reasons:
   maintenance: "Maintenance in progress"
   event: "Event in progress"
 
-# Grace period - Temporary unlock after locking to allow safe exit
+# Grace period - Delays enforcement of a new lock so players inside the End
+# can finish and leave safely. Access is blocked once it ends.
 grace-period:
   enabled: false
   duration: 10  # seconds

@@ -85,3 +85,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Le planning est actuellement §cpausé§6."
 countdown-status-active: "§6[§cEndLock§6] Le planning est actuellement §aactif§6. Déverrouillage dans: %time%"
+
+# Grace period
+grace-period-active: "§eLa période de grâce du verrouillage de l'End est active - l'accès sera bientôt bloqué."

@@ -85,3 +85,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Расписание в настоящее время §cприостановлено§6."
 countdown-status-active: "§6[§cEndLock§6] Расписание в настоящее время §aактивно§6. Разблокировка через: %time%"
+
+# Grace period
+grace-period-active: "§eЛьготный период блокировки Края активен - доступ скоро будет заблокирован."

@@ -19,8 +19,6 @@ import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,7 +38,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private ScheduleManager schedules;
     private EvacuationService evacuation;
     private UpdateChecker updateChecker;
-    private File logDir;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
@@ -61,7 +58,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private int rateLimitSeconds = 5;
 
     // Cached hot-path config values (refreshed on enable/reload)
-    private boolean blockReturn;
     private boolean blockEndGateway;
     private List<String> endWorlds = List.of();
     private boolean logAttempts;
@@ -169,6 +165,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         logAction(actor, action);
         historyCommand.addEntry(actor, action, previousState, action);
         if (locked) {
+            startGracePeriodIfEnabled();
             evacuation.schedule();
         }
         return true;
@@ -194,7 +191,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
 
-        logDir = new File(getDataFolder(), "logs");
+        File logDir = new File(getDataFolder(), "logs");
         if (!logDir.exists() && !logDir.mkdirs()) {
             getLogger().warning("Could not create logging directory: " + logDir);
             return;
@@ -285,7 +282,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * repeated FileConfiguration lookups.
      */
     private void refreshCachedConfig() {
-        blockReturn = getConfig().getBoolean("end.block-return", false);
         blockEndGateway = getConfig().getBoolean("end.block-end-gateway", true);
         endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
         logAttempts = getConfig().getBoolean("logging.log-attempts", true);
@@ -395,7 +391,16 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!locked) {
             return "Unlocked";
         }
-        return schedules.hasAction() ? schedules.getTime().toString() : "Permanent";
+        return schedules.hasAction()
+                ? schedules.getTime().format(SCHEDULE_FORMAT)
+                : "Permanent";
+    }
+
+    /**
+     * Escapes MiniMessage tags in user-provided input so it renders literally.
+     */
+    public String sanitize(String input) {
+        return messages.sanitize(input);
     }
 
     private void sendJoinNotification(Player player) {
@@ -413,8 +418,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
         String message = String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED");
         if (asyncLogger != null) {
             asyncLogger.log(message);
-        } else {
-            writeToLogFile(message);
         }
     }
 
@@ -441,26 +444,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         if (asyncLogger != null) {
             asyncLogger.log(logMessage);
-        } else {
-            writeToLogFile(logMessage);
-        }
-    }
-
-    private void writeToLogFile(String message) {
-        if (logFile == null) {
-            return;
-        }
-        try {
-            if (!logFile.exists()) {
-                logFile.createNewFile();
-            }
-            try (FileWriter writer = new FileWriter(logFile, true)) {
-                writer.append(message);
-                writer.append("\n");
-                writer.flush();
-            }
-        } catch (IOException e) {
-            getLogger().warning("Error writing to log file: " + e.getMessage());
         }
     }
 
@@ -479,10 +462,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (event.getTo().getWorld().getEnvironment() != World.Environment.THE_END) {
             return;
         }
-        if (!blockReturn
-                && event.getFrom().getWorld().getEnvironment() == World.Environment.THE_END) {
-            return;
-        }
         if (!endWorlds.isEmpty() && endWorlds.stream().noneMatch(name ->
                 name.equalsIgnoreCase(event.getTo().getWorld().getName()))) {
             return;
@@ -491,9 +470,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 && !blockEndGateway) {
             return;
         }
+        // During the grace period the lock is not yet fully enforced.
+        if (gracePeriodTask.isActive()) {
+            player.sendMessage(messageComponent(msg("grace-period-active")));
+            return;
+        }
         if (whitelistChecker.canBypass(player, event.getTo().getWorld())) return;
         event.setCancelled(true);
-        String reason = lockReasonManager.getReason("default");
+        String reason = messages.sanitize(lockReasonManager.getReason("default"));
         player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
         soundPlayer.playDenialSound(player);
         if (logAttempts) {

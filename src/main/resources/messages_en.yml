@@ -83,3 +83,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Schedule is currently §cpaused§6."
 countdown-status-active: "§6[§cEndLock§6] Schedule is currently §aactive§6. Unlocking in: %time%"
+
+# Grace period
+grace-period-active: "§eThe End lock grace period is active - access will be blocked shortly."

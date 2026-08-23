@@ -85,3 +85,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§c末地Lock§6] 时间计划当前 §c已暂停§6。"
 countdown-status-active: "§6[§c末地Lock§6] 时间计划当前 §a活跃§6。解锁倒计时： %time%"
+
+# Grace period
+grace-period-active: "§e末地锁定宽限期已激活 - 访问即将被阻止。"

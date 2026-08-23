@@ -83,3 +83,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Zeitplan ist aktuell §cpausiert§6."
 countdown-status-active: "§6[§cEndLock§6] Zeitplan ist aktuell §aaktiv§6. Entsperrung in: %time%"
+
+# Grace period
+grace-period-active: "§eDie Schonfrist der End-Sperre ist aktiv - der Zugang wird in Kürze blockiert."

@@ -85,3 +85,6 @@ config-issue: "§7- %issue%"
 # Countdown status
 countdown-status-paused: "§6[§cEndLock§6] スケジュールは現在 §c一時停止中§6 です。"
 countdown-status-active: "§6[§cEndLock§6] スケジュールは現在 §a有効§6 です。解除まで: %time%"
+
+# Grace period
+grace-period-active: "§eエンドロックの猶予期間が有効です - 間もなくアクセスがブロックされます。"

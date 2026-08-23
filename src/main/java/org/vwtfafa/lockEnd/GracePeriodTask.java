@@ -4,7 +4,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * Handles grace period after locking - temporarily unlocks to allow safe exit.
+ * Handles the grace period after locking: while it is active the lock is not
+ * yet enforced and access attempts are allowed. Once it ends, the existing
+ * lock becomes fully enforced - the lock state itself is never changed here.
  */
 public class GracePeriodTask {
     private final LockEnd plugin;
@@ -27,10 +29,7 @@ public class GracePeriodTask {
         task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             task = null;
             active = false;
-            if (plugin.isLocked()) {
-                plugin.changeLockState(false, "System", "GRACE_PERIOD_END", false);
-                plugin.getLogger().info("Grace period ended, End is now unlocked.");
-            }
+            plugin.getLogger().info("Grace period ended, End lock is now fully enforced.");
         }, durationSeconds * 20L);
         plugin.getLogger().info("Grace period started for " + durationSeconds + " seconds.");
     }

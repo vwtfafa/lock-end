@@ -46,7 +46,6 @@ public class EndLockCommand implements BasicCommand {
                     } else {
                         sender.sendMessage(plugin.msg("toggle").replace("%status%", plugin.msg("closed")));
                         plugin.changeLockState(true, sender.getName(), "LOCK", true);
-                        plugin.startGracePeriodIfEnabled();
                     }
                     return;
                 }
@@ -258,9 +257,6 @@ public class EndLockCommand implements BasicCommand {
             String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
             sender.sendMessage(plugin.msg("toggle").replace("%status%", status));
             plugin.changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK", newLocked);
-            if (newLocked) {
-                plugin.startGracePeriodIfEnabled();
-            }
         } else {
             sender.sendMessage(plugin.msg("permission"));
         }
