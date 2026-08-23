@@ -64,6 +64,10 @@ public class EndLockCommand implements BasicCommand {
                     return;
                 }
                 case "test" -> {
+                    if (!sender.hasPermission("endlock.admin")) {
+                        sender.sendMessage(plugin.msg("permission"));
+                        return;
+                    }
                     if (plugin.getConfig().getBoolean("test-command.enabled", true)) {
                         String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
                         sender.sendMessage(plugin.msg("test-success"));
@@ -113,6 +117,9 @@ public class EndLockCommand implements BasicCommand {
                     }
                     try {
                         LocalDateTime time = LocalDateTime.parse(args[1] + " " + args[2], LockEnd.SCHEDULE_FORMAT);
+                        if (time.isBefore(LocalDateTime.now())) {
+                            throw new IllegalArgumentException();
+                        }
                         plugin.scheduleUnlockAt(time);
                         sender.sendMessage(plugin.msg("scheduled-unlock-set-at")
                                 .replace("%datetime%", time.format(LockEnd.SCHEDULE_FORMAT)));
