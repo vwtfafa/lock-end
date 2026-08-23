@@ -97,6 +97,8 @@ All notable changes to this project will be documented in this file.
 - `/endlock unlockin` validates positive day counts like `/endlock lockin` does for minutes, and both commands catch their own invalid input instead of leaking an exception into the executor.
 - bStats charts report fresh values after `/endlock reload` instead of re-reading a stale config object captured at startup.
 - Custom namespaced sound keys keep their underscores (`mymod:epic_sound_blast`); only enum style constants like `BLOCK_ANVIL_LAND` are translated to dotted keys.
+- Bundled language files are resolved under `lang/messages_<code>.yml` inside the jar again, fixing fresh installs that showed raw message keys instead of localized text.
+- `EvacuationService` is now instantiated on enable; previously the field stayed null and every lock/unlock crashed with a NullPointerException (pre-existing bug).
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
