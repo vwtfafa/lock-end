@@ -91,14 +91,20 @@ public class MessageService {
         }
         if (langFile.isFile()) {
             langConfig = YamlConfiguration.loadConfiguration(langFile);
-            langConfig.setDefaults(bundledDefaults());
+            FileConfiguration defaults = bundledDefaults();
+            if (defaults != null) {
+                langConfig.setDefaults(defaults);
+            }
             return;
         }
 
         try (InputStream in = plugin.getResource(fileName)) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                langConfig.setDefaults(bundledDefaults());
+                FileConfiguration defaults = bundledDefaults();
+                if (defaults != null) {
+                    langConfig.setDefaults(defaults);
+                }
                 return;
             }
         } catch (Exception ignored) {}
@@ -113,7 +119,8 @@ public class MessageService {
      * Loads the bundled English file as fallback defaults; null if unavailable.
      */
     private FileConfiguration bundledDefaults() {
-        try (InputStream in = plugin.getResource(FILE_PREFIX + "en.yml")) {
+        String path = LANG_FOLDER + "/" + FILE_PREFIX + "en.yml";
+        try (InputStream in = plugin.getResource(path)) {
             if (in == null) {
                 return null;
             }
