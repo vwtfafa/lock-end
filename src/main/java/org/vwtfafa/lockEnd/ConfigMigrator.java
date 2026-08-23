@@ -58,6 +58,17 @@ public final class ConfigMigrator {
                 changed = true;
             }
         }
+        // The duplicated top-level lock-reason moved into lock-reasons.default;
+        // a customized value must survive the cleanup.
+        String legacyReason = config.getString("lock-reason");
+        if (legacyReason != null && !legacyReason.isBlank()
+                && config.getString("lock-reasons.default") == null) {
+            config.set("lock-reasons.default", legacyReason);
+        }
+        if (config.isSet("lock-reason")) {
+            config.set("lock-reason", null);
+            changed = true;
+        }
         return changed;
     }
 }

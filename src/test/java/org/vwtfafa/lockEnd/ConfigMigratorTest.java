@@ -20,6 +20,7 @@ class ConfigMigratorTest {
         YamlConfiguration config = new YamlConfiguration();
         config.set("locked", true);
         config.set("language", "de");
+        config.set("lock-reason", "Server-Event");
         config.set("end.block-return", false);
         config.set("actionbar.use-alt-char", false);
         config.set("join-notifications.show-remaining", true);
@@ -55,6 +56,10 @@ class ConfigMigratorTest {
         // ...user values survive...
         assertEquals(true, config.get("locked"));
         assertEquals("de", config.get("language"));
+
+        // ...the legacy lock reason moved into lock-reasons.default...
+        assertEquals("Server-Event", config.getString("lock-reasons.default"));
+        assertNull(config.get("lock-reason"));
 
         // ...new options are filled from the bundle...
         assertTrue(config.getBoolean("end.block-entities"));

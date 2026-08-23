@@ -156,7 +156,6 @@ permissions:
 # EndLock Plugin Configuration
 locked: false
 language: en
-lock-reason: "Maintenance"
 
 # End access scope. An empty world list means all End worlds.
 end:

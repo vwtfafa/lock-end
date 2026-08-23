@@ -9,20 +9,13 @@ import java.util.Map;
  * Manages customizable lock reasons for the EndLock plugin.
  */
 public class LockReasonManager {
+    private static final String DEFAULT_REASON = "Maintenance";
     private final FileConfiguration config;
     private final String defaultReason;
 
     public LockReasonManager(FileConfiguration config) {
         this.config = config;
-        this.defaultReason = resolveDefaultReason(config);
-    }
-
-    private static String resolveDefaultReason(FileConfiguration config) {
-        String configured = config.getString("lock-reasons.default");
-        if (configured != null && !configured.isBlank()) {
-            return configured;
-        }
-        return config.getString("lock-reason", "Maintenance");
+        this.defaultReason = config.getString("lock-reasons.default", DEFAULT_REASON);
     }
 
     /**

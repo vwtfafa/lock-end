@@ -91,7 +91,6 @@ The base commands do not have a global permission in `plugin.yml`; each subcomma
 # EndLock Plugin Configuration
 locked: false
 language: en
-lock-reason: "Maintenance"
 
 # Update Checker: Notifications for available updates
 update-checker:

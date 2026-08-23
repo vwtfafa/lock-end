@@ -1,8 +1,7 @@
 # EndLock Plugin Configuration
 config-version: 2
 locked: false
-language: en
-lock-reason: "Maintenance"
+language: en  # Supported: de en es fr it ja ru zh
 
 # End access scope. An empty world list means all End worlds.
 end:
@@ -30,7 +29,7 @@ preview-notifications:
 # Sound effects for access denial
 sound-effects:
   enabled: false
-  sound: "BLOCK_ANVIL_LAND"
+  sound: "BLOCK_ANVIL_LAND"  # Enum style or namespaced key (minecraft:block.anvil.land)
   volume: 1.0
   pitch: 1.0
 
@@ -95,7 +94,7 @@ join-notifications:
 scheduled-unlock:
   enabled: false
   action: "unlock"     # lock or unlock
-  mode: "days"        # days or datetime
+  mode: "days"         # days or datetime
   days: 7
   datetime: ""
   target-datetime: ""  # Internal absolute target, persisted across restarts
