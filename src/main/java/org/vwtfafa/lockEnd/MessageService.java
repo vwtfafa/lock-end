@@ -48,7 +48,7 @@ public class MessageService {
                     return;
                 }
             } catch (Exception ignored) {}
-            try (InputStream in = plugin.getResource("messages_de.yml")) {
+            try (InputStream in = plugin.getResource("messages_en.yml")) {
                 if (in != null) {
                     langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
                     return;
@@ -80,6 +80,17 @@ public class MessageService {
     }
 
     /**
+     * Escapes MiniMessage tags in user-provided input so it renders literally
+     * instead of being interpreted as formatting when embedded in a message.
+     */
+    public String sanitize(String input) {
+        if (input == null || !miniMessageEnabled || miniMessage == null) {
+            return input;
+        }
+        return miniMessage.escapeTags(input);
+    }
+
+    /**
      * Broadcasts a lock state change to all relevant online players.
      * @param locked The new lock state (selects the action bar variant)
      * @param broadcastKey Language key of the chat broadcast
@@ -92,7 +103,7 @@ public class MessageService {
 
         boolean notifyAll = plugin.getConfig().getBoolean("broadcast.notify-all", true);
         boolean useActionbar = plugin.getConfig().getBoolean("broadcast.use-actionbar", true);
-        String rawMessage = msg(broadcastKey).replace("%player%", playerName);
+        String rawMessage = msg(broadcastKey).replace("%player%", sanitize(playerName));
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
