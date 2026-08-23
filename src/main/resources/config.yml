@@ -6,7 +6,6 @@ lock-reason: "Maintenance"
 # End access scope. An empty world list means all End worlds.
 end:
   worlds: []
-  block-return: false
   block-end-gateway: true
 
 # Update Checker: Notifications for available updates
@@ -29,11 +28,6 @@ broadcast:
 preview-notifications:
   enabled: false
   seconds: 30  # How many seconds before lock/unlock to send preview
-
-# Action bar customization
-actionbar:
-  use-alt-char: false  # Use alternate character for overflow handling
-  alt-char: "|"
 
 # Sound effects for access denial
 sound-effects:
@@ -59,7 +53,6 @@ whitelists:
   players: []  # Player names that can bypass the lock
   uuids: []    # Player UUIDs that can bypass the lock
   worlds: []   # End world names where players can bypass the lock
-  entities: []  # Entity types that can bypass the lock
 
 # Evacuation - Optional removal of players already inside the End when locking
 evacuation:
@@ -92,7 +85,6 @@ stats:
 # Optional join notifications for players joining while the End is locked
 join-notifications:
   enabled: false
-  show-remaining: true
 
 # Optional scheduled unlock
 scheduled-unlock:

@@ -108,13 +108,6 @@ public class ConfigValidatorCommand {
             }
         }
 
-        if (plugin.getConfig().isList("whitelists.entities")) {
-            List<String> entities = plugin.getConfig().getStringList("whitelists.entities");
-            if (entities.isEmpty()) {
-                issues.add("Info: Entity whitelist is empty.");
-            }
-        }
-
         // Output results
         if (issues.isEmpty()) {
             sender.sendMessage(plugin.msg("config.valid"));

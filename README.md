@@ -158,7 +158,6 @@ lock-reason: "Maintenance"
 # End access scope. An empty world list means all End worlds.
 end:
   worlds: []
-  block-return: false
   block-end-gateway: true
 
 # Update Checker: Notifications for available updates
@@ -182,11 +181,6 @@ preview-notifications:
   enabled: false
   seconds: 30  # How many seconds before lock/unlock to send preview
 
-# Action bar customization
-actionbar:
-  use-alt-char: false  # Use alternate character for overflow handling
-  alt-char: "|"
-
 # Sound effects for access denial
 sound-effects:
   enabled: false
@@ -200,7 +194,8 @@ lock-reasons:
   maintenance: "Maintenance in progress"
   event: "Event in progress"
 
-# Grace period - Temporary unlock after locking to allow safe exit
+# Grace period - Delays enforcement of a new lock so players inside the
+# End can finish and leave safely
 grace-period:
   enabled: false
   duration: 10  # seconds
@@ -210,7 +205,6 @@ whitelists:
   players: []  # Player names that can bypass the lock
   uuids: []    # Player UUIDs that can bypass the lock
   worlds: []   # End world names where players can bypass the lock
-  entities: []  # Entity types that can bypass the lock
 
 # Optional evacuation of players already inside the End when locking
 evacuation:
@@ -243,7 +237,6 @@ stats:
 # Optional join notifications for players joining while the End is locked
 join-notifications:
   enabled: false
-  show-remaining: true
 
 # Optional scheduled unlock
 scheduled-unlock:
@@ -304,10 +297,10 @@ Run a local test server (downloads Paper 26.2):
 
 ## Limitations
 
-- Only **player** movement is blocked; entity whitelist entries do not control entity teleport events.
+- Only **player** movement is blocked; entity teleport events are not handled.
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
 - Language and configuration changes can be applied with `/endlock reload`.
-- The default lock blocks travel into the End; returning from the End is allowed unless `end.block-return` is enabled.
+- The default lock blocks travel into the End; returning from the End is always allowed.
 
 ## License
 

@@ -1,26 +1,23 @@
 package org.vwtfafa.lockEnd;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.World;
 
 import java.util.List;
 
 /**
- * Checks if a player or entity is whitelisted to bypass the lock.
+ * Checks if a player is whitelisted to bypass the lock.
  */
 public class WhitelistChecker {
     private final List<String> playerWhitelist;
     private final List<String> uuidWhitelist;
     private final List<String> worldWhitelist;
-    private final List<String> entityWhitelist;
 
     public WhitelistChecker(FileConfiguration config) {
         this.playerWhitelist = config.getStringList("whitelists.players");
         this.uuidWhitelist = config.getStringList("whitelists.uuids");
         this.worldWhitelist = config.getStringList("whitelists.worlds");
-        this.entityWhitelist = config.getStringList("whitelists.entities");
     }
 
     /**
@@ -51,24 +48,7 @@ public class WhitelistChecker {
             }
         }
         // Check if player has permission to bypass
-        if (player.hasPermission("endlock.whitelist.bypass")) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Checks if an entity is whitelisted to bypass the lock.
-     * @param entity The entity to check
-     * @return true if the entity can bypass
-     */
-    public boolean canBypass(Entity entity) {
-        // Only players can bypass via whitelist
-        if (!(entity instanceof Player)) {
-            return false;
-        }
-        Player player = (Player) entity;
-        return canBypass(player);
+        return player.hasPermission("endlock.whitelist.bypass");
     }
 
     /**
@@ -85,13 +65,5 @@ public class WhitelistChecker {
 
     public List<String> getWorldWhitelist() {
         return worldWhitelist;
-    }
-
-    /**
-     * Gets the configured entity whitelist.
-     * @return List of whitelisted entity type names
-     */
-    public List<String> getEntityWhitelist() {
-        return entityWhitelist;
     }
 }

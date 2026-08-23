@@ -111,11 +111,6 @@ preview-notifications:
   enabled: false
   seconds: 30  # How many seconds before lock/unlock to send preview
 
-# Action bar customization
-actionbar:
-  use-alt-char: false  # Use alternate character for overflow handling
-  alt-char: "|"
-
 # Sound effects for access denial
 sound-effects:
   enabled: false
@@ -129,7 +124,8 @@ lock-reasons:
   maintenance: "Maintenance in progress"
   event: "Event in progress"
 
-# Grace period - Temporary unlock after locking to allow safe exit
+# Grace period - Delays enforcement of a new lock so players inside the
+# End can finish and leave safely
 grace-period:
   enabled: false
   duration: 10  # seconds
@@ -137,7 +133,8 @@ grace-period:
 # Whitelists - Players, UUIDs, and worlds that can bypass the lock
 whitelists:
   players: []  # Player names that can bypass the lock
-  entities: []  # Entity types that can bypass the lock
+  uuids: []    # Player UUIDs that can bypass the lock
+  worlds: []   # End world names where players can bypass the lock
 
 # Logging - Audit log for lock actions and access attempts
 logging:
@@ -163,7 +160,6 @@ stats:
 # Optional join notifications for players joining while the End is locked
 join-notifications:
   enabled: false
-  show-remaining: true
 
 # Optional scheduled unlock
 scheduled-unlock:
