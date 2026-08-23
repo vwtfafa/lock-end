@@ -41,10 +41,11 @@ class MessageServiceRenderTest {
     void multiplePlaceholdersAreAllReplaced() {
         Component template = Component.text("%a% then %b% then %a% again");
 
+        // Values render literally; formatting tags inside values are not parsed.
         Component rendered = MessageService.applyPlaceholders(template,
                 Map.of("%a%", "1", "%b%", "<gold>2"));
 
-        assertEquals("1 then 2 then 1 again", plain(rendered));
+        assertEquals("1 then <gold>2 then 1 again", plain(rendered));
     }
 
     @Test
