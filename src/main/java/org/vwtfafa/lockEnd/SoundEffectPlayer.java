@@ -37,17 +37,19 @@ public class SoundEffectPlayer {
     }
 
     /**
-     * Resolves the configured sound name into a namespaced key. Both enum
-     * style constants (BLOCK_ANVIL_LAND) and full keys (minecraft:block.anvil.land)
-     * are accepted; invalid values fall back to the default with a warning.
+     * Resolves the configured sound name into a namespaced key. Enum style
+     * constants (BLOCK_ANVIL_LAND) are translated to minecraft:block.anvil.land;
+     * namespaced keys (mymod:epic_sound_blast) are kept as-is so custom
+     * resource pack sounds keep their underscores. Invalid values fall back
+     * to the default with a warning.
      */
     private Key parseSoundKey(String configured) {
         if (configured == null || configured.isBlank()) {
             return DEFAULT_SOUND;
         }
-        String normalized = configured.trim().toLowerCase(Locale.ROOT).replace('_', '.');
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if (!normalized.contains(":")) {
-            normalized = Key.MINECRAFT_NAMESPACE + ":" + normalized;
+            normalized = Key.MINECRAFT_NAMESPACE + ":" + normalized.replace('_', '.');
         }
         try {
             return Key.key(normalized);
