@@ -13,12 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Main /endlock command (with aliases /lock and /el), registered as a Brigadier command.
  */
 public class EndLockCommand implements BasicCommand {
     private static final DateTimeFormatter DATE_HINT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)\\s*([mhd])", Pattern.CASE_INSENSITIVE);
     /** Permission required per subcommand; entries missing here are public. */
     private static final Map<String, String> SUBCOMMAND_PERMISSIONS = Map.ofEntries(
             Map.entry("lock", "endlock.admin"),
@@ -52,6 +55,12 @@ public class EndLockCommand implements BasicCommand {
 
         if (args.length >= 1) {
             String sub = args[0].toLowerCase(Locale.ROOT);
+            // Natural alias: "/endlock lock in 5m" behaves like "/endlock lockin 5m".
+            if (args.length >= 3 && (sub.equals("lock") || sub.equals("unlock"))
+                    && args[1].equalsIgnoreCase("in")) {
+                args = new String[]{sub + "in", args[2]};
+                sub = args[0];
+            }
             switch (sub) {
                 case "status" -> {
                     String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
@@ -118,16 +127,22 @@ public class EndLockCommand implements BasicCommand {
                         sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
                         return;
                     }
-                    try {
-                        int days = Integer.parseInt(args[1]);
-                        if (days <= 0) {
-                            throw new IllegalArgumentException();
-                        }
+                    // A bare number keeps its legacy meaning (days); "12h"/"7d"
+                    // style durations schedule an exact point in time instead.
+                    Integer days = tryParsePositiveInt(args[1]);
+                    if (days != null) {
                         plugin.scheduleUnlockInDays(days);
                         sender.sendMessage(plugin.msg("scheduled-unlock-set-days").replace("%days%", String.valueOf(days)));
-                    } catch (IllegalArgumentException e) {
-                        sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
+                        return;
                     }
+                    LocalDateTime target = parseDurationTarget(args[1]);
+                    if (target == null) {
+                        sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
+                        return;
+                    }
+                    plugin.scheduleUnlockAt(target);
+                    sender.sendMessage(plugin.msg("scheduled-unlock-set-at")
+                            .replace("%datetime%", target.format(LockEnd.SCHEDULE_FORMAT)));
                     return;
                 }
                 case "unlockat" -> {
@@ -161,16 +176,21 @@ public class EndLockCommand implements BasicCommand {
                         sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
                         return;
                     }
-                    try {
-                        int minutes = Integer.parseInt(args[1]);
-                        if (minutes <= 0) {
-                            throw new IllegalArgumentException();
-                        }
+                    // A bare number keeps its legacy meaning (minutes); "90m"/"2h"
+                    // style durations schedule an exact point in time instead.
+                    Integer minutes = tryParsePositiveInt(args[1]);
+                    if (minutes != null) {
                         plugin.scheduleLockInMinutes(minutes);
                         sender.sendMessage(plugin.msg("scheduled-lock-set"));
-                    } catch (IllegalArgumentException e) {
-                        sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
+                        return;
                     }
+                    LocalDateTime target = parseDurationTarget(args[1]);
+                    if (target == null) {
+                        sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
+                        return;
+                    }
+                    plugin.scheduleLockAt(target);
+                    sender.sendMessage(plugin.msg("scheduled-lock-set"));
                     return;
                 }
                 case "lockat" -> {
@@ -287,6 +307,42 @@ public class EndLockCommand implements BasicCommand {
         }
     }
 
+    /**
+     * Parses a positive integer; null for anything else.
+     */
+    private static Integer tryParsePositiveInt(String input) {
+        try {
+            int value = Integer.parseInt(input.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses natural durations like "90m", "2h" or "7d" into an absolute
+     * target time from now; null for anything else.
+     */
+    static LocalDateTime parseDurationTarget(String input) {
+        if (input == null) {
+            return null;
+        }
+        Matcher matcher = DURATION_PATTERN.matcher(input.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+        long amount = Long.parseLong(matcher.group(1));
+        if (amount <= 0) {
+            return null;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        return switch (matcher.group(2).toLowerCase(Locale.ROOT)) {
+            case "m" -> now.plusMinutes(amount);
+            case "h" -> now.plusHours(amount);
+            default -> now.plusDays(amount);
+        };
+    }
+
     private void handleSchedule(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage(plugin.msg("schedule-status-usage"));
@@ -321,7 +377,9 @@ public class EndLockCommand implements BasicCommand {
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
-                case "unlockin" -> StringUtil.copyPartialMatches(args[1], List.of("1", "7", "30"), completions);
+                case "unlockin" -> StringUtil.copyPartialMatches(args[1], List.of("1", "7", "30", "12h", "7d"), completions);
+                case "lockin" -> StringUtil.copyPartialMatches(args[1], List.of("15", "30", "60", "30m", "2h"), completions);
+                case "lock", "unlock" -> StringUtil.copyPartialMatches(args[1], List.of("in"), completions);
                 case "unlockat" -> {
                     LocalDate tomorrow = LocalDate.now().plusDays(1);
                     StringUtil.copyPartialMatches(args[1],
@@ -330,11 +388,17 @@ public class EndLockCommand implements BasicCommand {
                 case "schedule" -> StringUtil.copyPartialMatches(args[1], List.of("status", "clear"), completions);
                 case "history" -> StringUtil.copyPartialMatches(args[1], List.of("1", "2", "3"), completions);
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("history")) {
-            StringUtil.copyPartialMatches(args[2], List.of("json", "csv"), completions);
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("unlockat")) {
-            StringUtil.copyPartialMatches(args[2], List.of("00:00", "12:00", "23:59"), completions);
+        } else if (args.length == 3 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("unlockat"))) {
+            StringUtil.copyPartialMatches(args[2],
+                    args[0].equalsIgnoreCase("history") ? List.of("json", "csv") : List.of("00:00", "12:00", "23:59"),
+                    completions);
+        } else if (args.length == 3 && (sub(args[0]).equals("lock") || sub(args[0]).equals("unlock"))) {
+            StringUtil.copyPartialMatches(args[2], List.of("30m", "1h", "1d"), completions);
         }
         return completions;
+    }
+
+    private static String sub(String value) {
+        return value.toLowerCase(Locale.ROOT);
     }
 }
