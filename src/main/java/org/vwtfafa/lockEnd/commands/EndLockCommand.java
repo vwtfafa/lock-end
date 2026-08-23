@@ -125,7 +125,7 @@ public class EndLockCommand implements BasicCommand {
                         }
                         plugin.scheduleUnlockInDays(days);
                         sender.sendMessage(plugin.msg("scheduled-unlock-set-days").replace("%days%", String.valueOf(days)));
-                    } catch (NumberFormatException | IllegalArgumentException e) {
+                    } catch (IllegalArgumentException e) {
                         sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
                     }
                     return;
@@ -168,7 +168,7 @@ public class EndLockCommand implements BasicCommand {
                         }
                         plugin.scheduleLockInMinutes(minutes);
                         sender.sendMessage(plugin.msg("scheduled-lock-set"));
-                    } catch (NumberFormatException | IllegalArgumentException e) {
+                    } catch (IllegalArgumentException e) {
                         sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
                     }
                     return;
