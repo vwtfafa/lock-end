@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -17,8 +18,13 @@ import java.util.Locale;
 
 /**
  * Loads language files and converts raw message strings into Adventure components.
+ * Bundled files live under lang/; customized files are read from
+ * plugins/EndLock/lang/ and legacy files from the plugin root are migrated there.
  */
 public class MessageService {
+    private static final String LANG_FOLDER = "lang";
+    private static final String FILE_PREFIX = "messages_";
+
     private final JavaPlugin plugin;
     private FileConfiguration langConfig;
     private MiniMessage miniMessage;
@@ -33,30 +39,69 @@ public class MessageService {
      */
     public void loadFromConfig() {
         String langCode = plugin.getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
+        migrateLegacyLanguageFile(langCode);
         loadLanguage(langCode);
         miniMessageEnabled = plugin.getConfig().getBoolean("hooks.mini-message", true);
         miniMessage = miniMessageEnabled ? MiniMessage.miniMessage() : null;
     }
 
-    private void loadLanguage(String code) {
-        String fileName = "messages_" + code + ".yml";
-        File langFile = new File(plugin.getDataFolder(), fileName);
-        if (!langFile.exists()) {
-            try (InputStream in = plugin.getResource(fileName)) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try (InputStream in = plugin.getResource("messages_en.yml")) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-                    return;
-                }
-            } catch (Exception ignored) {}
-        } else {
-            langConfig = YamlConfiguration.loadConfiguration(langFile);
+    /**
+     * Moves a language file left in the plugin root by pre-lang-folder
+     * versions into the lang folder so customizations survive the update.
+     */
+    private void migrateLegacyLanguageFile(String code) {
+        String fileName = FILE_PREFIX + code + ".yml";
+        File legacyFile = new File(plugin.getDataFolder(), fileName);
+        if (!legacyFile.isFile()) {
+            return;
         }
+        File targetDir = new File(plugin.getDataFolder(), LANG_FOLDER);
+        File targetFile = new File(targetDir, fileName);
+        if (targetFile.exists()) {
+            plugin.getLogger().info("Ignoring legacy " + fileName + ": " + LANG_FOLDER + "/" + fileName + " already exists.");
+            return;
+        }
+        try {
+            if (!targetDir.exists() && !targetDir.mkdirs()) {
+                plugin.getLogger().warning("Could not create language directory: " + targetDir);
+                return;
+            }
+            Files.move(legacyFile.toPath(), targetFile.toPath());
+            plugin.getLogger().info("Moved legacy " + fileName + " into the " + LANG_FOLDER + "/ folder.");
+        } catch (IOException exception) {
+            // Keep operating with the legacy location via the load fallback.
+            plugin.getLogger().warning("Could not move legacy " + fileName + " into " + LANG_FOLDER + "/: "
+                    + exception.getMessage());
+        }
+    }
+
+    /**
+     * Resolution order: lang folder on disk, legacy plugin root on disk,
+     * bundled resource of the language, bundled English fallback.
+     */
+    private void loadLanguage(String code) {
+        String fileName = FILE_PREFIX + code + ".yml";
+
+        File langFile = new File(new File(plugin.getDataFolder(), LANG_FOLDER), fileName);
+        if (!langFile.isFile()) {
+            langFile = new File(plugin.getDataFolder(), fileName);
+        }
+        if (langFile.isFile()) {
+            langConfig = YamlConfiguration.loadConfiguration(langFile);
+            return;
+        }
+
+        try (InputStream in = plugin.getResource(fileName)) {
+            if (in != null) {
+                langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+                return;
+            }
+        } catch (Exception ignored) {}
+        try (InputStream in = plugin.getResource(FILE_PREFIX + "en.yml")) {
+            if (in != null) {
+                langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+            }
+        } catch (Exception ignored) {}
     }
 
     public String msg(String key) {
