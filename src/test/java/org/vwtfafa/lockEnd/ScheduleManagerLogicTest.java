@@ -32,6 +32,28 @@ class ScheduleManagerLogicTest {
     }
 
     @Test
+    void impossibleDatesParseToNull() {
+        // February 30th does not exist in any year.
+        assertNull(ScheduleManager.parseScheduleTime("2026-02-30 12:00"));
+        // Non-leap year February 29th.
+        assertNull(ScheduleManager.parseScheduleTime("2026-02-29 00:00"));
+    }
+
+    @Test
+    void leapYearFebruaryIsAccepted() {
+        assertEquals(LocalDateTime.of(2028, 2, 29, 0, 0),
+                ScheduleManager.parseScheduleTime("2028-02-29 00:00"));
+    }
+
+    @Test
+    void formatDeviationsAreRejected() {
+        // Single digit month/day or missing zero padding must not parse.
+        assertNull(ScheduleManager.parseScheduleTime("2026-8-3 5:00"));
+        // ISO format with a T separator is not accepted either.
+        assertNull(ScheduleManager.parseScheduleTime("2026-08-30T12:00"));
+    }
+
+    @Test
     void formatsDurationsCompactly() {
         assertEquals("59s", ScheduleManager.formatDuration(59));
         assertEquals("1m 0s", ScheduleManager.formatDuration(60));
