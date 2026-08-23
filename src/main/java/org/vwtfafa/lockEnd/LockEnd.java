@@ -456,34 +456,30 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     private void handleEndAccess(PlayerTeleportEvent event, String method) {
         Player player = event.getPlayer();
-        if (!locked || event.getTo() == null || event.getTo().getWorld() == null) {
+        if (event.getTo() == null || event.getTo().getWorld() == null) {
             return;
         }
-        if (event.getTo().getWorld().getEnvironment() != World.Environment.THE_END) {
-            return;
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                event.getTo().getWorld().getEnvironment(),
+                event.getTo().getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkPlayer(request, event.getCause(),
+                        () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
+        switch (verdict) {
+            case ALLOWED -> {}
+            case GRACE_PERIOD -> player.sendMessage(messageComponent(msg("grace-period-active")));
+            case BLOCKED -> {
+                event.setCancelled(true);
+                String reason = messages.sanitize(lockReasonManager.getReason("default"));
+                player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
+                soundPlayer.playDenialSound(player);
+                if (logAttempts) {
+                    logAttempt(player, player.getWorld(), method);
+                }
+                incrementStats(false);
+            }
         }
-        if (!endWorlds.isEmpty() && endWorlds.stream().noneMatch(name ->
-                name.equalsIgnoreCase(event.getTo().getWorld().getName()))) {
-            return;
-        }
-        if (event.getCause() == PlayerTeleportEvent.TeleportCause.END_GATEWAY
-                && !blockEndGateway) {
-            return;
-        }
-        // During the grace period the lock is not yet fully enforced.
-        if (gracePeriodTask.isActive()) {
-            player.sendMessage(messageComponent(msg("grace-period-active")));
-            return;
-        }
-        if (whitelistChecker.canBypass(player, event.getTo().getWorld())) return;
-        event.setCancelled(true);
-        String reason = messages.sanitize(lockReasonManager.getReason("default"));
-        player.sendMessage(messageComponent(msg("locked-reason").replace("%reason%", reason)));
-        soundPlayer.playDenialSound(player);
-        if (logAttempts) {
-            logAttempt(player, player.getWorld(), method);
-        }
-        incrementStats(false);
     }
 
     @EventHandler
