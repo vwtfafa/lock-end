@@ -232,7 +232,9 @@ test-command:
 stats:
   enabled: true
   lock-count: 0
+  unlock-count: 0
   blocked-count: 0
+  evacuated-count: 0
 
 # Lock history storage
 history:
