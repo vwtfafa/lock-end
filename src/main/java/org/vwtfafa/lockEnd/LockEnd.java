@@ -458,6 +458,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
         schedules.scheduleLockAt(time);
     }
 
+    /**
+     * Whether the given world is an End world covered by the lock scope.
+     */
+    public boolean isGuardedEndWorld(World world) {
+        return world.getEnvironment() == World.Environment.THE_END
+                && (endWorlds.isEmpty()
+                || endWorlds.stream().anyMatch(name -> name.equalsIgnoreCase(world.getName())));
+    }
+
     public String getRemainingText() {
         if (!locked) {
             return "Unlocked";

@@ -29,7 +29,7 @@ public class EvacuationService {
         long warningSeconds = Math.max(0, plugin.getConfig().getLong("evacuation.warning-seconds", 10));
         String warning = plugin.msg("evacuation-warning");
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getWorld().getEnvironment() == World.Environment.THE_END
+            if (plugin.isGuardedEndWorld(player.getWorld())
                     && (!plugin.getConfig().getBoolean("evacuation.exclude-bypass", true)
                     || !plugin.getWhitelistChecker().canBypass(player, player.getWorld()))) {
                 player.sendMessage(plugin.messageComponent(warning.replace("%seconds%", String.valueOf(warningSeconds))));
@@ -67,7 +67,7 @@ public class EvacuationService {
         Location target = targetWorld.getSpawnLocation();
         Component completeMessage = plugin.messageComponent(plugin.msg("evacuation-complete"));
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getWorld().getEnvironment() != World.Environment.THE_END
+            if (!plugin.isGuardedEndWorld(player.getWorld())
                     || (plugin.getConfig().getBoolean("evacuation.exclude-bypass", true)
                     && plugin.getWhitelistChecker().canBypass(player, player.getWorld()))) {
                 continue;
