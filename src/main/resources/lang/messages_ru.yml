@@ -88,3 +88,6 @@ countdown-status-active: "§6[§cEndLock§6] Расписание в насто�
 
 # Grace period
 grace-period-active: "§eЛьготный период блокировки Края активен - доступ скоро будет заблокирован."
+# Extended statistics
+stats-line-unlocks: "§7Разблокировок: §f%unlockcount%"
+stats-line-evacuated: "§7Эвакуировано игроков: §f%evacuated%"

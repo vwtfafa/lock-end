@@ -88,3 +88,6 @@ countdown-status-active: "§6[§cEndLock§6] El horario está actualmente §aact
 
 # Grace period
 grace-period-active: "§eEl período de gracia del bloqueo del End está activo - el acceso se bloqueará pronto."
+# Extended statistics
+stats-line-unlocks: "§7Desbloqueos: §f%unlockcount%"
+stats-line-evacuated: "§7Jugadores evacuados: §f%evacuated%"

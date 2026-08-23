@@ -76,7 +76,7 @@ public class EndLockCommand implements BasicCommand {
                         sender.sendMessage(plugin.msg("already-locked"));
                     } else {
                         sender.sendMessage(plugin.msg("toggle").replace("%status%", plugin.msg("closed")));
-                        plugin.changeLockState(true, sender.getName(), "LOCK", true);
+                        plugin.changeLockState(true, sender.getName(), "LOCK");
                     }
                     return;
                 }
@@ -87,7 +87,7 @@ public class EndLockCommand implements BasicCommand {
                     }
                     if (plugin.isLocked()) {
                         sender.sendMessage(plugin.msg("toggle").replace("%status%", plugin.msg("open")));
-                        plugin.changeLockState(false, sender.getName(), "UNLOCK", false);
+                        plugin.changeLockState(false, sender.getName(), "UNLOCK");
                     } else {
                         sender.sendMessage(plugin.msg("already-unlocked"));
                     }
@@ -112,6 +112,10 @@ public class EndLockCommand implements BasicCommand {
                     sender.sendMessage(plugin.msg("stats-header")
                             .replace("%lockcount%", String.valueOf(plugin.getLockCount()))
                             .replace("%blockedcount%", String.valueOf(plugin.getBlockedCount())));
+                    sender.sendMessage(plugin.msg("stats-line-unlocks")
+                            .replace("%unlockcount%", String.valueOf(plugin.getUnlockCount())));
+                    sender.sendMessage(plugin.msg("stats-line-evacuated")
+                            .replace("%evacuated%", String.valueOf(plugin.getEvacuatedCount())));
                     return;
                 }
                 case "schedule" -> {
@@ -301,7 +305,7 @@ public class EndLockCommand implements BasicCommand {
             boolean newLocked = !plugin.isLocked();
             String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
             sender.sendMessage(plugin.msg("toggle").replace("%status%", status));
-            plugin.changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK", newLocked);
+            plugin.changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK");
         } else {
             sender.sendMessage(plugin.msg("permission"));
         }

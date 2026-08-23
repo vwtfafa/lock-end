@@ -279,7 +279,7 @@ public class ScheduleManager {
     private void executeDueAction() {
         boolean targetLocked = scheduledAction.equals("lock");
         if (plugin.isLocked() != targetLocked) {
-            plugin.changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT), false);
+            plugin.changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT));
             plugin.getLogger().info("Scheduled " + scheduledAction + " executed.");
         }
         scheduledUnlockTime = null;

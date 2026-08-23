@@ -75,6 +75,7 @@ public class EvacuationService {
             player.teleportAsync(target).thenAccept(success -> {
                 if (success) {
                     player.sendMessage(completeMessage);
+                    plugin.recordEvacuatedPlayer();
                 }
             });
         }

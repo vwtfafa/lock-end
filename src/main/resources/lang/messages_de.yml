@@ -86,3 +86,7 @@ countdown-status-active: "§6[§cEndLock§6] Zeitplan ist aktuell §aaktiv§6. E
 
 # Grace period
 grace-period-active: "§eDie Schonfrist der End-Sperre ist aktiv - der Zugang wird in Kürze blockiert."
+
+# Extended statistics
+stats-line-unlocks: "§7Entsperrungen: §f%unlockcount%"
+stats-line-evacuated: "§7Evakuierte Spieler: §f%evacuated%"

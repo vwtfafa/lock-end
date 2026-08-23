@@ -88,3 +88,6 @@ countdown-status-active: "§6[§cEndLock§6] La pianificazione è attualmente §
 
 # Grace period
 grace-period-active: "§eIl periodo di grazia del blocco dell'End è attivo - l'accesso sarà presto bloccato."
+# Extended statistics
+stats-line-unlocks: "§7Sbloccchi: §f%unlockcount%"
+stats-line-evacuated: "§7Giocatori evacuati: §f%evacuated%"

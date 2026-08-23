@@ -57,7 +57,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private File logFile;
     private LockEndExpansion placeholderExpansion;
     private int lockCount = 0;
+    private int unlockCount = 0;
     private int blockedCount = 0;
+    private int evacuatedCount = 0;
 
     // v1.6 new features
     private LockReasonManager lockReasonManager;
@@ -86,7 +88,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         migrateConfig();
         locked = getConfig().getBoolean("locked", false);
         lockCount = getConfig().getInt("stats.lock-count", 0);
+        unlockCount = getConfig().getInt("stats.unlock-count", 0);
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
+        evacuatedCount = getConfig().getInt("stats.evacuated-count", 0);
 
         messages = new MessageService(this);
         messages.loadFromConfig();
@@ -160,7 +164,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         getLogger().info("EndLock disabled");
     }
 
-    public boolean changeLockState(boolean newLocked, String actor, String action, boolean recordStats) {
+    public boolean changeLockState(boolean newLocked, String actor, String action) {
         if (locked == newLocked) {
             return false;
         }
@@ -168,9 +172,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         boolean previousState = locked;
         locked = newLocked;
         historyCommand.recordPreviousState(previousState);
-        if (recordStats && locked) {
-            incrementStats(true);
-        }
+        recordStateChange(locked);
         getConfig().set("locked", locked);
         saveConfig();
 
@@ -194,7 +196,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return false;
         }
         boolean restored = historyCommand.getLastPreviousState();
-        boolean changed = changeLockState(restored, actor, "UNDO", false);
+        boolean changed = changeLockState(restored, actor, "UNDO");
         historyCommand.clearLastPreviousState();
         return changed;
     }
@@ -239,29 +241,56 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
-     * Updates the in-memory stat counters. Blocked attempts are only written
-     * back to disk when the plugin disables (or on the next explicit config
-     * save) to avoid file I/O on every blocked access.
+     * Updates the in-memory stat counters. Values are only written back to
+     * disk when the plugin disables (or on the next explicit config save) to
+     * avoid file I/O on every blocked access or state change.
      */
-    private void incrementStats(boolean lockAction) {
+    private void recordStateChange(boolean lockedNow) {
         if (!statsEnabled) {
             return;
         }
-        if (lockAction) {
+        if (lockedNow) {
             lockCount++;
             getConfig().set("stats.lock-count", lockCount);
         } else {
-            blockedCount++;
-            getConfig().set("stats.blocked-count", blockedCount);
+            unlockCount++;
+            getConfig().set("stats.unlock-count", unlockCount);
         }
+    }
+
+    private void recordBlockedAttempt() {
+        if (!statsEnabled) {
+            return;
+        }
+        blockedCount++;
+        getConfig().set("stats.blocked-count", blockedCount);
+    }
+
+    /**
+     * Counts a player successfully moved out of the End by the evacuation.
+     */
+    public void recordEvacuatedPlayer() {
+        if (!statsEnabled) {
+            return;
+        }
+        evacuatedCount++;
+        getConfig().set("stats.evacuated-count", evacuatedCount);
     }
 
     public int getLockCount() {
         return lockCount;
     }
 
+    public int getUnlockCount() {
+        return unlockCount;
+    }
+
     public int getBlockedCount() {
         return blockedCount;
+    }
+
+    public int getEvacuatedCount() {
+        return evacuatedCount;
     }
 
     public String getLockReason() {
@@ -519,7 +548,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 if (logAttempts) {
                     logAttempt(player, player.getWorld(), method);
                 }
-                incrementStats(false);
+                recordBlockedAttempt();
             }
         }
     }

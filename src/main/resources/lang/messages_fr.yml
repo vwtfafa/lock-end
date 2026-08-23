@@ -88,3 +88,6 @@ countdown-status-active: "§6[§cEndLock§6] Le planning est actuellement §aact
 
 # Grace period
 grace-period-active: "§eLa période de grâce du verrouillage de l'End est active - l'accès sera bientôt bloqué."
+# Extended statistics
+stats-line-unlocks: "§7Déverrouillages : §f%unlockcount%"
+stats-line-evacuated: "§7Joueurs évacués : §f%evacuated%"
