@@ -42,7 +42,7 @@ public class LockEndExpansion extends PlaceholderExpansion {
             case "remaining_seconds" -> String.valueOf(plugin.getScheduledRemainingSeconds());
             case "unlock_at", "target_time" -> plugin.getScheduledTime() == null
                     ? ""
-                    : plugin.getScheduledTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                    : plugin.getScheduledTime().format(LockEnd.SCHEDULE_FORMAT);
             case "lock_reason", "reason" -> plugin.getLockReason();
             case "blocked_count" -> String.valueOf(plugin.getBlockedCount());
             case "schedule_action" -> plugin.hasScheduledAction() ? plugin.getScheduledAction() : "none";
