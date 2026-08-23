@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 import org.vwtfafa.lockEnd.LockEnd;
 
 import java.time.LocalDate;
@@ -50,7 +51,7 @@ public class EndLockCommand implements BasicCommand {
     }
 
     @Override
-    public void execute(CommandSourceStack source, String[] args) {
+    public void execute(@NotNull CommandSourceStack source, @NotNull String[] args) {
         CommandSender sender = source.getSender();
 
         if (args.length >= 1) {
@@ -367,7 +368,7 @@ public class EndLockCommand implements BasicCommand {
     }
 
     @Override
-    public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+    public @NotNull java.util.Collection<String> suggest(@NotNull CommandSourceStack source, @NotNull String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             // Only offer subcommands the sender could actually execute.
