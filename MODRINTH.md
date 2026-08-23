@@ -96,10 +96,6 @@ update-checker:
   notify-ops: true
   notify-chat: true
 
-# bStats Metrics
-metrics:
-  enabled: true
-
 # Broadcast: Send alerts to all players when End is locked/unlocked
 broadcast:
   enabled: true

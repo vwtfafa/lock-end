@@ -50,8 +50,7 @@ public class ConfigValidatorCommand {
         List<String> issues = new ArrayList<>();
 
         if (!plugin.getConfig().getBoolean("logging.enabled") &&
-            !plugin.getConfig().getBoolean("broadcast.enabled") &&
-            !plugin.getConfig().getBoolean("metrics.enabled")) {
+            !plugin.getConfig().getBoolean("broadcast.enabled")) {
             issues.add("Warning: All major features are disabled. Plugin may not work as expected.");
         }
 

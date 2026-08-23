@@ -50,7 +50,7 @@
 1. Download the latest `lock-end-2.0.0-SNAPSHOT.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
-4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker, metrics).
+4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
 
 ## Commands
 
@@ -165,10 +165,6 @@ update-checker:
   enabled: true
   notify-ops: true
   notify-chat: true
-
-# bStats Metrics
-metrics:
-  enabled: true
 
 # Broadcast: Send alerts to all players when End is locked/unlocked
 broadcast:

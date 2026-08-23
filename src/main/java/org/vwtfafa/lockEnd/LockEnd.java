@@ -112,10 +112,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
             updateChecker.checkForUpdates();
         }
 
-        // Initialize bStats metrics
-        if (getConfig().getBoolean("metrics.enabled", true)) {
-            new MetricsManager(this);
-        }
+        // Initialize bStats metrics. Opt-out is handled globally via the
+        // bStats plugin config (plugins/bStats/config.json), not here.
+        new MetricsManager(this);
 
         getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.2+)");
     }
