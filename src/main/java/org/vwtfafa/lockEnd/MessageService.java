@@ -78,6 +78,8 @@ public class MessageService {
     /**
      * Resolution order: lang folder on disk, legacy plugin root on disk,
      * bundled resource of the language, bundled English fallback.
+     * Disk and language files get the bundled English file as defaults so
+     * partial or outdated customizations never blank out message keys.
      */
     private void loadLanguage(String code) {
         String fileName = FILE_PREFIX + code + ".yml";
@@ -88,12 +90,14 @@ public class MessageService {
         }
         if (langFile.isFile()) {
             langConfig = YamlConfiguration.loadConfiguration(langFile);
+            langConfig.setDefaults(bundledDefaults());
             return;
         }
 
         try (InputStream in = plugin.getResource(fileName)) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+                langConfig.setDefaults(bundledDefaults());
                 return;
             }
         } catch (Exception ignored) {}
@@ -104,13 +108,28 @@ public class MessageService {
         } catch (Exception ignored) {}
     }
 
+    /**
+     * Loads the bundled English file as fallback defaults; null if unavailable.
+     */
+    private FileConfiguration bundledDefaults() {
+        try (InputStream in = plugin.getResource(FILE_PREFIX + "en.yml")) {
+            if (in == null) {
+                return null;
+            }
+            return YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (IOException | IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
     public String msg(String key) {
         if (langConfig == null) return key;
         return langConfig.getString(key, key);
     }
 
     public boolean hasMessage(String key) {
-        return langConfig != null && langConfig.isString(key);
+        // Consults defaults as well, matching the lookup in msg().
+        return langConfig != null && langConfig.getString(key, null) != null;
     }
 
     public Component miniMsg(String key) {
