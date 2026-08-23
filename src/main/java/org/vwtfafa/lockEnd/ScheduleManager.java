@@ -59,15 +59,13 @@ public class ScheduleManager {
 
     /**
      * Reloads the schedule after a config reload: cancels all tasks,
-     * re-reads state and re-arms when the End is locked.
+     * re-reads state and re-arms any pending action.
      */
     public void reload() {
         cancelAll();
         schedulePaused = plugin.getConfig().getBoolean("schedule.paused", false);
         loadFromConfig();
-        if (plugin.isLocked() && scheduledUnlockTime != null) {
-            arm();
-        }
+        arm();
     }
 
     /**
@@ -98,9 +96,7 @@ public class ScheduleManager {
         plugin.getConfig().set("scheduled-unlock.mode", "days");
         plugin.getConfig().set("scheduled-unlock.days", days);
         persistScheduledUnlockTime();
-        if (plugin.isLocked()) {
-            arm();
-        }
+        arm();
     }
 
     /**
@@ -113,9 +109,7 @@ public class ScheduleManager {
         plugin.getConfig().set("scheduled-unlock.mode", "datetime");
         plugin.getConfig().set("scheduled-unlock.datetime", time.format(LockEnd.SCHEDULE_FORMAT));
         persistScheduledUnlockTime();
-        if (plugin.isLocked()) {
-            arm();
-        }
+        arm();
     }
 
     /**
@@ -150,9 +144,7 @@ public class ScheduleManager {
         schedulePaused = false;
         plugin.getConfig().set("schedule.paused", false);
         plugin.saveConfig();
-        if (plugin.isLocked() && scheduledUnlockTime != null) {
-            arm();
-        }
+        arm();
         plugin.getLogger().info("Schedule resumed by System");
     }
 
@@ -202,12 +194,12 @@ public class ScheduleManager {
     }
 
     /**
-     * Cancels due-check task and unlock previews after a manual unlock.
-     * The countdown keeps running so admins still see the pending action.
+     * Re-arms the pending action after a manual unlock so a scheduled lock
+     * still executes later. A paused schedule stays paused; arm() restarts
+     * preview, countdown and due-check tasks cleanly.
      */
     public void handleUnlocked() {
-        cancelCheck();
-        previewManager.cancelPreview("unlock");
+        arm();
     }
 
     /**

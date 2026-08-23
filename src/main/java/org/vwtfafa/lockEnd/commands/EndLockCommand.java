@@ -98,9 +98,12 @@ public class EndLockCommand implements BasicCommand {
                     }
                     try {
                         int days = Integer.parseInt(args[1]);
+                        if (days <= 0) {
+                            throw new IllegalArgumentException();
+                        }
                         plugin.scheduleUnlockInDays(days);
                         sender.sendMessage(plugin.msg("scheduled-unlock-set-days").replace("%days%", String.valueOf(days)));
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException | IllegalArgumentException e) {
                         sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
                     }
                     return;
@@ -143,7 +146,7 @@ public class EndLockCommand implements BasicCommand {
                         }
                         plugin.scheduleLockInMinutes(minutes);
                         sender.sendMessage(plugin.msg("scheduled-lock-set"));
-                    } catch (NumberFormatException e) {
+                    } catch (NumberFormatException | IllegalArgumentException e) {
                         sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
                     }
                     return;
