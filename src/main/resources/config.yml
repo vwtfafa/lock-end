@@ -80,6 +80,11 @@ stats:
   lock-count: 0
   blocked-count: 0
 
+# Lock history storage
+history:
+  max-entries: 1000    # Oldest entries are dropped beyond this size
+  retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
+
 # Optional join notifications for players joining while the End is locked
 join-notifications:
   enabled: false

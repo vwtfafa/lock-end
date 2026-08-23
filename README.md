@@ -234,6 +234,11 @@ stats:
   lock-count: 0
   blocked-count: 0
 
+# Lock history storage
+history:
+  max-entries: 1000
+  retention-days: 30
+
 # Optional join notifications for players joining while the End is locked
 join-notifications:
   enabled: false

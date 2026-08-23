@@ -23,10 +23,14 @@ public class LockHistoryCommand {
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final File historyFile;
+    private final int maxEntries;
+    private final int retentionDays;
     private Boolean lastPreviousState;
 
     public LockHistoryCommand(LockEnd plugin) {
         this.plugin = plugin;
+        this.maxEntries = Math.max(1, plugin.getConfig().getInt("history.max-entries", 1000));
+        this.retentionDays = plugin.getConfig().getInt("history.retention-days", 30);
         historyFile = new File(plugin.getDataFolder(), "history.yml");
         loadHistory();
     }
@@ -146,15 +150,33 @@ public class LockHistoryCommand {
     }
 
     /**
+     * Trims a history list to the retention window and the maximum size.
+     * A non-positive retentionDays disables age filtering; entries beyond
+     * maxEntries are dropped oldest-first.
+     */
+    static List<HistoryEntry> applyRotation(List<HistoryEntry> entries, int maxEntries, int retentionDays) {
+        List<HistoryEntry> result = entries;
+        if (retentionDays > 0) {
+            LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+            result = result.stream()
+                    .filter(entry -> !entry.timestamp().isBefore(cutoff))
+                    .collect(Collectors.toList());
+        }
+        if (maxEntries > 0 && result.size() > maxEntries) {
+            result = result.subList(result.size() - maxEntries, result.size());
+        }
+        return new ArrayList<>(result);
+    }
+
+    /**
      * Adds an entry to the history.
      * @param entry The history entry
      */
     public void addEntry(String actor, String action, boolean previousState, String source) {
         history.add(new HistoryEntry(java.time.LocalDateTime.now(), actor, action, source, previousState));
-        // Keep only last 100 entries
-        if (history.size() > 100) {
-            history.remove(0);
-        }
+        List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
+        history.clear();
+        history.addAll(rotated);
         saveHistory();
     }
 
@@ -191,9 +213,9 @@ public class LockHistoryCommand {
                 history.add(new HistoryEntry(java.time.LocalDateTime.now(), "unknown", rawEntry.toString(), "legacy", false));
             }
         }
-        if (history.size() > 100) {
-            history.subList(0, history.size() - 100).clear();
-        }
+        List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
+        history.clear();
+        history.addAll(rotated);
     }
 
     private void saveHistory() {

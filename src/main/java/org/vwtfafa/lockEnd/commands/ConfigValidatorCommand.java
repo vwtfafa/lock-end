@@ -124,6 +124,8 @@ public class ConfigValidatorCommand {
         validatePositive(issues, "logging.rate-limit-seconds");
         validatePositive(issues, "scheduled-unlock.countdown.interval");
         validateNonNegative(issues, "scheduled-unlock.countdown.start-before");
+        validatePositive(issues, "history.max-entries");
+        validateNonNegative(issues, "history.retention-days");
 
         double volume = plugin.getConfig().getDouble("sound-effects.volume", 1.0);
         double pitch = plugin.getConfig().getDouble("sound-effects.pitch", 1.0);

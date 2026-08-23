@@ -337,6 +337,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         messages.loadFromConfig();
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());
+        historyCommand = new LockHistoryCommand(this);
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
         refreshCachedConfig();
         configureAsyncLogger();
