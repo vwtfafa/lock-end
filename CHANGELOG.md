@@ -46,12 +46,23 @@ All notable changes to this project will be documented in this file.
 - Preview notifications honor `preview-notifications.enabled`
 - Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
 - Synchronized command, permission, configuration, and language documentation.
+- Sound effects use the Adventure sound API (`Key` based): configured names are validated, enum style constants like `BLOCK_ANVIL_LAND` map to `minecraft:block.anvil.land`, and invalid values warn once instead of failing silently.
+- bStats charts report the live lock state; `MetricsManager` works on `LockEnd` directly and uses the `PLUGIN_ID` constant.
+- The grace period now starts centrally in the lock state transition, so scheduled locks behave exactly like manual ones.
+- Access attempts during an active grace period are no longer counted or logged as blocked attempts.
+- New localized message key `grace-period-active` added in all 8 languages.
+- README, MODRINTH.md and config.yml document only existing options again.
+
+### Added
+- JUnit 5 unit tests for update version comparison, schedule time parsing and duration formatting, whitelist bypass resolution (names, UUIDs, worlds, permissions), and history filters.
 
 ### Removed
 - Unused `PermissionCache` class.
 - Redundant try/catch around Adventure's `sendActionBar`.
 - `commands` section from `plugin.yml` (commands register programmatically via Brigadier).
 - Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
+- Dead config options: `end.block-return` (its guard could never take effect), `actionbar.use-alt-char` / `actionbar.alt-char`, and `join-notifications.show-remaining`.
+- Unused entity whitelist (`whitelists.entities`) including `WhitelistChecker#canBypass(Entity)`.
 
 ### Fixed
 - Update checker: `update-checker.notify-ops` (console) and `update-checker.notify-chat` (in-game) are now independent channels; disabling chat no longer suppresses all notifications.
@@ -69,6 +80,14 @@ All notable changes to this project will be documented in this file.
 - Scheduled unlocks persist an absolute target time and no longer reset after restarts or reloads.
 - Long unlock and preview schedules use wall-clock rechecks instead of one large tick delay.
 - Command permissions are enforced per subcommand, keeping public status and test commands accessible through all aliases.
+- Grace period no longer unlocks the End permanently when it runs out: the lock stays in place and only its enforcement is delayed (attempts are allowed with a localized hint while active).
+- `/endlock pause` cancels both lock and unlock preview notifications; the lock preview previously kept firing while the schedule was paused.
+- Executed scheduled actions stop their countdown task and pending previews instead of leaving an idle repeating timer behind.
+- `/endlock test` enforces `endlock.admin` as documented in plugin.yml instead of being callable by every player.
+- `/endlock unlockat` rejects datetimes in the past, matching the existing validation of `/endlock lockat`.
+- Unknown language codes fall back to English instead of German.
+- The `%lockend_remaining%` PlaceholderAPI value renders as `yyyy-MM-dd HH:mm` instead of a raw ISO timestamp.
+- MiniMessage tags in user-provided input (lock reasons, history filter values, actor names) are escaped via `MiniMessage#escapeTags` so they render literally instead of injecting formatting.
 
 ## [1.6.1] - 2026-08-18
 ### Fixed
