@@ -17,23 +17,23 @@ class HistoryFilterTest {
 
     @Test
     void nullFilterMatchesEverything() {
-        assertTrue(new HistoryFilter(null, null).matches(ENTRY));
+        assertTrue(new LockHistoryCommand.HistoryFilter(null, null).matches(ENTRY));
     }
 
     @Test
     void playerFilterMatchesCaseInsensitively() {
-        assertTrue(new HistoryFilter("player", "ADMIN").matches(ENTRY));
-        assertFalse(new HistoryFilter("player", "SomeoneElse").matches(ENTRY));
+        assertTrue(new LockHistoryCommand.HistoryFilter("player", "ADMIN").matches(ENTRY));
+        assertFalse(new LockHistoryCommand.HistoryFilter("player", "SomeoneElse").matches(ENTRY));
     }
 
     @Test
     void actionFilterMatchesCaseInsensitively() {
-        assertTrue(new HistoryFilter("action", "lock").matches(ENTRY));
-        assertFalse(new HistoryFilter("action", "UNDO").matches(ENTRY));
+        assertTrue(new LockHistoryCommand.HistoryFilter("action", "lock").matches(ENTRY));
+        assertFalse(new LockHistoryCommand.HistoryFilter("action", "UNDO").matches(ENTRY));
     }
 
     @Test
     void unknownFilterTypeMatchesEverything() {
-        assertTrue(new HistoryFilter("world", "world").matches(ENTRY));
+        assertTrue(new LockHistoryCommand.HistoryFilter("world", "world").matches(ENTRY));
     }
 }
