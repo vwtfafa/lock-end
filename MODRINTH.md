@@ -60,9 +60,12 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock resume` | Resume paused scheduled unlock timers | `endlock.admin` |
 | `/endlock stats` | Show basic lock and block counters | *(no permission)* |
 | `/endlock unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
+| `/endlock unlockin <duration>` | Schedule an automatic unlock, e.g. `12h` or `7d` | `endlock.toggle` |
 | `/endlock unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock at a specific time | `endlock.toggle` |
 | `/endlock lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
+| `/endlock lockin <duration>` | Schedule an automatic lock, e.g. `30m` or `2h` | `endlock.toggle` |
 | `/endlock lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock at a specific time | `endlock.toggle` |
+| `/endlock lock in <duration>` / `unlock in <duration>` | Natural alias, e.g. `lock in 5m` | `endlock.toggle` |
 | `/endlock schedule status` | Show the active schedule | `endlock.admin` |
 | `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |

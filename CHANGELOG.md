@@ -58,6 +58,7 @@ All notable changes to this project will be documented in this file.
 - JUnit 5 unit tests for update version comparison, schedule time parsing and duration formatting, whitelist bypass resolution (names, UUIDs, worlds, permissions), and history filters.
 - Language files live in a `lang` folder: bundled files ship under `lang/`, custom files belong in `plugins/EndLock/lang/`; legacy files sitting in the plugin root are migrated there automatically on load (nothing is deleted; if the move fails the legacy location keeps working).
 - Bundled English messages act as defaults for missing keys, so partial or outdated custom language files no longer blank out messages.
+- Natural duration aliases for scheduled locks: `/endlock lock in 5m` and `unlock in 7d` behave like `lockin`/`unlockin`, and both accept unit suffixes (`90m`, `2h`, `7d`, case-insensitive) that schedule the exact point in time. Bare numbers keep their legacy meaning (minutes/days).
 
 ### Removed
 - Unused `PermissionCache` class.

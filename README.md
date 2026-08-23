@@ -74,9 +74,12 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `cancel` | Cancel the scheduled unlock | `endlock.admin` |
 | `reason <reason>` | Set the lock reason | `endlock.admin` |
 | `unlockin <days>` | Schedule an automatic unlock | `endlock.toggle` |
+| `unlockin <duration>` | Schedule an automatic unlock, e.g. `12h` or `7d` | `endlock.toggle` |
 | `unlockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic unlock | `endlock.toggle` |
 | `lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
+| `lockin <duration>` | Schedule an automatic lock, e.g. `30m` or `2h` | `endlock.toggle` |
 | `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
+| `lock in <duration>` / `unlock in <duration>` | Natural alias for `lockin`/`unlockin`, e.g. `lock in 5m` | `endlock.toggle` |
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
