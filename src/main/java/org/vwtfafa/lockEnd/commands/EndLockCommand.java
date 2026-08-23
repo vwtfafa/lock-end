@@ -12,12 +12,34 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Main /endlock command (with aliases /lock and /el), registered as a Brigadier command.
  */
 public class EndLockCommand implements BasicCommand {
     private static final DateTimeFormatter DATE_HINT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    /** Permission required per subcommand; entries missing here are public. */
+    private static final Map<String, String> SUBCOMMAND_PERMISSIONS = Map.ofEntries(
+            Map.entry("lock", "endlock.admin"),
+            Map.entry("unlock", "endlock.admin"),
+            Map.entry("test", "endlock.admin"),
+            Map.entry("unlockin", "endlock.toggle"),
+            Map.entry("unlockat", "endlock.toggle"),
+            Map.entry("lockin", "endlock.toggle"),
+            Map.entry("lockat", "endlock.toggle"),
+            Map.entry("schedule", "endlock.admin"),
+            Map.entry("cancel", "endlock.admin"),
+            Map.entry("reason", "endlock.admin"),
+            Map.entry("pause", "endlock.admin"),
+            Map.entry("resume", "endlock.admin"),
+            Map.entry("reload", "endlock.reload"),
+            Map.entry("history", "endlock.history"),
+            Map.entry("undo", "endlock.undo"),
+            Map.entry("validateconfig", "endlock.validate"));
+    private static final List<String> SUBCOMMANDS = List.of("status", "stats", "lock", "unlock",
+            "test", "unlockin", "unlockat", "lockin", "lockat", "schedule", "cancel",
+            "reason", "pause", "resume", "reload", "history", "undo", "validateconfig");
     private final LockEnd plugin;
 
     public EndLockCommand(LockEnd plugin) {
@@ -288,10 +310,14 @@ public class EndLockCommand implements BasicCommand {
     public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test", "stats",
-                    "unlockin", "unlockat", "lockin", "lockat", "schedule", "reload", "history", "undo", "validateconfig",
-                    "pause", "resume", "cancel", "reason");
-            StringUtil.copyPartialMatches(args[0], options, completions);
+            // Only offer subcommands the sender could actually execute.
+            List<String> visible = SUBCOMMANDS.stream()
+                    .filter(sub -> {
+                        String permission = SUBCOMMAND_PERMISSIONS.get(sub);
+                        return permission == null || source.getSender().hasPermission(permission);
+                    })
+                    .toList();
+            StringUtil.copyPartialMatches(args[0], visible, completions);
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
