@@ -6,6 +6,9 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,6 +25,10 @@ import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +77,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        migrateConfig();
         locked = getConfig().getBoolean("locked", false);
         lockCount = getConfig().getInt("stats.lock-count", 0);
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
@@ -294,10 +302,32 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * Upgrades an older configuration to the current version: obsolete keys
+     * are removed and missing options are filled in from the bundled config.
+     */
+    private void migrateConfig() {
+        FileConfiguration bundled = null;
+        try (InputStream in = getResource("config.yml")) {
+            if (in != null) {
+                bundled = new YamlConfiguration();
+                bundled.load(new InputStreamReader(in, StandardCharsets.UTF_8));
+            }
+        } catch (IOException | InvalidConfigurationException exception) {
+            bundled = null;
+            getLogger().warning("Could not read the bundled config.yml for migration: " + exception.getMessage());
+        }
+        if (ConfigMigrator.migrate(getConfig(), bundled)) {
+            saveConfig();
+            getLogger().info("Configuration migrated to version " + ConfigMigrator.CURRENT_VERSION + ".");
+        }
+    }
+
+    /**
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
         reloadConfig();
+        migrateConfig();
         messages.loadFromConfig();
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());

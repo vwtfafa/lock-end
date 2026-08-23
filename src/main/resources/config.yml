@@ -1,4 +1,5 @@
 # EndLock Plugin Configuration
+config-version: 2
 locked: false
 language: en
 lock-reason: "Maintenance"
