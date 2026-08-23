@@ -18,7 +18,8 @@ public class ScheduleManager {
     private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;
     private final LockEnd plugin;
     private final PreviewNotificationManager previewManager;
-    private LocalDateTime scheduledUnlockTime;
+    // Volatile because bStats reads the pending action from an async thread.
+    private volatile LocalDateTime scheduledUnlockTime;
     private String scheduledAction = "unlock";
     private boolean schedulePaused;
     private BukkitTask checkTask;

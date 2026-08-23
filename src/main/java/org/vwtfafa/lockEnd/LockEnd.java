@@ -49,17 +49,23 @@ public final class LockEnd extends JavaPlugin implements Listener {
     public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
             .ofPattern("uuuu-MM-dd HH:mm")
             .withResolverStyle(java.time.format.ResolverStyle.STRICT);
-    private boolean locked = false;
+    // Volatile because bStats chart suppliers read them from an async thread.
+    private volatile boolean locked = false;
     private MessageService messages;
     private ScheduleManager schedules;
     private EvacuationService evacuation;
     private UpdateChecker updateChecker;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
-    private int lockCount = 0;
-    private int unlockCount = 0;
-    private int blockedCount = 0;
-    private int evacuatedCount = 0;
+    private volatile int lockCount = 0;
+    private volatile int unlockCount = 0;
+    private volatile int blockedCount = 0;
+    private volatile int evacuatedCount = 0;
+
+    // Cached chart/report settings so async consumers never touch the config.
+    private volatile String languageTag = "en";
+    private volatile boolean updateCheckerEnabled = true;
+    private volatile boolean joinNotificationsEnabled = false;
 
     // v1.6 new features
     private LockReasonManager lockReasonManager;
@@ -79,8 +85,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private boolean blockEntities;
     private boolean blockEndGateway;
     private List<String> endWorlds = List.of();
-    private boolean logAttempts;
-    private boolean statsEnabled;
+    private volatile boolean logAttempts;
+    private volatile boolean statsEnabled;
 
     @Override
     public void onEnable() {
@@ -293,6 +299,22 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return evacuatedCount;
     }
 
+    public String getLanguageTag() {
+        return languageTag;
+    }
+
+    public boolean isUpdateCheckerEnabled() {
+        return updateCheckerEnabled;
+    }
+
+    public boolean isJoinNotificationsEnabled() {
+        return joinNotificationsEnabled;
+    }
+
+    public boolean isStatsEnabled() {
+        return statsEnabled;
+    }
+
     public String getLockReason() {
         return lockReasonManager.getReason("default");
     }
@@ -333,6 +355,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
         logAttempts = getConfig().getBoolean("logging.log-attempts", true);
         statsEnabled = getConfig().getBoolean("stats.enabled", true);
+        languageTag = getConfig().getString("language", "en");
+        updateCheckerEnabled = getConfig().getBoolean("update-checker.enabled", true);
+        joinNotificationsEnabled = getConfig().getBoolean("join-notifications.enabled", false);
     }
 
     /**
@@ -563,7 +588,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!locked || !getConfig().getBoolean("join-notifications.enabled", false)) {
+        if (!locked || !joinNotificationsEnabled) {
             return;
         }
         sendJoinNotification(event.getPlayer());

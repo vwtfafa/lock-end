@@ -4,8 +4,12 @@ import org.bstats.bukkit.Metrics;
 import org.bstats.charts.SimplePie;
 import org.bstats.charts.SingleLineChart;
 
+import java.util.Locale;
+
 /**
- * Registers bStats metrics with live plugin state and config-based charts.
+ * Registers bStats metrics with live plugin state. Chart suppliers run on
+ * the bStats async thread, so they only read volatile fields and never the
+ * (main-thread bound) configuration.
  */
 public class MetricsManager {
     private static final int PLUGIN_ID = 32010;
@@ -28,25 +32,21 @@ public class MetricsManager {
                 plugin.isLocked() ? "Locked" : "Unlocked"));
 
         metrics.addCustomChart(new SimplePie("language", () -> {
-            String lang = plugin.getConfig().getString("language", "en");
-            return lang != null ? lang.toUpperCase() : "Unknown";
+            String lang = plugin.getLanguageTag();
+            return lang != null ? lang.toUpperCase(Locale.ROOT) : "Unknown";
         }));
 
         metrics.addCustomChart(new SimplePie("update_checker_enabled", () ->
-                chartEnabled("update-checker.enabled", true)));
+                plugin.isUpdateCheckerEnabled() ? "Enabled" : "Disabled"));
         metrics.addCustomChart(new SimplePie("join_notifications_enabled", () ->
-                chartEnabled("join-notifications.enabled", false)));
+                plugin.isJoinNotificationsEnabled() ? "Enabled" : "Disabled"));
         metrics.addCustomChart(new SimplePie("scheduled_unlock_enabled", () ->
-                chartEnabled("scheduled-unlock.enabled", false)));
+                plugin.hasScheduledAction() ? "Enabled" : "Disabled"));
         metrics.addCustomChart(new SimplePie("stats_enabled", () ->
-                chartEnabled("stats.enabled", true)));
+                plugin.isStatsEnabled() ? "Enabled" : "Disabled"));
 
         metrics.addCustomChart(new SingleLineChart("lock_count", plugin::getLockCount));
         metrics.addCustomChart(new SingleLineChart("blocked_count", plugin::getBlockedCount));
-    }
-
-    private String chartEnabled(String path, boolean def) {
-        return plugin.getConfig().getBoolean(path, def) ? "Enabled" : "Disabled";
     }
 
     /**
