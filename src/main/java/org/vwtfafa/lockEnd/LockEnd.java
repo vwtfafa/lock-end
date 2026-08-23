@@ -113,14 +113,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        // Register /endlock (aliases: /lock, /el) via Paper's Brigadier lifecycle API
+        // Register /endlock (aliases: /lock, /el) as a native Brigadier command
+        // tree via Paper's lifecycle API; permissions live on the tree nodes.
         EndLockCommand endLockCommand = new EndLockCommand(this);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
                 event.registrar().register(
-                        "endlock",
+                        endLockCommand.buildNode(),
                         "Globally locks or unlocks access to the End dimension",
-                        List.of("lock", "el"),
-                        endLockCommand));
+                        List.of("lock", "el")));
 
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
         refreshCachedConfig();
