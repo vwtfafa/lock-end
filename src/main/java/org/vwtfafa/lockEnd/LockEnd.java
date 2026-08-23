@@ -3,11 +3,14 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityTeleportEndGatewayEvent;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -58,6 +61,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private int rateLimitSeconds = 5;
 
     // Cached hot-path config values (refreshed on enable/reload)
+    private boolean blockEntities;
     private boolean blockEndGateway;
     private List<String> endWorlds = List.of();
     private boolean logAttempts;
@@ -283,6 +287,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
      */
     private void refreshCachedConfig() {
         blockEndGateway = getConfig().getBoolean("end.block-end-gateway", true);
+        blockEntities = getConfig().getBoolean("end.block-entities", true);
         endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
         logAttempts = getConfig().getBoolean("logging.log-attempts", true);
         statsEnabled = getConfig().getBoolean("stats.enabled", true);
@@ -488,6 +493,32 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
         sendJoinNotification(event.getPlayer());
+    }
+
+    // EntityTeleportEvent also receives EntityPortalEvent and
+    // EntityTeleportEndGatewayEvent through inheritance, covering portals,
+    // gateways and plugin-driven entity teleports in one handler.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityTeleport(EntityTeleportEvent event) {
+        if (!blockEntities || !locked) {
+            return;
+        }
+        if (event.getEntity() instanceof Player) {
+            return; // Player movement is handled by the player teleport handler.
+        }
+        Location to = event.getTo();
+        if (to == null || to.getWorld() == null) {
+            return;
+        }
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                to.getWorld().getEnvironment(),
+                to.getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkEntity(request, event instanceof EntityTeleportEndGatewayEvent);
+        if (verdict == EndAccessGate.Verdict.BLOCKED) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler

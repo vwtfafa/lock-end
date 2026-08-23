@@ -7,6 +7,7 @@ lock-reason: "Maintenance"
 end:
   worlds: []
   block-end-gateway: true
+  block-entities: true  # Also block non-player entities from entering the End
 
 # Update Checker: Notifications for available updates
 update-checker:

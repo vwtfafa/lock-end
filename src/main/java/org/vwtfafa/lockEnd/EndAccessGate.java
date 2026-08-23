@@ -70,15 +70,18 @@ public final class EndAccessGate {
     }
 
     /**
-     * Decides a non-player entity attempt. Entities have no bypass options;
-     * end gateways are blocked together with every other path because portal
-     * events for entities do not expose their cause.
+     * Decides a non-player entity attempt. Entities have no bypass options.
+     * Portal events for entities do not expose their cause, so callers report
+     * end gateway travel via the dedicated flag.
      */
-    public Verdict checkEntity(AccessRequest request) {
+    public Verdict checkEntity(AccessRequest request, boolean endGateway) {
         if (!locked || request.toEnvironment() != World.Environment.THE_END) {
             return Verdict.ALLOWED;
         }
         if (!inScopedWorld(request.toWorldName())) {
+            return Verdict.ALLOWED;
+        }
+        if (endGateway && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
         if (gracePeriodActive) {

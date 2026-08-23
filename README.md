@@ -162,6 +162,7 @@ lock-reason: "Maintenance"
 end:
   worlds: []
   block-end-gateway: true
+  block-entities: true  # Also block non-player entities from entering the End
 
 # Update Checker: Notifications for available updates
 update-checker:
@@ -296,7 +297,7 @@ Run a local test server (downloads Paper 26.2):
 
 ## Limitations
 
-- Only **player** movement is blocked; entity teleport events are not handled.
+- Only **player** movement is blocked by default; non-player entities can be blocked too via `end.block-entities`.
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
