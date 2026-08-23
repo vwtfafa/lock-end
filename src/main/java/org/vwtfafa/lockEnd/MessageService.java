@@ -98,7 +98,7 @@ public class MessageService {
             return;
         }
 
-        try (InputStream in = plugin.getResource(fileName)) {
+        try (InputStream in = plugin.getResource(LANG_FOLDER + "/" + fileName)) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
                 FileConfiguration defaults = bundledDefaults();
@@ -108,7 +108,7 @@ public class MessageService {
                 return;
             }
         } catch (Exception ignored) {}
-        try (InputStream in = plugin.getResource(FILE_PREFIX + "en.yml")) {
+        try (InputStream in = plugin.getResource(LANG_FOLDER + "/" + FILE_PREFIX + "en.yml")) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
             }
