@@ -155,10 +155,32 @@ public class MessageService {
     }
 
     public Component messageComponent(String raw) {
-        if (miniMessageEnabled && miniMessage != null) {
-            return miniMessage.deserialize(raw);
+        return render(raw, miniMessage, miniMessageEnabled);
+    }
+
+    /**
+     * Parses a raw message string into a component, supporting both formats.
+     * Strings with legacy section codes ({@code §}) are parsed as legacy text:
+     * MiniMessage 5.x strict mode rejects those codes, and legacy usage hints
+     * like {@code <days>} must stay literal instead of being read as tags.
+     * Strings without legacy codes are parsed as MiniMessage (gradients etc.),
+     * falling back to legacy so a malformed tag can never break a command.
+     */
+    static Component render(String raw, MiniMessage miniMessage, boolean miniMessageEnabled) {
+        if (raw == null) {
+            return Component.empty();
         }
-        return LegacyComponentSerializer.legacySection().deserialize(raw);
+        if (!miniMessageEnabled || miniMessage == null) {
+            return LegacyComponentSerializer.legacySection().deserialize(raw);
+        }
+        if (raw.indexOf('§') >= 0) {
+            return LegacyComponentSerializer.legacySection().deserialize(raw);
+        }
+        try {
+            return miniMessage.deserialize(raw);
+        } catch (RuntimeException exception) {
+            return LegacyComponentSerializer.legacySection().deserialize(raw);
+        }
     }
 
     /**
