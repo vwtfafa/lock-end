@@ -1,18 +1,24 @@
 package org.vwtfafa.lockEnd;
 
-import org.bukkit.Location;
+import net.kyori.adventure.key.InvalidKeyException;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.configuration.file.FileConfiguration;
+
+import java.util.Locale;
 
 /**
  * Plays sound effects when players attempt to access the locked End.
  */
 public class SoundEffectPlayer {
+    private static final Key DEFAULT_SOUND = Key.key(Key.MINECRAFT_NAMESPACE, "block.anvil.land");
+
     private final LockEnd plugin;
-    private String soundName;
+    private Key denialSound = DEFAULT_SOUND;
     private float volume;
     private float pitch;
     private boolean enabled;
+    private boolean warnedInvalidSound;
 
     public SoundEffectPlayer(LockEnd plugin) {
         this.plugin = plugin;
@@ -23,11 +29,38 @@ public class SoundEffectPlayer {
      * Loads sound configuration from config.
      */
     public void loadConfig() {
-        FileConfiguration config = plugin.getConfig();
+        var config = plugin.getConfig();
         this.enabled = config.getBoolean("sound-effects.enabled", true);
-        soundName = config.getString("sound-effects.sound", "BLOCK_ANVIL_LAND");
+        this.denialSound = parseSoundKey(config.getString("sound-effects.sound", "BLOCK_ANVIL_LAND"));
         volume = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.volume", 1.0)));
         pitch = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.pitch", 1.0)));
+    }
+
+    /**
+     * Resolves the configured sound name into a namespaced key. Enum style
+     * constants (BLOCK_ANVIL_LAND) are translated to minecraft:block.anvil.land;
+     * namespaced keys (mymod:epic_sound_blast) are kept as-is so custom
+     * resource pack sounds keep their underscores. Invalid values fall back
+     * to the default with a warning.
+     */
+    private Key parseSoundKey(String configured) {
+        if (configured == null || configured.isBlank()) {
+            return DEFAULT_SOUND;
+        }
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if (!normalized.contains(":")) {
+            normalized = Key.MINECRAFT_NAMESPACE + ":" + normalized.replace('_', '.');
+        }
+        try {
+            return Key.key(normalized);
+        } catch (InvalidKeyException exception) {
+            if (!warnedInvalidSound) {
+                warnedInvalidSound = true;
+                plugin.getLogger().warning("Invalid sound-effects.sound value '" + configured
+                        + "', using block.anvil.land instead.");
+            }
+            return DEFAULT_SOUND;
+        }
     }
 
     /**
@@ -38,8 +71,6 @@ public class SoundEffectPlayer {
         if (!enabled) {
             return;
         }
-        Location location = player.getLocation();
-        // Use String overload to avoid deprecated Sound.valueOf()
-        player.playSound(location, soundName, volume, pitch);
+        player.playSound(Sound.sound(denialSound, Sound.Source.MASTER, volume, pitch));
     }
 }

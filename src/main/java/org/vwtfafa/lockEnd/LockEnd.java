@@ -1,61 +1,76 @@
 package org.vwtfafa.lockEnd;
 
+import com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.StringUtil;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
+import org.vwtfafa.lockEnd.commands.EndLockCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-public final class LockEnd extends JavaPlugin implements Listener, TabCompleter {
-    private boolean locked = false;
-    private FileConfiguration langConfig;
-    private String langCode = "en";
+/**
+ * Main plugin class: owns the lock state and wires messaging, scheduling,
+ * evacuation, logging and commands together.
+ */
+public final class LockEnd extends JavaPlugin implements Listener {
+    /**
+     * Strict schedule format: impossible dates like 2026-02-30 are rejected
+     * instead of being silently rounded to the end of the month.
+     */
+    public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
+            .ofPattern("uuuu-MM-dd HH:mm")
+            .withResolverStyle(java.time.format.ResolverStyle.STRICT);
+    // Volatile because bStats chart suppliers read them from an async thread.
+    private volatile boolean locked = false;
+    private MessageService messages;
+    private ScheduleManager schedules;
+    private EvacuationService evacuation;
     private UpdateChecker updateChecker;
-    private MetricsManager metricsManager;
-    private File logDir;
     private File logFile;
-    private MiniMessage miniMessage;
-    private boolean miniMessageEnabled;
-    private LocalDateTime scheduledUnlockTime;
     private LockEndExpansion placeholderExpansion;
-    private int lockCount = 0;
-    private int blockedCount = 0;
-    private String lockReason = "Maintenance";
+    private volatile int lockCount = 0;
+    private volatile int unlockCount = 0;
+    private volatile int blockedCount = 0;
+    private volatile int evacuatedCount = 0;
+
+    // Cached chart/report settings so async consumers never touch the config.
+    private volatile String languageTag = "en";
+    private volatile boolean updateCheckerEnabled = true;
+    private volatile boolean joinNotificationsEnabled = false;
 
     // v1.6 new features
     private LockReasonManager lockReasonManager;
     private GracePeriodTask gracePeriodTask;
     private WhitelistChecker whitelistChecker;
-    private PreviewNotificationManager previewManager;
     private SoundEffectPlayer soundPlayer;
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
@@ -63,286 +78,458 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
     private AsyncLogger asyncLogger;
 
     // Logging & Analytics
-    private final Map<UUID, Long> lastAttemptTimes = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
     private int rateLimitSeconds = 5;
 
-    // Schedule pause/resume
-    private boolean schedulePaused = false;
+    // Cached hot-path config values (refreshed on enable/reload)
+    private boolean blockEntities;
+    private boolean blockEndGateway;
+    private List<String> endWorlds = List.of();
+    private volatile boolean logAttempts;
+    private volatile boolean statsEnabled;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        migrateConfig();
         locked = getConfig().getBoolean("locked", false);
         lockCount = getConfig().getInt("stats.lock-count", 0);
+        unlockCount = getConfig().getInt("stats.unlock-count", 0);
         blockedCount = getConfig().getInt("stats.blocked-count", 0);
-        langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
-        loadLanguage(langCode);
-        lockReason = getConfig().getString("lock-reason", "Maintenance");
+        evacuatedCount = getConfig().getInt("stats.evacuated-count", 0);
 
-        // v1.6: Lock reason manager
+        messages = new MessageService(this);
+        messages.loadFromConfig();
+
         lockReasonManager = new LockReasonManager(getConfig());
-
-        // v1.6: Grace period task
         gracePeriodTask = new GracePeriodTask(this);
-
-        // v1.6: Whitelist checker
         whitelistChecker = new WhitelistChecker(getConfig());
-
-        // v1.6: Preview notifications
-        previewManager = new PreviewNotificationManager(this);
-
-        // v1.6: Sound effects
         soundPlayer = new SoundEffectPlayer(this);
-
-        // v1.6: Admin commands
+        evacuation = new EvacuationService(this);
         historyCommand = new LockHistoryCommand(this);
         undoCommand = new UndoCommand(this);
         configValidatorCommand = new ConfigValidatorCommand(this);
-
-        // v1.6: Async logger
-        if (getConfig().getBoolean("logging.enabled", true)) {
-            logDir = new File(getDataFolder(), "logs");
-            if (!logDir.exists()) {
-                logDir.mkdirs();
-            }
-            logFile = new File(logDir, getConfig().getString("logging.log-file", "EndLock.log"));
-            asyncLogger = new AsyncLogger();
-            asyncLogger.initialize(logFile);
-        }
-
-        miniMessageEnabled = getConfig().getBoolean("hooks.mini-message", true);
-        if (miniMessageEnabled) {
-            this.miniMessage = MiniMessage.miniMessage();
-        }
+        configureAsyncLogger();
 
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        // Register commands
-        if (getCommand("endlock") != null) {
-            getCommand("endlock").setExecutor(this);
-            getCommand("endlock").setTabCompleter(this);
-        }
-        if (getCommand("lock") != null) {
-            getCommand("lock").setExecutor(this);
-            getCommand("lock").setTabCompleter(this);
-        }
-        if (getCommand("el") != null) {
-            getCommand("el").setExecutor(this);
-            getCommand("el").setTabCompleter(this);
-        }
+        // Register /endlock (aliases: /lock, /el) as a native Brigadier command
+        // tree via Paper's lifecycle API; permissions live on the tree nodes.
+        EndLockCommand endLockCommand = new EndLockCommand(this);
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
+                event.registrar().register(
+                        endLockCommand.buildNode(),
+                        "Globally locks or unlocks access to the End dimension",
+                        List.of("lock", "el")));
 
-        // v1.6: Rate limit config
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        refreshCachedConfig();
+
+        schedules = new ScheduleManager(this);
+        schedules.loadFromConfig();
+        if (schedules.hasAction()) {
+            schedules.arm();
+        }
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
         }
 
-        // Initialize bStats metrics
-        if (getConfig().getBoolean("metrics.enabled", true)) {
-            metricsManager = new MetricsManager(this);
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            updateChecker = new UpdateChecker(this);
+            updateChecker.checkForUpdates();
         }
 
-        loadScheduledUnlock();
-        if (locked && scheduledUnlockTime != null) {
-            scheduleUnlock();
-        }
+        // Initialize bStats metrics. Opt-out is handled globally via the
+        // bStats plugin config (plugins/bStats/config.json), not here.
+        new MetricsManager(this);
 
-        getLogger().info("EndLock v" + getDescription().getVersion() + " enabled (Paper 26.2+)");
+        getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.2+)");
     }
 
     @Override
     public void onDisable() {
         getConfig().set("locked", locked);
         saveConfig();
+        if (schedules != null) {
+            schedules.cancelAll();
+        }
+        if (evacuation != null) {
+            evacuation.cancel();
+        }
+        if (gracePeriodTask != null) {
+            gracePeriodTask.cancel();
+        }
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+        }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
         }
         getLogger().info("EndLock disabled");
     }
 
-    public void setLocked(boolean locked) {
-        this.locked = locked;
+    public boolean changeLockState(boolean newLocked, String actor, String action) {
+        if (locked == newLocked) {
+            return false;
+        }
+
+        boolean previousState = locked;
+        locked = newLocked;
+        historyCommand.recordPreviousState(previousState);
+        recordStateChange(locked);
+        getConfig().set("locked", locked);
+        saveConfig();
+
+        if (!locked) {
+            schedules.handleUnlocked();
+            evacuation.cancel();
+            gracePeriodTask.cancel();
+        }
+        messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+        logAction(actor, action);
+        historyCommand.addEntry(actor, action, previousState, action);
+        if (locked) {
+            startGracePeriodIfEnabled();
+            evacuation.schedule();
+        }
+        return true;
     }
 
-    private void loadLanguage(String code) {
-        String fileName = "messages_" + code + ".yml";
-        File langFile = new File(getDataFolder(), fileName);
-        if (!langFile.exists()) {
-            try (InputStream in = getResource(fileName)) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
-                    return;
-                }
-            } catch (Exception ignored) {}
-            try (InputStream in = getResource("messages_de.yml")) {
-                if (in != null) {
-                    langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in));
-                    return;
-                }
-            } catch (Exception ignored) {}
-        } else {
-            langConfig = YamlConfiguration.loadConfiguration(langFile);
+    public boolean undoLastAction(String actor) {
+        if (historyCommand.getLastPreviousState() == null) {
+            return false;
         }
+        boolean restored = historyCommand.getLastPreviousState();
+        boolean changed = changeLockState(restored, actor, "UNDO");
+        historyCommand.clearLastPreviousState();
+        return changed;
+    }
+
+    private void configureAsyncLogger() {
+        if (asyncLogger != null) {
+            asyncLogger.shutdown();
+            asyncLogger = null;
+        }
+        logFile = null;
+        if (!getConfig().getBoolean("logging.enabled", true)) {
+            return;
+        }
+
+        File logDir = new File(getDataFolder(), "logs");
+        if (!logDir.exists() && !logDir.mkdirs()) {
+            getLogger().warning("Could not create logging directory: " + logDir);
+            return;
+        }
+        String configuredLogFile = getConfig().getString("logging.log-file", "EndLock.log");
+        Path logDirectory = logDir.toPath().toAbsolutePath().normalize();
+        Path configuredPath = logDirectory.resolve(configuredLogFile).normalize();
+        if (!configuredPath.startsWith(logDirectory)) {
+            getLogger().warning("Invalid logging.log-file path; using EndLock.log instead.");
+            configuredPath = logDirectory.resolve("EndLock.log");
+        }
+        logFile = configuredPath.toFile();
+        asyncLogger = new AsyncLogger(getLogger());
+        asyncLogger.initialize(logFile);
     }
 
     public String msg(String key) {
-        if (langConfig == null) return key;
-        return langConfig.getString(key, key);
+        return messages.msg(key);
     }
 
-    private Component miniMsg(String key) {
-        String raw = msg(key);
-        return miniMessage.deserialize(raw);
+    public boolean hasMessage(String key) {
+        return messages.hasMessage(key);
     }
 
-    private void broadcastMessage(String key, String playerName) {
-        if (!getConfig().getBoolean("broadcast.enabled", true)) {
+    public Component messageComponent(String raw) {
+        return messages.messageComponent(raw);
+    }
+
+    /**
+     * Renders a cached message template with %placeholder% values inserted
+     * as literal text. The returned component is safe to reuse across players.
+     */
+    public Component message(String key, Map<String, String> placeholders) {
+        return messages.message(key, placeholders);
+    }
+
+    /**
+     * Updates the in-memory stat counters. Values are only written back to
+     * disk when the plugin disables (or on the next explicit config save) to
+     * avoid file I/O on every blocked access or state change.
+     */
+    private void recordStateChange(boolean lockedNow) {
+        if (!statsEnabled) {
             return;
         }
-
-        boolean notifyAll = getConfig().getBoolean("broadcast.notify-all", true);
-        boolean useActionbar = getConfig().getBoolean("broadcast.use-actionbar", true);
-        String message = msg(key).replace("%player%", playerName);
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
-                if (useActionbar) {
-                    sendActionBar(player, locked ? msg("actionbar-locked") : msg("actionbar-unlocked"));
-                } else {
-                    player.sendMessage(message);
-                }
-            }
-        }
-    }
-
-    private void sendActionBar(Player player, String message) {
-        try {
-            player.sendActionBar(Component.text(message));
-        } catch (Exception e) {
-            player.sendMessage(message);
-        }
-    }
-
-    private void incrementStats(boolean lockAction) {
-        if (!getConfig().getBoolean("stats.enabled", true)) {
-            return;
-        }
-        if (lockAction) {
+        if (lockedNow) {
             lockCount++;
             getConfig().set("stats.lock-count", lockCount);
         } else {
-            blockedCount++;
-            getConfig().set("stats.blocked-count", blockedCount);
+            unlockCount++;
+            getConfig().set("stats.unlock-count", unlockCount);
         }
-        saveConfig();
+    }
+
+    private void recordBlockedAttempt() {
+        if (!statsEnabled) {
+            return;
+        }
+        blockedCount++;
+        getConfig().set("stats.blocked-count", blockedCount);
+    }
+
+    /**
+     * Counts a player successfully moved out of the End by the evacuation.
+     */
+    public void recordEvacuatedPlayer() {
+        if (!statsEnabled) {
+            return;
+        }
+        evacuatedCount++;
+        getConfig().set("stats.evacuated-count", evacuatedCount);
     }
 
     public int getLockCount() {
         return lockCount;
     }
 
+    public int getUnlockCount() {
+        return unlockCount;
+    }
+
     public int getBlockedCount() {
         return blockedCount;
     }
 
-    private void loadScheduledUnlock() {
-        if (!getConfig().getBoolean("scheduled-unlock.enabled", false)) {
-            return;
+    public int getEvacuatedCount() {
+        return evacuatedCount;
+    }
+
+    public String getLanguageTag() {
+        return languageTag;
+    }
+
+    public boolean isUpdateCheckerEnabled() {
+        return updateCheckerEnabled;
+    }
+
+    public boolean isJoinNotificationsEnabled() {
+        return joinNotificationsEnabled;
+    }
+
+    public boolean isStatsEnabled() {
+        return statsEnabled;
+    }
+
+    public String getLockReason() {
+        return lockReasonManager.getReason("default");
+    }
+
+    /**
+     * Starts the grace period if it is enabled in the config.
+     */
+    public void startGracePeriodIfEnabled() {
+        if (getConfig().getBoolean("grace-period.enabled", false)) {
+            int duration = getConfig().getInt("grace-period.duration", 10);
+            gracePeriodTask.startGracePeriod(duration);
         }
-        String mode = getConfig().getString("scheduled-unlock.mode", "days");
-        if ("datetime".equalsIgnoreCase(mode)) {
-            String date = getConfig().getString("scheduled-unlock.datetime", "");
-            if (!date.isBlank()) {
-                try {
-                    scheduledUnlockTime = LocalDateTime.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                } catch (Exception ignored) {
-                }
+    }
+
+    /**
+     * Updates and persists the default lock reason.
+     */
+    public void setLockReason(String reason) {
+        getConfig().set("lock-reasons.default", reason);
+        saveConfig();
+        lockReasonManager = new LockReasonManager(getConfig());
+    }
+
+    /**
+     * Logs a test command invocation.
+     */
+    public void logTestAction(String actor) {
+        logAction(actor, "TEST");
+    }
+
+    /**
+     * Caches frequently read config values so event handlers avoid
+     * repeated FileConfiguration lookups.
+     */
+    private void refreshCachedConfig() {
+        blockEndGateway = getConfig().getBoolean("end.block-end-gateway", true);
+        blockEntities = getConfig().getBoolean("end.block-entities", true);
+        endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
+        logAttempts = getConfig().getBoolean("logging.log-attempts", true);
+        statsEnabled = getConfig().getBoolean("stats.enabled", true);
+        languageTag = getConfig().getString("language", "en");
+        updateCheckerEnabled = getConfig().getBoolean("update-checker.enabled", true);
+        joinNotificationsEnabled = getConfig().getBoolean("join-notifications.enabled", false);
+    }
+
+    /**
+     * Upgrades an older configuration to the current version: obsolete keys
+     * are removed and missing options are filled in from the bundled config.
+     */
+    private void migrateConfig() {
+        FileConfiguration bundled = null;
+        try (InputStream in = getResource("config.yml")) {
+            if (in != null) {
+                bundled = new YamlConfiguration();
+                bundled.load(new InputStreamReader(in, StandardCharsets.UTF_8));
             }
-        } else {
-            int days = getConfig().getInt("scheduled-unlock.days", 7);
-            scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+        } catch (IOException | InvalidConfigurationException exception) {
+            bundled = null;
+            getLogger().warning("Could not read the bundled config.yml for migration: " + exception.getMessage());
+        }
+        if (ConfigMigrator.migrate(getConfig(), bundled)) {
+            saveConfig();
+            getLogger().info("Configuration migrated to version " + ConfigMigrator.CURRENT_VERSION + ".");
         }
     }
 
-    private void scheduleUnlock() {
-        if (scheduledUnlockTime == null || schedulePaused) {
-            return;
+    /**
+     * Reloads configuration, language files and all dependent managers.
+     */
+    public void reloadPlugin() {
+        reloadConfig();
+        migrateConfig();
+        messages.loadFromConfig();
+        lockReasonManager = new LockReasonManager(getConfig());
+        whitelistChecker = new WhitelistChecker(getConfig());
+        historyCommand = new LockHistoryCommand(this);
+        rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
+        refreshCachedConfig();
+        configureAsyncLogger();
+        soundPlayer.loadConfig();
+        schedules.reload();
+
+        boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
+                && getConfig().getBoolean("hooks.placeholderapi", true);
+        if (placeholderEnabled && placeholderExpansion == null) {
+            placeholderExpansion = new LockEndExpansion(this);
+            placeholderExpansion.register();
+        } else if (!placeholderEnabled && placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
         }
-        // Schedule preview notification before unlock
-        previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-        long secondsDelay = java.time.Duration.between(java.time.LocalDateTime.now(), scheduledUnlockTime).getSeconds();
-        long ticksDelay = Math.max(secondsDelay, 0) * 20L;
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (locked && !schedulePaused) {
-                locked = false;
-                getConfig().set("locked", false);
-                saveConfig();
-                getLogger().info("Scheduled unlock executed.");
-                broadcastMessage("broadcast-unlocked", "System");
-            }
-        }, ticksDelay);
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            updateChecker = new UpdateChecker(this);
+            updateChecker.checkForUpdates();
+        }
     }
 
-    public void pauseSchedule() {
-        schedulePaused = true;
-        getLogger().info("Schedule paused by " + "System");
+    public LockHistoryCommand getHistoryCommand() {
+        return historyCommand;
     }
 
-    public void resumeSchedule() {
-        schedulePaused = false;
-        if (locked && scheduledUnlockTime != null) {
-            scheduleUnlock();
-        }
-        getLogger().info("Schedule resumed by " + "System");
+    public UndoCommand getUndoCommand() {
+        return undoCommand;
+    }
+
+    public ConfigValidatorCommand getConfigValidatorCommand() {
+        return configValidatorCommand;
+    }
+
+    public WhitelistChecker getWhitelistChecker() {
+        return whitelistChecker;
+    }
+
+    // --- Schedule delegates ---
+
+    public boolean hasScheduledAction() {
+        return schedules.hasAction();
+    }
+
+    public LocalDateTime getScheduledTime() {
+        return schedules.getTime();
+    }
+
+    public String getScheduledAction() {
+        return schedules.getAction();
+    }
+
+    public long getScheduledRemainingSeconds() {
+        return schedules.getRemainingSeconds();
     }
 
     public boolean isSchedulePaused() {
-        return schedulePaused;
+        return schedules.isPaused();
     }
 
-    private void sendJoinNotification(Player player) {
-        if (!getConfig().getBoolean("join-notifications.enabled", false) || !locked) {
-            return;
-        }
-        player.sendMessage(msg("join-notification"));
+    public void pauseSchedule() {
+        schedules.pause();
     }
 
-    public boolean isLocked() {
-        return locked;
+    public void resumeSchedule() {
+        schedules.resume();
+    }
+
+    public void clearSchedule() {
+        schedules.clear();
+    }
+
+    public String buildScheduleStatusMessage() {
+        return schedules.buildStatusMessage();
+    }
+
+    public void scheduleUnlockInDays(int days) {
+        schedules.scheduleUnlockInDays(days);
+    }
+
+    public void scheduleUnlockAt(LocalDateTime time) {
+        schedules.scheduleUnlockAt(time);
+    }
+
+    public void scheduleLockInMinutes(int minutes) {
+        schedules.scheduleLockInMinutes(minutes);
+    }
+
+    public void scheduleLockAt(LocalDateTime time) {
+        schedules.scheduleLockAt(time);
+    }
+
+    /**
+     * Whether the given world is an End world covered by the lock scope.
+     */
+    public boolean isGuardedEndWorld(World world) {
+        return world.getEnvironment() == World.Environment.THE_END
+                && (endWorlds.isEmpty()
+                || endWorlds.stream().anyMatch(name -> name.equalsIgnoreCase(world.getName())));
     }
 
     public String getRemainingText() {
         if (!locked) {
             return "Unlocked";
         }
-        return scheduledUnlockTime != null ? scheduledUnlockTime.toString() : "Permanent";
+        return schedules.hasAction()
+                ? schedules.getTime().format(SCHEDULE_FORMAT)
+                : "Permanent";
+    }
+
+    /**
+     * Escapes MiniMessage tags in user-provided input so it renders literally.
+     */
+    public String sanitize(String input) {
+        return messages.sanitize(input);
+    }
+
+    private void sendJoinNotification(Player player) {
+        player.sendMessage(messages.message("join-notification", Map.of()));
+    }
+
+    public boolean isLocked() {
+        return locked;
     }
 
     private void logAction(String player, String action) {
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
         }
+        String message = String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED");
         if (asyncLogger != null) {
-            asyncLogger.log(String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED"));
-        } else {
-            try {
-                LocalDateTime now = LocalDateTime.now();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                String timestamp = now.format(formatter);
-                String logMessage = String.format("[%s] %s - Player: %s - Status: %s\n",
-                        timestamp, action, player, locked ? "LOCKED" : "UNLOCKED");
-                if (logFile != null && !logFile.exists()) {
-                    logFile.createNewFile();
-                }
-                try (FileWriter writer = new FileWriter(logFile, true)) {
-                    writer.append(logMessage);
-                    writer.flush();
-                }
-            } catch (IOException e) {
-                getLogger().warning("Error writing to log file: " + e.getMessage());
-            }
+            asyncLogger.log(message);
         }
     }
 
@@ -350,336 +537,99 @@ public final class LockEnd extends JavaPlugin implements Listener, TabCompleter 
      * v1.6: Logs attempt with rate limiting and detailed info.
      */
     private void logAttempt(Player player, World sourceWorld, String method) {
-        if (!getConfig().getBoolean("logging.log-attempts", true)) {
+        if (!logAttempts) {
             return;
         }
         UUID playerId = player.getUniqueId();
         long now = System.currentTimeMillis();
 
         // Rate limit check
-        if (lastAttemptTimes.containsKey(playerId)) {
-            long lastAttempt = lastAttemptTimes.get(playerId);
-            if (now - lastAttempt < rateLimitSeconds * 1000L) {
-                return;
-            }
+        Long lastAttempt = lastAttemptTimes.get(playerId);
+        if (lastAttempt != null && now - lastAttempt < rateLimitSeconds * 1000L) {
+            return;
         }
         lastAttemptTimes.put(playerId, now);
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED\n",
+        String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
                 timestamp, player.getName(), sourceWorld.getName(), method);
 
         if (asyncLogger != null) {
-            asyncLogger.log(logMessage.trim());
-        } else {
-            try {
-                if (logFile != null && !logFile.exists()) {
-                    logFile.createNewFile();
-                }
-                try (FileWriter writer = new FileWriter(logFile, true)) {
-                    writer.append(logMessage);
-                    writer.flush();
-                }
-            } catch (IOException e) {
-                getLogger().warning("Error writing attempt log: " + e.getMessage());
-            }
+            asyncLogger.log(logMessage);
         }
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
-        if (args.length == 1) {
-            List<String> options = List.of("status", "lock", "unlock", "test", "stats",
-                    "unlockin", "unlockat", "reload", "history", "undo", "validateconfig",
-                    "pause", "resume");
-            StringUtil.copyPartialMatches(args[0], options, completions);
-        } else if (args.length == 2) {
-            String sub = args[0].toLowerCase(Locale.ROOT);
-            switch (sub) {
-                case "unlockin" -> {
-                    List<String> days = List.of("1", "7", "30");
-                    StringUtil.copyPartialMatches(args[1], days, completions);
-                }
-                case "unlockat" -> {
-                    java.time.LocalDate tomorrow = java.time.LocalDate.now().plusDays(1);
-                    String dateHint = tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                    List<String> dates = List.of(dateHint);
-                    StringUtil.copyPartialMatches(args[1], dates, completions);
-                }
-            }
-        } else if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("unlockat")) {
-                List<String> times = List.of("00:00", "12:00", "23:59");
-                StringUtil.copyPartialMatches(args[2], times, completions);
-            }
-        }
-        return completions;
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-
-        if (args.length >= 1) {
-            String sub = args[0].toLowerCase(Locale.ROOT);
-            switch (sub) {
-                case "status" -> {
-                    String status = locked ? msg("closed") : msg("open");
-                    sender.sendMessage(msg("status").replace("%status%", status));
-                    return true;
-                }
-                case "lock" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (!locked) {
-                        locked = true;
-                        getConfig().set("locked", true);
-                        saveConfig();
-                        sender.sendMessage(msg("toggle").replace("%status%", msg("closed")));
-                        broadcastMessage("broadcast-locked", sender.getName());
-                        logAction(sender.getName(), "LOCK");
-                        historyCommand.addEntry("LOCK by " + sender.getName());
-                        incrementStats(true);
-
-                        // v1.6: Grace period
-                        if (getConfig().getBoolean("grace-period.enabled", false)) {
-                            int duration = getConfig().getInt("grace-period.duration", 10);
-                            gracePeriodTask.startGracePeriod(duration);
-                        }
-                    } else {
-                        sender.sendMessage(msg("already-locked"));
-                    }
-                    return true;
-                }
-                case "unlock" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    if (locked) {
-                        locked = false;
-                        getConfig().set("locked", false);
-                        saveConfig();
-                        sender.sendMessage(msg("toggle").replace("%status%", msg("open")));
-                        broadcastMessage("broadcast-unlocked", sender.getName());
-                        logAction(sender.getName(), "UNLOCK");
-                        historyCommand.addEntry("UNLOCK by " + sender.getName());
-                    } else {
-                        sender.sendMessage(msg("already-unlocked"));
-                    }
-                    return true;
-                }
-                case "test" -> {
-                    if (getConfig().getBoolean("test-command.enabled", true)) {
-                        String status = locked ? msg("closed") : msg("open");
-                        sender.sendMessage(msg("test-success"));
-                        sender.sendMessage(msg("test-info").replace("%status%", status));
-                        logAction(sender.getName(), "TEST");
-                        return true;
-                    } else {
-                        sender.sendMessage("§cTest command is disabled!");
-                        return false;
-                    }
-                }
-                case "stats" -> {
-                    sender.sendMessage("§7Stats: §aLock count §f" + getConfig().getInt("stats.lock-count", 0) + " §7| §cBlocked count §f" + getConfig().getInt("stats.blocked-count", 0));
-                    return true;
-                }
-                case "unlockin" -> {
-                    if (args.length < 2) {
-                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
-                        return true;
-                    }
-                    try {
-                        int days = Integer.parseInt(args[1]);
-                        scheduledUnlockTime = LocalDateTime.now().plusDays(days);
-                        getConfig().set("scheduled-unlock.enabled", true);
-                        getConfig().set("scheduled-unlock.mode", "days");
-                        getConfig().set("scheduled-unlock.days", days);
-                        saveConfig();
-                        sender.sendMessage("§aScheduled unlock in " + days + " days.");
-                        if (locked) {
-                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-                            scheduleUnlock();
-                        }
-                    } catch (Exception e) {
-                        sender.sendMessage("§cUsage: /endlock unlockin <days>");
-                    }
-                    return true;
-                }
-                case "unlockat" -> {
-                    if (args.length < 3) {
-                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
-                        return true;
-                    }
-                    try {
-                        scheduledUnlockTime = LocalDateTime.parse(args[1] + " " + args[2], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                        getConfig().set("scheduled-unlock.enabled", true);
-                        getConfig().set("scheduled-unlock.mode", "datetime");
-                        getConfig().set("scheduled-unlock.datetime", scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-                        saveConfig();
-                        sender.sendMessage("§aScheduled unlock at " + scheduledUnlockTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + ".");
-                        if (locked) {
-                            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
-                            scheduleUnlock();
-                        }
-                    } catch (Exception e) {
-                        sender.sendMessage("§cUsage: /endlock unlockat <yyyy-MM-dd> <HH:mm>");
-                    }
-                    return true;
-                }
-                case "pause" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    pauseSchedule();
-                    sender.sendMessage(msg("schedule-paused"));
-                    return true;
-                }
-                case "resume" -> {
-                    if (!sender.hasPermission("endlock.admin")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    resumeSchedule();
-                    sender.sendMessage(msg("schedule-resumed"));
-                    return true;
-                }
-                case "history" -> {
-                    if (!sender.hasPermission("endlock.history")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    historyCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "undo" -> {
-                    if (!sender.hasPermission("endlock.undo")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    undoCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "validateconfig" -> {
-                    if (!sender.hasPermission("endlock.validate")) {
-                        sender.sendMessage(msg("permission"));
-                        return true;
-                    }
-                    configValidatorCommand.onCommand(sender, command, label, args);
-                    return true;
-                }
-                case "reload" -> {
-                    reloadConfig();
-                    langCode = getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
-                    loadLanguage(langCode);
-                    lockReason = getConfig().getString("lock-reason", "Maintenance");
-                    // Refresh managers with new config
-                    lockReasonManager = new LockReasonManager(getConfig());
-                    whitelistChecker = new WhitelistChecker(getConfig());
-                    rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
-                    loadScheduledUnlock();
-                    soundPlayer.loadConfig();
-                    if (locked && scheduledUnlockTime != null) {
-                        scheduleUnlock();
-                    }
-                    if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
-                        if (placeholderExpansion == null) {
-                            placeholderExpansion = new LockEndExpansion(this);
-                            placeholderExpansion.register();
-                        }
-                    }
-                    sender.sendMessage(msg("reload-success"));
-                    return true;
-                }
-            }
-        }
-
-        if (!(sender instanceof Player) || sender.hasPermission("endlock.toggle")) {
-            locked = !locked;
-            String status = locked ? msg("closed") : msg("open");
-            sender.sendMessage(msg("toggle").replace("%status%", status));
-            getConfig().set("locked", locked);
-            saveConfig();
-            broadcastMessage(locked ? "broadcast-locked" : "broadcast-unlocked", sender.getName());
-            logAction(sender.getName(), locked ? "LOCK" : "UNLOCK");
-            if (locked) {
-                incrementStats(true);
-                // Grace period on lock
-                if (getConfig().getBoolean("grace-period.enabled", false)) {
-                    int duration = getConfig().getInt("grace-period.duration", 10);
-                    gracePeriodTask.startGracePeriod(duration);
-                }
-            }
-            return true;
-        } else {
-            sender.sendMessage(msg("permission"));
-            return true;
-        }
-    }
-
-    @EventHandler
-    public void onPlayerPortal(PlayerPortalEvent event) {
-        Player player = event.getPlayer();
-        if (!locked) return;
-
-        // v1.6: Check whitelist
-        if (whitelistChecker.canBypass(player)) {
-            return;
-        }
-
-        if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
-            event.setCancelled(true);
-            // v1.6: Use lock reason
-            String reason = lockReasonManager.getReason("default");
-            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
-
-            // v1.6: Sound effect
-            soundPlayer.playDenialSound(player);
-
-            // v1.6: Rate-limited detailed logging
-            if (getConfig().getBoolean("logging.log-attempts", true)) {
-                logAttempt(player, player.getWorld(), "PORTAL");
-            }
-            incrementStats(false);
-        }
-    }
-
-    @EventHandler
+    // PlayerPortalEvent extends PlayerTeleportEvent, so this handler
+    // also receives portal transitions.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        Player player = event.getPlayer();
-        if (!locked) return;
+        handleEndAccess(event, "TELEPORT_" + event.getCause().name());
+    }
 
-        // v1.6: Check whitelist
-        if (whitelistChecker.canBypass(player)) {
+    private void handleEndAccess(PlayerTeleportEvent event, String method) {
+        Player player = event.getPlayer();
+        if (event.getTo() == null || event.getTo().getWorld() == null) {
             return;
         }
-
-        if (event.getTo() != null && event.getTo().getWorld().getEnvironment() == World.Environment.THE_END) {
-            event.setCancelled(true);
-            // v1.6: Use lock reason
-            String reason = lockReasonManager.getReason("default");
-            player.sendMessage(msg("locked-reason").replace("%reason%", reason));
-
-            // v1.6: Sound effect
-            soundPlayer.playDenialSound(player);
-
-            // v1.6: Rate-limited detailed logging
-            if (getConfig().getBoolean("logging.log-attempts", true)) {
-                logAttempt(player, player.getWorld(), "TELEPORT_" + event.getCause().name());
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                event.getTo().getWorld().getEnvironment(),
+                event.getTo().getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkPlayer(request, event.getCause(),
+                        () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
+        switch (verdict) {
+            case ALLOWED -> {}
+            case GRACE_PERIOD -> player.sendMessage(messages.message("grace-period-active", Map.of()));
+            case BLOCKED -> {
+                event.setCancelled(true);
+                player.sendMessage(messages.message("locked-reason",
+                        Map.of("%reason%", lockReasonManager.getReason("default"))));
+                soundPlayer.playDenialSound(player);
+                if (logAttempts) {
+                    logAttempt(player, player.getWorld(), method);
+                }
+                recordBlockedAttempt();
             }
-            incrementStats(false);
         }
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!locked || !getConfig().getBoolean("join-notifications.enabled", false)) {
+        if (!locked || !joinNotificationsEnabled) {
             return;
         }
         sendJoinNotification(event.getPlayer());
+    }
+
+    // EntityTeleportEvent also receives EntityPortalEvent and
+    // EntityTeleportEndGatewayEvent through inheritance, covering portals,
+    // gateways and plugin-driven entity teleports in one handler.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityTeleport(EntityTeleportEvent event) {
+        if (!blockEntities || !locked) {
+            return;
+        }
+        if (event.getEntity() instanceof Player) {
+            return; // Player movement is handled by the player teleport handler.
+        }
+        Location to = event.getTo();
+        if (to == null || to.getWorld() == null) {
+            return;
+        }
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                to.getWorld().getEnvironment(),
+                to.getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkEntity(request, event instanceof EntityTeleportEndGatewayEvent);
+        if (verdict == EndAccessGate.Verdict.BLOCKED) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        lastAttemptTimes.remove(event.getPlayer().getUniqueId());
     }
 }

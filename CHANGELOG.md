@@ -2,6 +2,125 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-08-23
+### Maintenance
+- Replaced deprecated Paper metadata access with `getPluginMeta()`.
+- Replaced deprecated `URL(String)` construction with URI-based URL creation.
+- Fixed update checks for `-SNAPSHOT` versions.
+- Removed redundant `TabCompleter` declaration and unused non-metrics fields.
+- Made `/endlock reload` refresh logging, MiniMessage, PlaceholderAPI, countdown, and update-checker settings.
+### Added
+- `/endlock` (with aliases `/lock`, `/el`) is now registered as a native Brigadier command via Paper's lifecycle API.
+- New localized message keys in all 8 languages: `usage`, `test-disabled`, `scheduled-unlock-set-days`, `scheduled-unlock-set-at`.
+- Added missing `already-locked` / `already-unlocked` keys to the ES, FR, IT, JA, RU, and ZH language files.
+- Scheduled locking with `/endlock lockin <minutes>` and `/endlock lockat <yyyy-MM-dd> <HH:mm>`.
+- Schedule inspection and clearing with `/endlock schedule status` and `/endlock schedule clear`.
+- UUID-, world-, and world-permission-based bypass rules for End access.
+- Optional warning and evacuation of players already inside the End when locking.
+- Added PlaceholderAPI values for status, reason, remaining seconds, target time, blocked count, and schedule action.
+- Structured lock history with pagination and JSON/CSV export.
+- Filter lock history by player or action: `/endlock history [page] [json|csv] [player|action <value>]`
+- History exports now use timestamped filenames to prevent overwrites.
+- Verified and documented that Folia is not currently supported; Paper 26.2 remains the target platform.
+- Completed localized message keys for scheduling, evacuation, and audit history in all supported languages.
+- English messages for EndLock functionality including notifications and commands
+- Enhanced MiniMessage formatting for broadcast messages and join notification
+- Centralized lock state transitions with consistent persistence, broadcasts, history, undo behavior, and scheduler cleanup
+- Configurable End world scope, End return blocking, and End gateway blocking
+- Countdown task for scheduled unlocks, plus `/endlock cancel` and `/endlock reason <reason>`
+- Persistent bounded lock history in `plugins/EndLock/history.yml`
+### Performance
+- Blocked-attempt stats are kept in memory and persisted on lock/disable instead of saving the whole config on every denied access.
+- End evacuation teleports players asynchronously (`teleportAsync`).
+- Hot-path config values (End scope, gateway blocking, logging/stats toggles) are cached and refreshed on enable/reload.
+- Remaining schedule time is computed via `ZonedDateTime`, so DST transitions no longer shift effective durations.
+### Changed
+- Portal and teleport denial share a single event listener (`PlayerPortalEvent` extends `PlayerTeleportEvent`).
+- Main class split into focused services: `MessageService`, `ScheduleManager`, and `EvacuationService`.
+- Remaining German log messages and comments translated to English.
+- Update gradle wrapper to version 9.7.1 and improve startup scripts for consistency
+- Update version to 2.0.0-SNAPSHOT
+- Refactor: extract duplicate logging code into writeToLogFile method
+- Translated bStats startup log message from German to English
+- Reload and shutdown now cancel scheduled, preview, countdown, and grace-period tasks cleanly
+- Preview notifications honor `preview-notifications.enabled`
+- Pinned the Paper API dependency to `26.2.build.112-stable` for reproducible builds.
+- Synchronized command, permission, configuration, and language documentation.
+- Sound effects use the Adventure sound API (`Key` based): configured names are validated, enum style constants like `BLOCK_ANVIL_LAND` map to `minecraft:block.anvil.land`, and invalid values warn once instead of failing silently.
+- bStats charts report the live lock state; `MetricsManager` works on `LockEnd` directly and uses the `PLUGIN_ID` constant.
+- The grace period now starts centrally in the lock state transition, so scheduled locks behave exactly like manual ones.
+- Access attempts during an active grace period are no longer counted or logged as blocked attempts.
+- New localized message key `grace-period-active` added in all 8 languages.
+- README, MODRINTH.md and config.yml document only existing options again.
+- Tab completion only offers subcommands the sender may execute; status and stats remain public.
+- Migrated the build scripts to the Kotlin DSL (`build.gradle.kts` / `settings.gradle.kts`) with identical task behavior; the release workflow extracts the version from `build.gradle.kts` now.
+
+### Added
+- JUnit 5 unit tests for update version comparison, schedule time parsing and duration formatting, whitelist bypass resolution (names, UUIDs, worlds, permissions), and history filters.
+- Language files live in a `lang` folder: bundled files ship under `lang/`, custom files belong in `plugins/EndLock/lang/`; legacy files sitting in the plugin root are migrated there automatically on load (nothing is deleted; if the move fails the legacy location keeps working).
+- Bundled English messages act as defaults for missing keys, so partial or outdated custom language files no longer blank out messages.
+- Natural duration aliases for scheduled locks: `/endlock lock in 5m` and `unlock in 7d` behave like `lockin`/`unlockin`, and both accept unit suffixes (`90m`, `2h`, `7d`, case-insensitive) that schedule the exact point in time. Bare numbers keep their legacy meaning (minutes/days).
+- Non-player entities are blocked from entering the End too (`end.block-entities`, default on). A single handler covers portals, gateways and plugin teleports via `EntityTeleportEvent` inheritance, and gateway travel honors `block-end-gateway` for entities like it does for players.
+- Config migration via `config-version` (currently 2): legacy configs are upgraded automatically on enable and reload - obsolete keys (`end.block-return`, `actionbar`, `join-notifications.show-remaining`, `whitelists.entities`, `metrics`) are removed, missing options are merged from the bundled defaults, and every user value survives.
+- History rotation: `history.max-entries` (default 1000) replaces the hardcoded 100-entry cap and `history.retention-days` (default 30, <=0 keeps forever) drops entries older than the window; both apply after reload and are validated by `/endlock validateconfig`.
+- `/endlock stats` now also lists unlocks and evacuated players; new placeholders `%lockend_unlock_count%` and `%lockend_evacuated%`.
+- Unit tests covering the full End access rule matrix (locked/unlocked/bypass/gateway/world scope/grace period, players and entities), config migration, history rotation and schedule date edge cases.
+
+### Removed
+- Unused `PermissionCache` class.
+- Redundant try/catch around Adventure's `sendActionBar`.
+- `commands` section from `plugin.yml` (commands register programmatically via Brigadier).
+- Bundled `adventure-api` dependency; Adventure is provided by `paper-api`.
+- Dead config options: `end.block-return` (its guard could never take effect), `actionbar.use-alt-char` / `actionbar.alt-char`, and `join-notifications.show-remaining`.
+- Unused entity whitelist (`whitelists.entities`) including `WhitelistChecker#canBypass(Entity)`.
+- The `metrics.enabled` option: bStats opt-out is handled globally via the bStats plugin config (`plugins/bStats/config.json`) instead of a duplicate switch in EndLock's config.
+- The misleading literal `endlock.bypass.world.*` entry from plugin.yml; per-world bypass permissions are granted dynamically as `endlock.bypass.world.<worldname>`.
+
+### Fixed
+- Update checker: `update-checker.notify-ops` (console) and `update-checker.notify-chat` (in-game) are now independent channels; disabling chat no longer suppresses all notifications.
+- Default lock reason is now resolved from `lock-reasons.default` with fallback to the top-level `lock-reason` key (previously read a non-existent key).
+- Bundled language files are loaded as UTF-8, fixing mojibake for JA/ZH/RU on platforms with a non-UTF-8 default charset.
+- Preview notifications are parsed through the MiniMessage/legacy pipeline instead of being sent as raw strings.
+- Grace period restarts cleanly when re-locking during an active grace period and is cancelled on manual unlock.
+- Unknown subcommands now show usage instead of silently toggling the lock state.
+- Rate-limit map entries are cleared on player quit, preventing unbounded memory growth.
+- Update release configuration for v2.0 branch
+- Undo now restores the previous state through the normal state-transition path
+- Update checking, MiniMessage fallback, and configured log paths are more robust
+- Portal and teleport denial logic is shared and runs at high priority for consistent handling
+- Configuration validation now checks schedule modes and dates, numeric ranges, supported languages, and required message keys.
+- Scheduled unlocks persist an absolute target time and no longer reset after restarts or reloads.
+- Long unlock and preview schedules use wall-clock rechecks instead of one large tick delay.
+- Command permissions are enforced per subcommand, keeping public status and test commands accessible through all aliases.
+- Grace period no longer unlocks the End permanently when it runs out: the lock stays in place and only its enforcement is delayed (attempts are allowed with a localized hint while active).
+- `/endlock pause` cancels both lock and unlock preview notifications; the lock preview previously kept firing while the schedule was paused.
+- Executed scheduled actions stop their countdown task and pending previews instead of leaving an idle repeating timer behind.
+- `/endlock test` enforces `endlock.admin` as documented in plugin.yml instead of being callable by every player.
+- `/endlock unlockat` rejects datetimes in the past, matching the existing validation of `/endlock lockat`.
+- Unknown language codes fall back to English instead of German.
+- The `%lockend_remaining%` PlaceholderAPI value renders as `yyyy-MM-dd HH:mm` instead of a raw ISO timestamp.
+- MiniMessage tags in user-provided input (lock reasons, history filter values, actor names) are escaped via `MiniMessage#escapeTags` so they render literally instead of injecting formatting.
+- Pending scheduled actions survive manual toggles: a scheduled lock still executes after a manual unlock instead of silently dying until reload or restart, and pause/resume no longer depends on the current lock state.
+- `/endlock unlockin` validates positive day counts like `/endlock lockin` does for minutes, and both commands catch their own invalid input instead of leaking an exception into the executor.
+- bStats charts report fresh values after `/endlock reload` instead of re-reading a stale config object captured at startup.
+- Custom namespaced sound keys keep their underscores (`mymod:epic_sound_blast`); only enum style constants like `BLOCK_ANVIL_LAND` are translated to dotted keys.
+- Impossible dates in scheduled commands are rejected with a strict resolver instead of being silently rounded: `/endlock lockat 2026-02-30 12:00` previously planned February 28th without any warning.
+- Stats now record every real state change: scheduled locks/unlocks and undo count towards the lock/unlock totals (the old `recordStats` flag suppressed them).
+- Evacuation warning and teleport respect the `end.worlds` scope; players in unscoped End worlds are no longer evacuated although entering there is allowed.
+- `/endlock reason` no longer re-creates the removed legacy `lock-reason` key after a migration cleaned it up.
+- bStats charts read only volatile state from the async submission thread instead of touching the main-thread-bound configuration (removes a rare ConcurrentModificationException risk) and use locale-safe uppercase for language codes.
+- The config validator requires the newer grace period and stats message keys.
+- Parsed message templates are cached per language key (invalidated on reload); hot paths such as broadcasts, countdowns, denial hints and previews parse once and reuse the rendered component for every recipient. Placeholder values are inserted as literal components, making MiniMessage injection impossible by construction.
+- `/endlock` is now a native Brigadier command tree: permissions are enforced per node so clients only see executable subcommands, arguments carry server-side suggestions, and `lock in <duration>` / `unlock in <duration>` are modeled natively. Unknown subcommands show Brigadier's built-in error instead of the custom usage line.
+- Bundled language files are resolved under `lang/messages_<code>.yml` inside the jar again, fixing fresh installs that showed raw message keys instead of localized text.
+- `EvacuationService` is now instantiated on enable; previously the field stayed null and every lock/unlock crashed with a NullPointerException (pre-existing bug).
+
+## [1.6.1] - 2026-08-18
+### Fixed
+- Improved AsyncLogger shutdown and processing loop
+- Ensured delay is never negative in PreviewNotificationManager
+- Added early return when logFile is null in logAction and logAttempt to prevent NPE
+
 ## [1.6.0] - 2026-08-17
 ### Added
 - Dependabot configuration for automatic Gradle and GitHub Actions updates

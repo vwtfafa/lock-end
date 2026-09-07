@@ -7,6 +7,9 @@ description: >
   is multilingual, permission-protected, and supports optional notifications, stats, and placeholders.
 authors: [vwtfafa]
 softdepend: [PlaceholderAPI]
+# Commands are registered programmatically as a native Brigadier command
+# tree via Paper's lifecycle API (see EndLockCommand#buildNode):
+# /endlock with aliases /lock and /el.
 permissions:
   endlock.reload:
     description: Reloads the plugin configuration without a server restart
@@ -20,6 +23,8 @@ permissions:
   endlock.whitelist.bypass:
     description: Bypass the End lock via whitelist
     default: op
+  # Dynamic per-world bypass permissions (endlock.bypass.world.<worldname>)
+  # are granted per world via permission plugins; no wildcard node exists.
   endlock.history:
     description: View lock history
     default: op
@@ -29,17 +34,3 @@ permissions:
   endlock.validate:
     description: Validate configuration file
     default: op
-commands:
-  endlock:
-    description: Globally locks or unlocks access to the End dimension
-    usage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.toggle
-  lock:
-    description: Alias for /endlock
-    usage: /lock [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.admin
-  el:
-    description: Short alias for /endlock (mobile-friendly)
-    usage: /el [status|lock|unlock|test|stats|unlockin|unlockat|pause|resume|reload|history|undo|validateconfig]
-    permission: endlock.admin
-  

@@ -5,6 +5,12 @@ status: "La End è attualmente %status%."
 permission: "§cNon hai il permesso di bloccare o sbloccare la End."
 open: "§aaperta"
 closed: "§cbloccata"
+already-locked: "§cLa End è già bloccata!"
+already-unlocked: "§cLa End è già sbloccata!"
+usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cIl comando di test è disabilitato."
+scheduled-unlock-set-days: "§aSblocco programmato tra %days% giorni."
+scheduled-unlock-set-at: "§aSblocco programmato per il %datetime%."
 
 # Messaggi di trasmissione
 broadcast-locked: "§6[§cEndLock§6] La End è stata §cbloccata§6 da §b%player%"
@@ -24,36 +30,64 @@ stats-header: "§7Statistiche: §aBlocchi §f%lockcount% §7| §cTentativi blocc
 stats-empty: "§7Nessuna statistica registrata."
 scheduled-unlock-set: "§aSblocco programmato impostato."
 scheduled-unlock-invalid: "§cUtilizzo: /endlock unlockin <giorni> o /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aBlocco programmato impostato."
+scheduled-lock-invalid: "§cUtilizzo: /endlock lockin <minuti> o /endlock lockat <yyyy-MM-dd> <HH:mm>"
+schedule-cancelled: "§aSblocco programmato annullato."
+reason-usage: "§cUtilizzo: /endlock reason <motivo>"
+reason-set: "§aMotivo del blocco impostato: %reason%"
 join-notification: "§6La End è attualmente bloccata."
+evacuation-warning: "§eSarai spostato fuori dalla End tra §b%seconds% §esecondi perché è bloccata."
+evacuation-complete: "§aSei stato spostato fuori dalla End perché è bloccata."
 update-available: "§6[§cEndLock§6] Aggiornamento disponibile: §e%version%"
 update-download: "§7Apri: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfigurazione ricaricata con successo!"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§eLa End sarà bloccata tra §b%seconds% §esecondi!"
 preview-unlock: "§aLa End sarà sbloccata tra §e%seconds% §asecondi!"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§cEndLock§6] Lo sblocco programmato è stato §cpausato§6. Usa §e/endlock resume§6 per riprendere."
 schedule-resumed: "§6[§cEndLock§6] Lo sblocco programmato è stato §acontinuato§6."
 schedule-not-paused: "§6[§cEndLock§6] La pianificazione non è attualmente in pausa."
 schedule-pause-not-locked: "§6[§cEndLock§6] Impossibile mettere in pausa: la End non è bloccata."
 schedule-resume-not-paused: "§6[§cEndLock§6] Impossibile riprendere: nessuna pianificazione è in pausa."
+schedule-status-usage: "§cUtilizzo: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Azione: §e%action% §6| Obiettivo: §e%target% §6| Restante: §e%remaining% §6| In pausa: §e%paused%"
+schedule-none: "nessuna"
+schedule-cleared: "§aAzione programmata cancellata."
 countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%§6."
 
-# v1.6: History command
+# Scheduled lock countdown
+countdown-lock-notification: "§6[§cEndLock§6] La End sarà bloccata tra §e%time%§6."
+
+# History command
 history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"
+history-header-page: "§6[§cEndLock§6] §eStorico blocchi (pagina %page%):"
 history.empty: "§6[§cEndLock§6] Nessun storico di blocchi."
+history-page-empty: "§c[EndLock] Questa pagina dello storico è vuota."
+history-usage: "§cUtilizzo: /endlock history [pagina] [json|csv] [player|action <valore>]"
+history-exported: "§aStorico esportato in %file%."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtro storico per giocatore: §b%player%"
+history.filter-action: "§7Filtro storico per azione: §e%action%"
+history.filter-no-results: "§c[EndLock] Nessuna voce nello storico corrisponde al filtro: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§cEndLock§6] Ultima azione annullata con successo. La End è ora §e%action%§6."
+undo.empty: "§c[EndLock] Nessuna azione da annullare."
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§aLa configurazione è valida. Nessun problema trovato."
 config.issues: "§6[§cEndLock§6] §eProblemi trovati nella configurazione:"
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§cEndLock§6] La pianificazione è attualmente §cpausata§6."
 countdown-status-active: "§6[§cEndLock§6] La pianificazione è attualmente §aattiva§6. Sblocco tra: %time%"
+
+# Grace period
+grace-period-active: "§eIl periodo di grazia del blocco dell'End è attivo - l'accesso sarà presto bloccato."
+# Extended statistics
+stats-line-unlocks: "§7Sbloccchi: §f%unlockcount%"
+stats-line-evacuated: "§7Giocatori evacuati: §f%evacuated%"

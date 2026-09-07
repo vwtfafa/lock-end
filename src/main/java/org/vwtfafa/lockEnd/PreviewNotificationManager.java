@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -7,12 +8,11 @@ import org.bukkit.scheduler.BukkitTask;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Map;
-
-/**
+import java.util.Map;/**
  * Manages preview notifications before automatic lock/unlock events.
  */
 public class PreviewNotificationManager {
+    private static final long PREVIEW_RECHECK_TICKS = 20L * 60L;
     private final LockEnd plugin;
     private final Map<String, BukkitTask> previewTasks = new HashMap<>();
 
@@ -25,24 +25,19 @@ public class PreviewNotificationManager {
      * @param lockTime The time when lock will occur
      */
     public void schedulePreviewLock(LocalDateTime lockTime) {
+        if (!plugin.getConfig().getBoolean("preview-notifications.enabled", false)) {
+            return;
+        }
         cancelPreview("lock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Duration.between(LocalDateTime.now(), lockTime).getSeconds() - previewSeconds;
-        if (previewDelay <= 0) {
-            previewDelay = 0;
-        }
-
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        schedulePreview("lock", lockTime, previewSeconds, () -> {
             if (plugin.isLocked()) {
-                return; // Already locked
+                return;
             }
-            String message = plugin.msg("preview-lock").replace("%seconds%", String.valueOf(previewSeconds));
-            sendPreviewToAll(message);
-            previewTasks.remove("lock");
-        }, previewDelay * 20L);
-
-        previewTasks.put("lock", task);
+            sendPreviewToAll(plugin.message("preview-lock",
+                    Map.of("%seconds%", String.valueOf(previewSeconds))));
+        });
     }
 
     /**
@@ -50,24 +45,38 @@ public class PreviewNotificationManager {
      * @param unlockTime The time when unlock will occur
      */
     public void schedulePreviewUnlock(LocalDateTime unlockTime) {
+        if (!plugin.getConfig().getBoolean("preview-notifications.enabled", false)) {
+            return;
+        }
         cancelPreview("unlock");
         int previewSeconds = plugin.getConfig().getInt("preview-notifications.seconds", 30);
 
-        long previewDelay = Duration.between(LocalDateTime.now(), unlockTime).getSeconds() - previewSeconds;
-        if (previewDelay <= 0) {
-            previewDelay = 0;
-        }
+        schedulePreview("unlock", unlockTime, previewSeconds, () -> {
+            if (!plugin.isLocked()) {
+                return;
+            }
+            sendPreviewToAll(plugin.message("preview-unlock",
+                    Map.of("%seconds%", String.valueOf(previewSeconds))));
+        });
+    }
+
+    private void schedulePreview(String type, LocalDateTime targetTime, int previewSeconds, Runnable notification) {
+        long remainingMillis = Duration.between(LocalDateTime.now(), targetTime).toMillis();
+        long previewMillis = previewSeconds * 1000L;
+        long delayMillis = Math.max(0L, remainingMillis - previewMillis);
+        long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
+        delayTicks = Math.min(delayTicks, PREVIEW_RECHECK_TICKS);
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!plugin.isLocked()) {
-                return; // Already unlocked
+            long remaining = Duration.between(LocalDateTime.now(), targetTime).toMillis();
+            if (remaining > previewMillis) {
+                schedulePreview(type, targetTime, previewSeconds, notification);
+                return;
             }
-            String message = plugin.msg("preview-unlock").replace("%seconds%", String.valueOf(previewSeconds));
-            sendPreviewToAll(message);
-            previewTasks.remove("unlock");
-        }, previewDelay * 20L);
-
-        previewTasks.put("unlock", task);
+            notification.run();
+            previewTasks.remove(type);
+        }, delayTicks);
+        previewTasks.put(type, task);
     }
 
     /**
@@ -94,10 +103,13 @@ public class PreviewNotificationManager {
 
     /**
      * Sends a preview message to all online players.
-     * @param message The message to send
+     * @param message The rendered component to send
      */
-    private void sendPreviewToAll(String message) {
+    private void sendPreviewToAll(Component message) {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player == null) {
+                continue;
+            }
             if (player.hasPermission("endlock.admin") || player.isOp()) {
                 player.sendMessage(message);
             }

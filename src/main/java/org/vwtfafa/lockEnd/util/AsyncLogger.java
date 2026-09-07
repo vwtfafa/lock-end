@@ -1,24 +1,24 @@
 package org.vwtfafa.lockEnd.util;
 
-import org.bukkit.Bukkit;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * Asynchronous logger to prevent main thread lag from file I/O.
  */
 public class AsyncLogger {
-    private static final AsyncLogger INSTANCE = new AsyncLogger();
-    private final Queue<LogEntry> logQueue = new ConcurrentLinkedQueue<>();
+    private final BlockingQueue<LogEntry> logQueue = new LinkedBlockingQueue<>();
+    private final Logger logger;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "EndLock-AsyncLogger");
         t.setDaemon(true);
@@ -27,10 +27,8 @@ public class AsyncLogger {
     private File logFile;
     private volatile boolean running = false;
 
-    public AsyncLogger() {}
-
-    public static AsyncLogger getInstance() {
-        return INSTANCE;
+    public AsyncLogger(Logger logger) {
+        this.logger = logger;
     }
 
     /**
@@ -57,40 +55,41 @@ public class AsyncLogger {
     }
 
     /**
-     * Shuts down the async logger.
+     * Shuts down the async logger, waiting for the executor to finish processing
+     * remaining entries before returning.
      */
     public void shutdown() {
         running = false;
-        processRemaining();
-        executor.shutdown();
+        executor.shutdown(); // Prevent new tasks from being accepted
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow(); // Cancel any still-running tasks
+                if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    logger.warning("AsyncLogger executor did not terminate within the timeout");
+                }
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void startProcessing() {
         executor.submit(() -> {
             while (running || !logQueue.isEmpty()) {
-                processNext();
                 try {
-                    Thread.sleep(50); // 50ms interval
+                    LogEntry entry = logQueue.poll(200, TimeUnit.MILLISECONDS);
+                    if (entry != null) {
+                        writeToFile(entry.message);
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    break;
+                    if (!running) {
+                        break;
+                    }
                 }
             }
         });
-    }
-
-    private void processNext() {
-        LogEntry entry = logQueue.poll();
-        if (entry != null) {
-            writeToFile(entry.message);
-        }
-    }
-
-    private void processRemaining() {
-        LogEntry entry;
-        while ((entry = logQueue.poll()) != null) {
-            writeToFile(entry.message);
-        }
     }
 
     private void writeToFile(String message) {
@@ -107,7 +106,7 @@ public class AsyncLogger {
                 writer.print(logMessage);
             }
         } catch (IOException e) {
-            Bukkit.getLogger().severe("Error writing to log file: " + e.getMessage());
+            logger.severe("Error writing to log file: " + e.getMessage());
         }
     }
 

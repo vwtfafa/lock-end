@@ -7,6 +7,10 @@ open: "§aoffen"
 closed: "§cgesperrt"
 already-locked: "§cDas End ist bereits gesperrt!"
 already-unlocked: "§cDas End ist bereits entsperrt!"
+usage: "§cVerwendung: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cDer Test-Befehl ist deaktiviert."
+scheduled-unlock-set-days: "§aGeplantes Entsperren in %days% Tagen."
+scheduled-unlock-set-at: "§aGeplantes Entsperren am %datetime%."
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End wurde von §b%player% §cgesperrt"
@@ -26,36 +30,63 @@ stats-header: "§7Statistiken: §aSperrungen §f%lockcount% §7| §cBlockierunge
 stats-empty: "§7Noch keine Statistiken vorhanden."
 scheduled-unlock-set: "§aGeplantes Entsperren gesetzt."
 scheduled-unlock-invalid: "§cVerwendung: /endlock unlockin <Tage> oder /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aGeplante Sperrung gesetzt."
+scheduled-lock-invalid: "§cVerwendung: /endlock lockin <Minuten> oder /endlock lockat <yyyy-MM-dd> <HH:mm>"
+schedule-cancelled: "§aGeplante Entsperrung abgebrochen."
+schedule-status-usage: "§cVerwendung: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Aktion: §e%action% §6| Ziel: §e%target% §6| Verbleibend: §e%remaining% §6| Pausiert: §e%paused%"
+schedule-none: "keine"
+schedule-cleared: "§aGeplante Aktion gelöscht."
+reason-usage: "§cVerwendung: /endlock reason <Grund>"
+reason-set: "§aSperrgrund gesetzt auf: %reason%"
 join-notification: "§6Das End ist aktuell gesperrt."
+evacuation-warning: "§eDu wirst in §b%seconds% §eSekunden aus dem End teleportiert, weil es gesperrt wurde."
+evacuation-complete: "§aDu wurdest aus dem End teleportiert, weil es gesperrt ist."
 update-available: "§6[§cEndLock§6] Update verfügbar: §e%version%"
 update-download: "§7Öffnen: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aKonfiguration erfolgreich neu geladen!"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§eDas End wird in §b%seconds% §eSekunden gesperrt!"
 preview-unlock: "§aDas End wird in §e%seconds% §asekunden entsperrt!"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§cEndLock§6] Geplantes Entsperrungen wurde §cpausiert§6. Nutze §e/endlock resume§6 zum Fortsetzen."
 schedule-resumed: "§6[§cEndLock§6] Geplantes Entsperrungen wurde §afortgesetzt§6."
 schedule-not-paused: "§6[§cEndLock§6] Der Zeitplan ist aktuell nicht pausiert."
 schedule-pause-not-locked: "§6[§cEndLock§6] Zeitplan kann nicht pausiert werden: Das End ist nicht gesperrt."
 schedule-resume-not-paused: "§6[§cEndLock§6] Zeitplan kann nicht fortgesetzt werden: Kein Zeitplan pausiert."
 countdown-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 entsperrt."
+countdown-lock-notification: "§6[§cEndLock§6] Das End wird in §e%time%§6 gesperrt."
 
-# v1.6: History command
+# History command
 history.header: "§6[§cEndLock§6] §eSperrverlauf (letzte 10):"
+history-header-page: "§6[§cEndLock§6] §eSperrverlauf (Seite %page%):"
 history.empty: "§6[§cEndLock§6] Keine Sperrhistorie aufgenommen."
+history-page-empty: "§c[EndLock] Diese History-Seite ist leer."
+history-usage: "§cVerwendung: /endlock history [Seite] [json|csv] [player|action <Wert>]"
+history-exported: "§aHistory nach %file% exportiert."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtere Historie nach Spieler: §b%player%"
+history.filter-action: "§7Filtere Historie nach Aktion: §e%action%"
+history.filter-no-results: "§c[EndLock] Keine History-Einträge passen zum Filter: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§cEndLock§6] Letzte Aktion erfolgreich rückgängig gemacht. End ist jetzt §e%action%§6."
+undo.empty: "§c[EndLock] Es gibt keine Aktion zum Rückgängigmachen."
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§aKonfiguration ist gültig. Keine Probleme gefunden."
 config.issues: "§6[§cEndLock§6] §eProbleme in der Konfiguration gefunden:"
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Zeitplan ist aktuell §cpausiert§6."
 countdown-status-active: "§6[§cEndLock§6] Zeitplan ist aktuell §aaktiv§6. Entsperrung in: %time%"
+
+# Grace period
+grace-period-active: "§eDie Schonfrist der End-Sperre ist aktiv - der Zugang wird in Kürze blockiert."
+
+# Extended statistics
+stats-line-unlocks: "§7Entsperrungen: §f%unlockcount%"
+stats-line-evacuated: "§7Evakuierte Spieler: §f%evacuated%"

@@ -1,4 +1,4 @@
-locked: "The End is locked!"
+locked: "<gradient:#ff0000:#ffff00>The End is locked!</gradient>"
 locked-reason: "The End is locked! Reason: %reason%"
 toggle: "The End is now %status%."
 status: "The End is currently %status%."
@@ -7,6 +7,10 @@ open: "§aopen"
 closed: "§clocked"
 already-locked: "§cThe End is already locked!"
 already-unlocked: "§cThe End is already unlocked!"
+usage: "§cUsage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+test-disabled: "§cThe test command is disabled."
+scheduled-unlock-set-days: "§aScheduled unlock in %days% days."
+scheduled-unlock-set-at: "§aScheduled unlock at %datetime%."
 
 # Broadcast messages
 broadcast-locked: "§6[§cEndLock§6] End has been §clocked§6 by §b%player%"
@@ -26,36 +30,63 @@ stats-header: "§7Stats: §aLock count §f%lockcount% §7| §cBlocked count §f%
 stats-empty: "§7No stats recorded yet."
 scheduled-unlock-set: "§aScheduled unlock set."
 scheduled-unlock-invalid: "§cUsage: /endlock unlockin <days> or /endlock unlockat <yyyy-MM-dd> <HH:mm>"
+scheduled-lock-set: "§aScheduled lock set."
+scheduled-lock-invalid: "§cUsage: /endlock lockin <minutes> or /endlock lockat <yyyy-MM-dd> <HH:mm>"
+schedule-cancelled: "§aScheduled unlock cancelled."
+schedule-status-usage: "§cUsage: /endlock schedule <status|clear>"
+schedule-status: "§6[§cEndLock§6] Action: §e%action% §6| Target: §e%target% §6| Remaining: §e%remaining% §6| Paused: §e%paused%"
+schedule-none: "none"
+schedule-cleared: "§aScheduled action cleared."
+reason-usage: "§cUsage: /endlock reason <reason>"
+reason-set: "§aLock reason set to: %reason%"
 join-notification: "§6The End is currently locked."
+evacuation-warning: "§eYou will be moved out of the End in §b%seconds% §eseconds because it is locked."
+evacuation-complete: "§aYou were moved out of the End because it is locked."
 update-available: "§6[§cEndLock§6] Update available: §e%version%"
 update-download: "§7Open: §bhttps://github.com/vwtfafa/lock-end/releases"
 reload-success: "§aConfiguration reloaded successfully!"
 
-# v1.6: Preview notifications
+# Preview notifications
 preview-lock: "§eThe End will be locked in §b%seconds% §eseconds!"
 preview-unlock: "§aThe End will be unlocked in §e%seconds% §aseconds!"
 
-# v1.6: Schedule pause/resume
+# Schedule pause/resume
 schedule-paused: "§6[§cEndLock§6] Scheduled unlock has been §cpaused§6. Use §e/endlock resume§6 to resume."
 schedule-resumed: "§6[§cEndLock§6] Scheduled unlock has been §aresumed§6."
 schedule-not-paused: "§6[§cEndLock§6] The schedule is not currently paused."
 schedule-pause-not-locked: "§6[§cEndLock§6] Cannot pause schedule: the End is not locked."
 schedule-resume-not-paused: "§6[§cEndLock§6] Cannot resume schedule: no schedule is paused."
 countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time%§6."
+countdown-lock-notification: "§6[§cEndLock§6] The End will be locked in §e%time%§6."
 
-# v1.6: History command
+# History command
 history.header: "§6[§cEndLock§6] §eLock History (last 10):"
+history-header-page: "§6[§cEndLock§6] §eLock History (page %page%):"
 history.empty: "§6[§cEndLock§6] No lock history recorded."
+history-page-empty: "§c[EndLock] This history page is empty."
+history-usage: "§cUsage: /endlock history [page] [json|csv] [player|action <value>]"
+history-exported: "§aHistory exported to %file%."
 history-entry: "§7- %entry%"
+history.filter-player: "§7Filtering history by player: §b%player%"
+history.filter-action: "§7Filtering history by action: §e%action%"
+history.filter-no-results: "§c[EndLock] No history entries match the filter: %type% = %value%"
 
-# v1.6: Undo command
+# Undo command
 undo.success: "§6[§cEndLock§6] Successfully undone last action. End is now §e%action%§6."
+undo.empty: "§c[EndLock] There is no action to undo."
 
-# v1.6: Config validator
+# Config validator
 config.valid: "§aConfiguration is valid. No issues found."
 config.issues: "§6[§cEndLock§6] §eConfiguration issues found:"
 config-issue: "§7- %issue%"
 
-# v1.6: Countdown status
+# Countdown status
 countdown-status-paused: "§6[§cEndLock§6] Schedule is currently §cpaused§6."
 countdown-status-active: "§6[§cEndLock§6] Schedule is currently §aactive§6. Unlocking in: %time%"
+
+# Grace period
+grace-period-active: "§eThe End lock grace period is active - access will be blocked shortly."
+
+# Extended statistics
+stats-line-unlocks: "§7Unlocks: §f%unlockcount%"
+stats-line-evacuated: "§7Evacuated players: §f%evacuated%"

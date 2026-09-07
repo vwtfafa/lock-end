@@ -17,14 +17,25 @@
 | `/endlock unlock` | Unlock the End | `endlock.toggle` |
 | `/endlock unlockin <time>` | Schedule unlock (e.g. 7d, 12h) | `endlock.admin` |
 | `/endlock unlockat <datetime>` | Schedule unlock (e.g. 2026-07-01_18:00) | `endlock.admin` |
+| `/endlock lockin <minutes>` | Schedule a future lock | `endlock.toggle` |
+| `/endlock lockat <datetime>` | Schedule a future lock at specific time | `endlock.toggle` |
 | `/endlock status` | Show current lock status | — |
 | `/endlock stats` | Show plugin statistics | `endlock.admin` |
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
+| `/endlock schedule status` | Show active scheduled action | `endlock.admin` |
+| `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
+| `/endlock history` | View recent lock/unlock history | `endlock.history` |
+| `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
+| `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
+| `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
+| `/endlock pause` | Pause scheduled timers | `endlock.admin` |
+| `/endlock resume` | Resume paused scheduled timers | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
+| `/el` | Short alias for `/endlock` (mobile-friendly) | `endlock.toggle` |
 
 ### 🔌 Integrations
 
-- **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`
+- **PlaceholderAPI** — `%endlock_status%`, `%endlock_remaining%`, `%endlock_remaining_seconds%`, `%endlock_unlock_at%`, `%endlock_target_time%`, `%endlock_lock_reason%`, `%endlock_reason%`, `%endlock_blocked_count%`, `%endlock_schedule_action%`, `%endlock_schedule_active%`
 - **LuckPerms** — Context `lockend:locked=true|false`
 - **MiniMessage** — Full RGB & gradient message support
 

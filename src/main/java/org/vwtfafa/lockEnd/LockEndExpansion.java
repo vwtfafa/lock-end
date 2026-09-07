@@ -17,12 +17,12 @@ public class LockEndExpansion extends PlaceholderExpansion {
 
     @Override
     public String getAuthor() {
-        return plugin.getDescription().getAuthors().toString();
+        return plugin.getPluginMeta().getAuthors().isEmpty() ? "Unknown" : plugin.getPluginMeta().getAuthors().get(0);
     }
 
     @Override
     public String getVersion() {
-        return plugin.getDescription().getVersion();
+        return plugin.getPluginMeta().getVersion();
     }
 
     @Override
@@ -39,6 +39,16 @@ public class LockEndExpansion extends PlaceholderExpansion {
         return switch (identifier.toLowerCase()) {
             case "status" -> plugin.isLocked() ? "Locked" : "Unlocked";
             case "remaining" -> plugin.getRemainingText();
+            case "remaining_seconds" -> String.valueOf(plugin.getScheduledRemainingSeconds());
+            case "unlock_at", "target_time" -> plugin.getScheduledTime() == null
+                    ? ""
+                    : plugin.getScheduledTime().format(LockEnd.SCHEDULE_FORMAT);
+            case "lock_reason", "reason" -> plugin.getLockReason();
+            case "blocked_count" -> String.valueOf(plugin.getBlockedCount());
+            case "unlock_count", "unlocks" -> String.valueOf(plugin.getUnlockCount());
+            case "evacuated" -> String.valueOf(plugin.getEvacuatedCount());
+            case "schedule_action" -> plugin.hasScheduledAction() ? plugin.getScheduledAction() : "none";
+            case "schedule_active" -> String.valueOf(plugin.hasScheduledAction());
             default -> null;
         };
     }
