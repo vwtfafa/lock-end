@@ -1,7 +1,7 @@
 name: EndLock
 version: '${version}'
 main: org.vwtfafa.lockEnd.LockEnd
-api-version: '26.2'
+api-version: '26.3'
 description: >
   EndLock globally locks access to the End dimension via command (blocks /execute, /tp, plugins, etc.),
   is multilingual, permission-protected, and supports optional notifications, stats, and placeholders.

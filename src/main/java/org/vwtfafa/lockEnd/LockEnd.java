@@ -145,7 +145,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // bStats plugin config (plugins/bStats/config.json), not here.
         new MetricsManager(this);
 
-        getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.2+)");
+        getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.3+)");
     }
 
     @Override
