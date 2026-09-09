@@ -2,10 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.1] - 2026-09-9
+## [2.0.1] - 2026-09-09
 
 ### Changed
-- Updatet to mc 26.3 pre 2
+- Updated the Paper API dependency to `26.3-pre-2.build.0-alpha`.
+- Bumped `api-version` to `26.3` and the local test server to Paper `26.3-pre-2`.
+- Updated README and Modrinth documentation to Paper 26.3.
 
 ## [2.0.0] - 2026-08-23
 ### Maintenance
