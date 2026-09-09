@@ -37,17 +37,17 @@
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.2** or newer |
-| Minecraft | **26.2** |
+| Server | [Paper](https://papermc.io/) **26.3** or newer |
+| Minecraft | **26.3** |
 | Java | **25** |
 
-> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.2`.
+> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.3`.
 
 > Folia is currently **not supported**. EndLock uses BukkitScheduler main-thread tasks and global player iteration. Folia support requires a separate scheduler and per-player execution model.
 
 ## Installation
 
-1. Download the latest `lock-end-2.0.0-SNAPSHOT.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-2.0.1.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -295,7 +295,7 @@ On every push to **`main`**, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads Paper 26.2):
+Run a local test server (downloads Paper 26.3-pre-2):
 
 ```bash
 ./gradlew runServer
