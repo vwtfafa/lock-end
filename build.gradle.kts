@@ -37,7 +37,7 @@ dependencies {
 
 tasks {
     runServer {
-        minecraftVersion("26.2")
+        minecraftVersion("26.3-pre-2")
     }
 
     jar {
