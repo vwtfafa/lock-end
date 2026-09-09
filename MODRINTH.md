@@ -199,12 +199,12 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 | Platform | Support |
 | -------- | ------- |
-| **Paper** 26.2+ | ✅ Recommended |
-| **Purpur** 26.2+ | ✅ Paper-based, works |
+| **Paper** 26.3+ | ✅ Recommended |
+| **Purpur** 26.3+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
 | **Folia** | ❌ Not supported |
 
-* **Minecraft:** `26.2`
+* **Minecraft:** `26.3`
 * **Java:** `25` 
 
 ---
@@ -240,7 +240,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
 2. Put `lock-end-2.0.1.jar` into your `plugins` folder
-3. Restart your server (Paper 26.2+, Java 25)
+3. Restart your server (Paper 26.3+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
 ---
