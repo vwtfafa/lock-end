@@ -1,6 +1,6 @@
 # Paper Plugin Development
 
-This project is a Minecraft Paper plugin targeting **Paper 26.2**.
+This project is a Minecraft Paper plugin targeting **Paper 26.3**.
 
 ## Project Goal
 
@@ -18,13 +18,13 @@ Official documentation:
 
 - https://docs.papermc.io/paper/dev/api/
 - https://papermc.io/javadocs/
-- https://jd.papermc.io/paper/26.2/
+- https://jd.papermc.io/paper/26.3/
 
 ### API Research Rules
 
 Before using an unfamiliar, uncertain, or potentially version-dependent API:
 
-1. Check the official Paper 26.2 Javadocs.
+1. Check the official Paper 26.3 Javadocs.
 2. Verify that the class, method, constructor, event, or interface actually exists.
 3. Verify method parameters and return types.
 4. Check whether the API is deprecated.
@@ -39,8 +39,8 @@ If documentation cannot be accessed, clearly state the uncertainty instead of pr
 
 Target:
 
-- Minecraft: 26.2
-- Paper: 26.2
+- Minecraft: 26.3
+- Paper: 26.3
 
 The version configured in `build.gradle` is the authoritative dependency version.
 
