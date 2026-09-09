@@ -276,7 +276,7 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-2.0.0-SNAPSHOT.jar`
+Output: `build/libs/lock-end-2.0.1.jar`
 
 ## Automatic releases (GitHub Actions)
 

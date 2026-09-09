@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-09-9
+
+### Changed
+- Updatet to mc 26.3 pre 2
+
 ## [2.0.0] - 2026-08-23
 ### Maintenance
 - Replaced deprecated Paper metadata access with `getPluginMeta()`.

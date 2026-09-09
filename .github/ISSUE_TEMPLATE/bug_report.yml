@@ -16,7 +16,7 @@ body:
     id: server
     attributes:
       label: Server software
-      placeholder: Paper 26.2
+      placeholder: Paper 26.3
     validations:
       required: true
   - type: textarea

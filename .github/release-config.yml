@@ -11,7 +11,7 @@ branches:
 
   beta:
     type: beta
-    paper: "26.2"
+    paper: "26.3"
     java: "25"
 
   paper-26.3:
