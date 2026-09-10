@@ -24,6 +24,7 @@ public class ConfigValidatorCommand {
             "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",
             "reload-success", "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed",
             "history-header-page", "history-page-empty", "history-usage", "history-exported",
+            "history-export-failed",
             "usage", "test-disabled", "scheduled-unlock-set-days", "scheduled-unlock-set-at",
             "grace-period-active", "stats-line-unlocks", "stats-line-evacuated"
     );

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
  * Command to view lock history.
  */
 public class LockHistoryCommand {
+    private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final File historyFile;
@@ -109,6 +110,10 @@ public class LockHistoryCommand {
         // Apply export if format specified
         if (format != null) {
             File exportFile = export(format, filter);
+            if (exportFile == null) {
+                sender.sendMessage(plugin.msg("history-export-failed"));
+                return true;
+            }
             sender.sendMessage(plugin.msg("history-exported").replace("%file%", exportFile.getName()));
             return true;
         }
@@ -246,8 +251,9 @@ public class LockHistoryCommand {
                     .collect(Collectors.toList());
         }
 
-        // Use timestamped filename to avoid overwrites
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss"));
+        // Timestamp with millis plus a counter to avoid overwrites on rapid exports.
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS"))
+                + "-" + EXPORT_COUNTER.incrementAndGet();
         File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + format.toLowerCase());
         try {
             if (format.equalsIgnoreCase("json")) {
@@ -276,6 +282,7 @@ public class LockHistoryCommand {
             }
         } catch (IOException exception) {
             plugin.getLogger().warning("Could not export history: " + exception.getMessage());
+            return null;
         }
         return exportFile;
     }
