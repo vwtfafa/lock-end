@@ -330,7 +330,8 @@ public final class EndLockCommand {
 
     /**
      * The optional second token: an export format or a filter type followed
-     * by its value.
+     * by its value. A third word allows format + filter + value
+     * (e.g. "json player Steve", optionally preceded by a page).
      */
     private RequiredArgumentBuilder<CommandSourceStack, String> historyTail() {
         return argument("token", word())
@@ -346,7 +347,15 @@ public final class EndLockCommand {
                                     argsWith(pageArg(context), getString(context, "token"),
                                             getString(context, "value")));
                             return 1;
-                        }));
+                        })
+                        .then(argument("filterValue", word())
+                                .executes(context -> {
+                                    showHistory(context.getSource().getSender(),
+                                            argsWith(pageArg(context), getString(context, "token"),
+                                                    getString(context, "value"),
+                                                    getString(context, "filterValue")));
+                                    return 1;
+                                })));
     }
 
     private static String[] argsWith(String... parts) {
