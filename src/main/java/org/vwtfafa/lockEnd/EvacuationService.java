@@ -59,7 +59,11 @@ public class EvacuationService {
         if (!plugin.isLocked() || !plugin.getConfig().getBoolean("evacuation.enabled", false)) {
             return;
         }
-        World targetWorld = Bukkit.getWorld(plugin.getConfig().getString("evacuation.target-world", "world"));
+        String configuredTarget = plugin.getConfig().getString("evacuation.target-world", "world");
+        World targetWorld = null;
+        if (configuredTarget != null && !configuredTarget.isBlank()) {
+            targetWorld = Bukkit.getWorld(configuredTarget);
+        }
         if (targetWorld == null) {
             targetWorld = Bukkit.getWorlds().stream()
                     .filter(world -> world.getEnvironment() == World.Environment.NORMAL)

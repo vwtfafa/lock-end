@@ -106,6 +106,12 @@ public class ConfigValidatorCommand {
             }
         }
 
+        String evacuationTarget = plugin.getConfig().getString("evacuation.target-world", "world");
+        if (plugin.getConfig().getBoolean("evacuation.enabled", false)
+                && (evacuationTarget == null || evacuationTarget.isBlank())) {
+            issues.add("Error: evacuation.target-world must not be empty when evacuation is enabled.");
+        }
+
         // Output results
         if (issues.isEmpty()) {
             sender.sendMessage(plugin.msg("config.valid"));
