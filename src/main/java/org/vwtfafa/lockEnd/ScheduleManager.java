@@ -51,16 +51,52 @@ public class ScheduleManager {
         String persistedDate = plugin.getConfig().getString("scheduled-unlock.target-datetime", "");
         if (persistedDate != null && !persistedDate.isBlank()) {
             scheduledUnlockTime = parseScheduleTime(persistedDate);
+            if (scheduledUnlockTime == null) {
+                plugin.getLogger().warning("Invalid scheduled-unlock.target-datetime '"
+                        + persistedDate + "'; ignoring persisted schedule.");
+            }
         }
+        boolean fromPersisted = scheduledUnlockTime != null;
         if (scheduledUnlockTime == null) {
             String mode = plugin.getConfig().getString("scheduled-unlock.mode", "days");
+            if (mode == null) {
+                mode = "days";
+            }
             if ("datetime".equalsIgnoreCase(mode)) {
-                scheduledUnlockTime = parseScheduleTime(plugin.getConfig().getString("scheduled-unlock.datetime", ""));
-            } else {
+                LocalDateTime parsed = parseScheduleTime(plugin.getConfig().getString("scheduled-unlock.datetime", ""));
+                if (parsed == null) {
+                    plugin.getLogger().warning("Invalid scheduled-unlock.datetime; disabling schedule.");
+                    disableInvalidSchedule();
+                    return;
+                }
+                if (parsed.isBefore(LocalDateTime.now())) {
+                    plugin.getLogger().warning("Scheduled " + scheduledAction + " target " + parsed.format(LockEnd.SCHEDULE_FORMAT)
+                            + " is in the past; clearing schedule instead of executing on boot.");
+                    disableInvalidSchedule();
+                    return;
+                }
+                scheduledUnlockTime = parsed;
+                persistScheduledUnlockTime();
+            } else if ("days".equalsIgnoreCase(mode)) {
                 int days = plugin.getConfig().getInt("scheduled-unlock.days", 7);
+                if (days <= 0) {
+                    plugin.getLogger().warning("Invalid scheduled-unlock.days '" + days
+                            + "'; must be positive. Disabling schedule.");
+                    disableInvalidSchedule();
+                    return;
+                }
                 scheduledUnlockTime = LocalDateTime.now().plusDays(days);
                 persistScheduledUnlockTime();
+            } else {
+                plugin.getLogger().warning("Invalid scheduled-unlock.mode '" + mode
+                        + "'; must be 'days' or 'datetime'. Disabling schedule.");
+                disableInvalidSchedule();
+                return;
             }
+        }
+        if (!fromPersisted && scheduledUnlockTime != null && scheduledUnlockTime.isBefore(LocalDateTime.now())) {
+            plugin.getLogger().warning("Scheduled " + scheduledAction + " target is in the past; clearing schedule.");
+            disableInvalidSchedule();
         }
     }
 
@@ -234,6 +270,13 @@ public class ScheduleManager {
     private void setPending(LocalDateTime time, String action) {
         scheduledUnlockTime = time;
         scheduledAction = action;
+    }
+
+    private void disableInvalidSchedule() {
+        scheduledUnlockTime = null;
+        plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.target-datetime", null);
+        plugin.saveConfig();
     }
 
     static LocalDateTime parseScheduleTime(String value) {
