@@ -60,14 +60,16 @@ public final class EndLockCommand {
                 .then(publicCommand("stats").executes(this::stats))
                 .then(adminCommand("test").executes(this::test))
 
-                .then(adminCommand("lock")
+                .then(literal("lock").requires(hasAnyPermission("endlock.admin", "endlock.toggle"))
                         .executes(this::lock)
-                        .then(literal("in").then(durationArgument("duration", LOCK_DURATIONS)
-                                .executes(this::lockIn))))
-                .then(adminCommand("unlock")
+                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                                .then(durationArgument("duration", LOCK_DURATIONS)
+                                        .executes(this::lockIn))))
+                .then(literal("unlock").requires(hasAnyPermission("endlock.admin", "endlock.toggle"))
                         .executes(this::unlock)
-                        .then(literal("in").then(durationArgument("duration", UNLOCK_DURATIONS)
-                                .executes(this::unlockIn))))
+                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                                .then(durationArgument("duration", UNLOCK_DURATIONS)
+                                        .executes(this::unlockIn))))
 
                 .then(togglePermissionCommand("unlockin")
                         .then(durationArgument("days", UNLOCK_DURATIONS).executes(this::unlockIn)))
@@ -99,6 +101,17 @@ public final class EndLockCommand {
 
     private static Predicate<CommandSourceStack> hasPermission(String permission) {
         return source -> source.getSender().hasPermission(permission);
+    }
+
+    private static Predicate<CommandSourceStack> hasAnyPermission(String... permissions) {
+        return source -> {
+            for (String permission : permissions) {
+                if (source.getSender().hasPermission(permission)) {
+                    return true;
+                }
+            }
+            return false;
+        };
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> publicCommand(String name) {
@@ -192,6 +205,10 @@ public final class EndLockCommand {
 
     private int lock(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
+        if (!sender.hasPermission("endlock.admin")) {
+            sender.sendMessage(plugin.msg("permission"));
+            return 1;
+        }
         if (plugin.isLocked()) {
             sender.sendMessage(plugin.msg("already-locked"));
             return 1;
@@ -203,6 +220,10 @@ public final class EndLockCommand {
 
     private int unlock(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
+        if (!sender.hasPermission("endlock.admin")) {
+            sender.sendMessage(plugin.msg("permission"));
+            return 1;
+        }
         if (!plugin.isLocked()) {
             sender.sendMessage(plugin.msg("already-unlocked"));
             return 1;
@@ -213,12 +234,12 @@ public final class EndLockCommand {
     }
 
     private int unlockIn(CommandContext<CommandSourceStack> context) {
-        handleUnlockIn(context.getSource().getSender(), getString(context, "days"));
+        handleUnlockIn(context.getSource().getSender(), firstPresent(context, "days", "duration"));
         return 1;
     }
 
     private int lockIn(CommandContext<CommandSourceStack> context) {
-        handleLockIn(context.getSource().getSender(), getString(context, "duration"));
+        handleLockIn(context.getSource().getSender(), firstPresent(context, "duration", "minutes"));
         return 1;
     }
 
@@ -346,6 +367,21 @@ public final class EndLockCommand {
         boolean present = context.getNodes().stream()
                 .anyMatch(node -> node.getNode().getName().equals("page"));
         return present ? String.valueOf(getInteger(context, "page")) : null;
+    }
+
+    /**
+     * Reads the first present string argument (solo and "in" aliases
+     * use different argument names for the same value).
+     */
+    private static String firstPresent(CommandContext<CommandSourceStack> context, String... names) {
+        for (String name : names) {
+            try {
+                return getString(context, name);
+            } catch (IllegalArgumentException ignored) {
+                // Try the next alias name.
+            }
+        }
+        return "";
     }
 
     private void showHistory(CommandSender sender, String[] args) {
