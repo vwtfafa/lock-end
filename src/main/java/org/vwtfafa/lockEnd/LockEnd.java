@@ -363,7 +363,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
         endWorlds = List.copyOf(getConfig().getStringList("end.worlds"));
         logAttempts = getConfig().getBoolean("logging.log-attempts", true);
         statsEnabled = getConfig().getBoolean("stats.enabled", true);
-        languageTag = getConfig().getString("language", "en");
+        String rawLanguage = getConfig().getString("language", "en");
+        languageTag = (rawLanguage == null || rawLanguage.isBlank()) ? "en" : rawLanguage;
         updateCheckerEnabled = getConfig().getBoolean("update-checker.enabled", true);
         joinNotificationsEnabled = getConfig().getBoolean("join-notifications.enabled", false);
     }

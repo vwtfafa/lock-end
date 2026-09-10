@@ -37,7 +37,11 @@ public class ScheduleManager {
      */
     public void loadFromConfig() {
         scheduledUnlockTime = null;
-        scheduledAction = plugin.getConfig().getString("scheduled-unlock.action", "unlock").toLowerCase(Locale.ROOT);
+        String rawAction = plugin.getConfig().getString("scheduled-unlock.action", "unlock");
+        if (rawAction == null || rawAction.isBlank()) {
+            rawAction = "unlock";
+        }
+        scheduledAction = rawAction.toLowerCase(Locale.ROOT);
         if (!scheduledAction.equals("lock") && !scheduledAction.equals("unlock")) {
             scheduledAction = "unlock";
         }

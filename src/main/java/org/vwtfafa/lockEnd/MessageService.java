@@ -45,7 +45,11 @@ public class MessageService {
      * Loads the configured language file and MiniMessage setting from config.
      */
     public void loadFromConfig() {
-        String langCode = plugin.getConfig().getString("language", "en").toLowerCase(Locale.ROOT);
+        String rawLang = plugin.getConfig().getString("language", "en");
+        if (rawLang == null || rawLang.isBlank()) {
+            rawLang = "en";
+        }
+        String langCode = rawLang.toLowerCase(Locale.ROOT);
         migrateLegacyLanguageFile(langCode);
         loadLanguage(langCode);
         miniMessageEnabled = plugin.getConfig().getBoolean("hooks.mini-message", true);
