@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Evacuation stats and messages are now applied on the main thread instead of the `teleportAsync` callback thread.
+- Null or blank `language` and `scheduled-unlock.action` config values fall back to defaults instead of crashing enable/reload.
+- Null or blank `evacuation.target-world` falls back to the default world search; validator reports empty target when evacuation is enabled.
+- `lock in` / `unlock in` now require `endlock.toggle` as documented (direct `lock` / `unlock` still require `endlock.admin`); fixed mismatched duration argument names that broke both natural aliases.
+- Corrected `test` command permission docs to `endlock.admin` in README and Modrinth.
+- History export with filter is reachable via Brigadier: `history [page] [json|csv] [player|action <value>]` including format + filter + value.
+- Negative `grace-period.duration` is clamped instead of crashing the scheduler.
+- Invalid or past `scheduled-unlock` config values are logged and disabled on boot instead of firing a surprise lock/unlock; persisted overdue targets still execute.
+- Blank `/endlock reason` is rejected with usage instead of persisting an empty reason.
+- History export reports `history-export-failed` on I/O errors (new key in all 8 languages) and uses millis + counter filenames to avoid collisions.
+- Reload preserves undo state and cancels pending evacuation and grace-period tasks.
+
 ## [2.0.1] - 2026-09-09
 
 ### Changed
