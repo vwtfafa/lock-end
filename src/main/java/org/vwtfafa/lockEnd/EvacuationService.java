@@ -83,8 +83,12 @@ public class EvacuationService {
             }
             player.teleportAsync(target).thenAccept(success -> {
                 if (success) {
-                    player.sendMessage(completeMessage);
-                    plugin.recordEvacuatedPlayer();
+                    // The future may complete off the main thread; FileConfiguration
+                    // and most Bukkit state must only be touched on the main thread.
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        player.sendMessage(completeMessage);
+                        plugin.recordEvacuatedPlayer();
+                    });
                 }
             });
         }
