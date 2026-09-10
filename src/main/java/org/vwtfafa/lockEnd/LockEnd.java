@@ -397,12 +397,22 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
+        if (evacuation != null) {
+            evacuation.cancel();
+        }
+        if (gracePeriodTask != null) {
+            gracePeriodTask.cancel();
+        }
+        Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
         reloadConfig();
         migrateConfig();
         messages.loadFromConfig();
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());
         historyCommand = new LockHistoryCommand(this);
+        if (previousUndoState != null) {
+            historyCommand.recordPreviousState(previousUndoState);
+        }
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
         refreshCachedConfig();
         configureAsyncLogger();
