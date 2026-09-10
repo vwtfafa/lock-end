@@ -50,7 +50,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock lock` | Lock the End | `endlock.admin` |
 | `/endlock unlock` | Unlock the End | `endlock.admin` |
 | `/endlock status` | Show current lock status | — |
-| `/endlock test` | Test if portal blocking works | *(no permission, configurable)* |
+| `/endlock test` | Test if portal blocking works | `endlock.admin` |
 | `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
 | `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
@@ -71,7 +71,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 
-The base commands do not have a global permission in `plugin.yml`; each subcommand checks its own permission. This keeps public commands such as `status`, `stats`, and `test` available while protecting administrative actions.
+The base commands do not have a global permission in `plugin.yml`; each subcommand checks its own permission. This keeps public commands such as `status` and `stats` available while protecting administrative actions.
 
 ---
 

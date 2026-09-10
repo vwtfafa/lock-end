@@ -63,7 +63,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `lock` | Explicitly lock the End | `endlock.admin` |
 | `unlock` | Explicitly unlock the End | `endlock.admin` |
 | `status` | Show whether the End is locked or open | *(none)* |
-| `test` | Test if portal blocking works | *(no permission, configurable)* |
+| `test` | Test if portal blocking works | `endlock.admin` |
 | `stats` | Show lock and blocked-attempt counters | *(none)* |
 | `reload` | Reload configuration without restart | `endlock.reload` |
 | `history` | View recent lock/unlock history | `endlock.history` |
