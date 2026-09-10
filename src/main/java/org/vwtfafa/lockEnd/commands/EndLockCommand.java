@@ -275,6 +275,10 @@ public final class EndLockCommand {
     private int setReason(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         String reason = getString(context, "reason").trim();
+        if (reason.isEmpty()) {
+            sender.sendMessage(plugin.msg("reason-usage"));
+            return 1;
+        }
         plugin.setLockReason(reason);
         sender.sendMessage(plugin.msg("reason-set").replace("%reason%", plugin.sanitize(reason)));
         return 1;
