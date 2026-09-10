@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.1] - 2026-09-09
+
+### Changed
+- Updated the Paper API dependency to `26.3-pre-2.build.0-alpha`.
+- Bumped `api-version` to `26.3` and the local test server to Paper `26.3-pre-2`.
+- Updated README and Modrinth documentation to Paper 26.3.
 
 ### Fixed
 - Evacuation stats and messages are now applied on the main thread instead of the `teleportAsync` callback thread.
@@ -16,13 +21,6 @@ All notable changes to this project will be documented in this file.
 - Blank `/endlock reason` is rejected with usage instead of persisting an empty reason.
 - History export reports `history-export-failed` on I/O errors (new key in all 8 languages) and uses millis + counter filenames to avoid collisions.
 - Reload preserves undo state and cancels pending evacuation and grace-period tasks.
-
-## [2.0.1] - 2026-09-09
-
-### Changed
-- Updated the Paper API dependency to `26.3-pre-2.build.0-alpha`.
-- Bumped `api-version` to `26.3` and the local test server to Paper `26.3-pre-2`.
-- Updated README and Modrinth documentation to Paper 26.3.
 
 ## [2.0.0] - 2026-08-23
 ### Maintenance
