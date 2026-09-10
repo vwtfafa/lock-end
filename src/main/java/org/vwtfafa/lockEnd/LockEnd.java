@@ -332,7 +332,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
      */
     public void startGracePeriodIfEnabled() {
         if (getConfig().getBoolean("grace-period.enabled", false)) {
-            int duration = getConfig().getInt("grace-period.duration", 10);
+            int duration = Math.max(0, getConfig().getInt("grace-period.duration", 10));
             gracePeriodTask.startGracePeriod(duration);
         }
     }

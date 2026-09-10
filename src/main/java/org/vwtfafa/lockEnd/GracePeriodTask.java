@@ -25,13 +25,14 @@ public class GracePeriodTask {
      */
     public void startGracePeriod(int durationSeconds) {
         cancel();
+        int safeDuration = Math.max(0, durationSeconds);
         active = true;
         task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             task = null;
             active = false;
             plugin.getLogger().info("Grace period ended, End lock is now fully enforced.");
-        }, durationSeconds * 20L);
-        plugin.getLogger().info("Grace period started for " + durationSeconds + " seconds.");
+        }, (long) safeDuration * 20L);
+        plugin.getLogger().info("Grace period started for " + safeDuration + " seconds.");
     }
 
     /**
