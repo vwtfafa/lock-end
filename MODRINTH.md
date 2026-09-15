@@ -211,7 +211,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 ## ⚠️ Notes
 
-* Only **players** are blocked — not mobs or items
+* Players and, when enabled, non-player entities are blocked from entering the End (`end.block-entities`, enabled by default)
 * Players already inside the End when locking stay there unless `evacuation.enabled` is set (then they are warned and teleported out)
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 

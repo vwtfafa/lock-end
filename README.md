@@ -41,7 +41,7 @@
 | Minecraft | **26.3** |
 | Java | **25** |
 
-> Spigot, Purpur, and older Minecraft versions are **not** supported. The plugin uses `api-version: 26.3`.
+> Spigot and older Minecraft versions are **not** supported. Purpur 26.3+ is supported because it is Paper-based. The plugin uses `api-version: 26.3`.
 
 > Folia is currently **not supported**. EndLock uses BukkitScheduler main-thread tasks and global player iteration. Folia support requires a separate scheduler and per-player execution model.
 
@@ -295,7 +295,7 @@ On every push to **`main`**, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads Paper 26.3-pre-2):
+Run a local test server (downloads Paper 26.3-rc-3):
 
 ```bash
 ./gradlew runServer
