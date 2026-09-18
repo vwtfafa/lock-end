@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - Persisted scheduled lock/unlock targets now keep their mode and absolute datetime after reloads instead of silently losing the schedule type.
 - Undo now clears the previous state only after a successful state transition, avoiding accidental state resets.
 - Blocked-teleport logging records the actual source world instead of the player's current world.
+- Paused schedules remain paused after a server restart instead of being armed automatically.
+- Oversized or overflowing `lock in` / `unlock in` durations are rejected with the normal localized error response.
 - Release metadata and docs are aligned to the 2.0.2 beta release for the Paper 26.3 RC-3 line.
 
 ## [2.0.1] - 2026-09-09
