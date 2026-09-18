@@ -8,6 +8,7 @@
 - **Undo safety**: Undo only clears state after a real state change, preventing accidental reset of the previous state.
 - **Better access logging**: Blocked attempts now log the actual source world instead of the player’s current world.
 - **Stable RC compatibility**: Project metadata and release docs now match the Paper 26.3 RC-3 beta channel while keeping the 2.0.2 release version consistent.
+- **Paper API modernization**: Evacuation supports namespaced world keys, snapshots players before teleports, and command output uses Adventure Components.
 
 ## Requirements
 

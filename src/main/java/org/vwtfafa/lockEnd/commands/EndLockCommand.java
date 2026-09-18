@@ -6,7 +6,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 

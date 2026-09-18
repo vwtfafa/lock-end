@@ -13,6 +13,9 @@ All notable changes to this project will be documented in this file.
 - Direct `lock` and `unlock` command visibility now matches their required `endlock.admin` permission.
 - Corrected generated release command permissions and date/time syntax in the GitHub release template.
 - Updated the `endlock.admin` permission description to cover all administrative commands.
+- Evacuation now snapshots online players before asynchronous teleports to avoid iteration side effects.
+- Evacuation targets support namespaced world keys while retaining legacy plain world names.
+- Command, history, undo, and validation responses now use Adventure Components with literal-safe placeholders.
 - Release metadata and docs are aligned to the 2.0.2 beta release for the Paper 26.3 RC-3 line.
 
 ## [2.0.1] - 2026-09-09
