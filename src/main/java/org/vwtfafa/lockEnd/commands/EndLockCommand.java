@@ -104,17 +104,6 @@ public final class EndLockCommand {
         return source -> source.getSender().hasPermission(permission);
     }
 
-    private static Predicate<CommandSourceStack> hasAnyPermission(String... permissions) {
-        return source -> {
-            for (String permission : permissions) {
-                if (source.getSender().hasPermission(permission)) {
-                    return true;
-                }
-            }
-            return false;
-        };
-    }
-
     private static LiteralArgumentBuilder<CommandSourceStack> publicCommand(String name) {
         return literal(name);
     }
