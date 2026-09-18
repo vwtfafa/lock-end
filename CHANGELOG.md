@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
 - Blocked-teleport logging records the actual source world instead of the player's current world.
 - Paused schedules remain paused after a server restart instead of being armed automatically.
 - Oversized or overflowing `lock in` / `unlock in` durations are rejected with the normal localized error response.
+- Direct `lock` and `unlock` command visibility now matches their required `endlock.admin` permission.
+- Corrected generated release command permissions and date/time syntax in the GitHub release template.
+- Updated the `endlock.admin` permission description to cover all administrative commands.
 - Release metadata and docs are aligned to the 2.0.2 beta release for the Paper 26.3 RC-3 line.
 
 ## [2.0.1] - 2026-09-09

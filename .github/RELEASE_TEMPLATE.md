@@ -13,14 +13,14 @@
 | Command | Description | Permission |
 | ------- | ----------- | ---------- |
 | `/endlock` | Toggle the End lock | `endlock.toggle` |
-| `/endlock lock` | Lock the End | `endlock.toggle` |
-| `/endlock unlock` | Unlock the End | `endlock.toggle` |
-| `/endlock unlockin <time>` | Schedule unlock (e.g. 7d, 12h) | `endlock.admin` |
-| `/endlock unlockat <datetime>` | Schedule unlock (e.g. 2026-07-01_18:00) | `endlock.admin` |
+| `/endlock lock` | Lock the End | `endlock.admin` |
+| `/endlock unlock` | Unlock the End | `endlock.admin` |
+| `/endlock unlockin <time>` | Schedule unlock (e.g. 7d, 12h) | `endlock.toggle` |
+| `/endlock unlockat <date> <time>` | Schedule unlock (e.g. `2026-07-01 18:00`) | `endlock.toggle` |
 | `/endlock lockin <minutes>` | Schedule a future lock | `endlock.toggle` |
-| `/endlock lockat <datetime>` | Schedule a future lock at specific time | `endlock.toggle` |
+| `/endlock lockat <date> <time>` | Schedule a future lock at specific time | `endlock.toggle` |
 | `/endlock status` | Show current lock status | — |
-| `/endlock stats` | Show plugin statistics | `endlock.admin` |
+| `/endlock stats` | Show plugin statistics | — |
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
 | `/endlock schedule status` | Show active scheduled action | `endlock.admin` |
 | `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
