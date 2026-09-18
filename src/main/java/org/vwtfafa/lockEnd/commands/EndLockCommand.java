@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 
@@ -16,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -120,6 +122,14 @@ public final class EndLockCommand {
         return literal(name).requires(hasPermission(permission));
     }
 
+    private void send(CommandSender sender, String key) {
+        sender.sendMessage(plugin.message(key, Map.of()));
+    }
+
+    private void send(CommandSender sender, String key, String placeholder, String value) {
+        sender.sendMessage(plugin.message(key, Map.of(placeholder, value)));
+    }
+
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
         return argument(name, word())
                 .suggests(suggest(suggestions));
@@ -151,12 +161,12 @@ public final class EndLockCommand {
     private int toggle(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.toggle")) {
-            sender.sendMessage(plugin.msg("permission"));
+            send(sender, "permission");
             return 1;
         }
         boolean newLocked = !plugin.isLocked();
         String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
-        sender.sendMessage(plugin.msg("toggle").replace("%status%", status));
+        send(sender, "toggle", "%status%", status);
         plugin.changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK");
         return 1;
     }
@@ -164,31 +174,27 @@ public final class EndLockCommand {
     private int status(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
-        sender.sendMessage(plugin.msg("status").replace("%status%", status));
+        send(sender, "status", "%status%", status);
         return 1;
     }
 
     private int stats(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        sender.sendMessage(plugin.msg("stats-header")
-                .replace("%lockcount%", String.valueOf(plugin.getLockCount()))
-                .replace("%blockedcount%", String.valueOf(plugin.getBlockedCount())));
-        sender.sendMessage(plugin.msg("stats-line-unlocks")
-                .replace("%unlockcount%", String.valueOf(plugin.getUnlockCount())));
-        sender.sendMessage(plugin.msg("stats-line-evacuated")
-                .replace("%evacuated%", String.valueOf(plugin.getEvacuatedCount())));
+        send(sender, "stats-header", "%lockcount%", String.valueOf(plugin.getLockCount()));
+        send(sender, "stats-line-unlocks", "%unlockcount%", String.valueOf(plugin.getUnlockCount()));
+        send(sender, "stats-line-evacuated", "%evacuated%", String.valueOf(plugin.getEvacuatedCount()));
         return 1;
     }
 
     private int test(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         if (!plugin.getConfig().getBoolean("test-command.enabled", true)) {
-            sender.sendMessage(plugin.msg("test-disabled"));
+            send(sender, "test-disabled");
             return 1;
         }
         String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
-        sender.sendMessage(plugin.msg("test-success"));
-        sender.sendMessage(plugin.msg("test-info").replace("%status%", status));
+        send(sender, "test-success");
+        send(sender, "test-info", "%status%", status);
         plugin.logTestAction(sender.getName());
         return 1;
     }
@@ -196,14 +202,14 @@ public final class EndLockCommand {
     private int lock(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.admin")) {
-            sender.sendMessage(plugin.msg("permission"));
+            send(sender, "permission");
             return 1;
         }
         if (plugin.isLocked()) {
-            sender.sendMessage(plugin.msg("already-locked"));
+            send(sender, "already-locked");
             return 1;
         }
-        sender.sendMessage(plugin.msg("toggle").replace("%status%", plugin.msg("closed")));
+        send(sender, "toggle", "%status%", plugin.msg("closed"));
         plugin.changeLockState(true, sender.getName(), "LOCK");
         return 1;
     }
@@ -211,14 +217,14 @@ public final class EndLockCommand {
     private int unlock(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.admin")) {
-            sender.sendMessage(plugin.msg("permission"));
+            send(sender, "permission");
             return 1;
         }
         if (!plugin.isLocked()) {
-            sender.sendMessage(plugin.msg("already-unlocked"));
+            send(sender, "already-unlocked");
             return 1;
         }
-        sender.sendMessage(plugin.msg("toggle").replace("%status%", plugin.msg("open")));
+        send(sender, "toggle", "%status%", plugin.msg("open"));
         plugin.changeLockState(false, sender.getName(), "UNLOCK");
         return 1;
     }
@@ -246,19 +252,19 @@ public final class EndLockCommand {
     }
 
     private int scheduleStatus(CommandContext<CommandSourceStack> context) {
-        context.getSource().getSender().sendMessage(plugin.buildScheduleStatusMessage());
+        context.getSource().getSender().sendMessage(plugin.messageComponent(plugin.buildScheduleStatusMessage()));
         return 1;
     }
 
     private int scheduleClear(CommandContext<CommandSourceStack> context) {
         plugin.clearSchedule();
-        context.getSource().getSender().sendMessage(plugin.msg("schedule-cleared"));
+        send(context.getSource().getSender(), "schedule-cleared");
         return 1;
     }
 
     private int cancelSchedule(CommandContext<CommandSourceStack> context) {
         plugin.clearSchedule();
-        context.getSource().getSender().sendMessage(plugin.msg("schedule-cancelled"));
+        send(context.getSource().getSender(), "schedule-cancelled");
         return 1;
     }
 
@@ -266,29 +272,29 @@ public final class EndLockCommand {
         CommandSender sender = context.getSource().getSender();
         String reason = getString(context, "reason").trim();
         if (reason.isEmpty()) {
-            sender.sendMessage(plugin.msg("reason-usage"));
+            send(sender, "reason-usage");
             return 1;
         }
         plugin.setLockReason(reason);
-        sender.sendMessage(plugin.msg("reason-set").replace("%reason%", plugin.sanitize(reason)));
+        send(sender, "reason-set", "%reason%", plugin.sanitize(reason));
         return 1;
     }
 
     private int pauseSchedule(CommandContext<CommandSourceStack> context) {
         plugin.pauseSchedule();
-        context.getSource().getSender().sendMessage(plugin.msg("schedule-paused"));
+        send(context.getSource().getSender(), "schedule-paused");
         return 1;
     }
 
     private int resumeSchedule(CommandContext<CommandSourceStack> context) {
         plugin.resumeSchedule();
-        context.getSource().getSender().sendMessage(plugin.msg("schedule-resumed"));
+        send(context.getSource().getSender(), "schedule-resumed");
         return 1;
     }
 
     private int reload(CommandContext<CommandSourceStack> context) {
         plugin.reloadPlugin();
-        context.getSource().getSender().sendMessage(plugin.msg("reload-success"));
+        send(context.getSource().getSender(), "reload-success");
         return 1;
     }
 
@@ -401,17 +407,16 @@ public final class EndLockCommand {
         Integer days = tryParsePositiveInt(raw);
         if (days != null) {
             plugin.scheduleUnlockInDays(days);
-            sender.sendMessage(plugin.msg("scheduled-unlock-set-days").replace("%days%", String.valueOf(days)));
+            send(sender, "scheduled-unlock-set-days", "%days%", String.valueOf(days));
             return;
         }
         LocalDateTime target = parseDurationTarget(raw);
         if (target == null) {
-            sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
+            send(sender, "scheduled-unlock-invalid");
             return;
         }
         plugin.scheduleUnlockAt(target);
-        sender.sendMessage(plugin.msg("scheduled-unlock-set-at")
-                .replace("%datetime%", target.format(LockEnd.SCHEDULE_FORMAT)));
+        send(sender, "scheduled-unlock-set-at", "%datetime%", target.format(LockEnd.SCHEDULE_FORMAT));
     }
 
     private void handleUnlockAt(CommandSender sender, String date, String time) {
@@ -421,10 +426,9 @@ public final class EndLockCommand {
                 throw new IllegalArgumentException();
             }
             plugin.scheduleUnlockAt(target);
-            sender.sendMessage(plugin.msg("scheduled-unlock-set-at")
-                    .replace("%datetime%", target.format(LockEnd.SCHEDULE_FORMAT)));
+            send(sender, "scheduled-unlock-set-at", "%datetime%", target.format(LockEnd.SCHEDULE_FORMAT));
         } catch (Exception e) {
-            sender.sendMessage(plugin.msg("scheduled-unlock-invalid"));
+            send(sender, "scheduled-unlock-invalid");
         }
     }
 
@@ -436,16 +440,16 @@ public final class EndLockCommand {
         Integer minutes = tryParsePositiveInt(raw);
         if (minutes != null) {
             plugin.scheduleLockInMinutes(minutes);
-            sender.sendMessage(plugin.msg("scheduled-lock-set"));
+            send(sender, "scheduled-lock-set");
             return;
         }
         LocalDateTime target = parseDurationTarget(raw);
         if (target == null) {
-            sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
+            send(sender, "scheduled-lock-invalid");
             return;
         }
         plugin.scheduleLockAt(target);
-        sender.sendMessage(plugin.msg("scheduled-lock-set"));
+        send(sender, "scheduled-lock-set");
     }
 
     private void handleLockAt(CommandSender sender, String date, String time) {
@@ -455,9 +459,9 @@ public final class EndLockCommand {
                 throw new IllegalArgumentException();
             }
             plugin.scheduleLockAt(target);
-            sender.sendMessage(plugin.msg("scheduled-lock-set"));
+            send(sender, "scheduled-lock-set");
         } catch (Exception e) {
-            sender.sendMessage(plugin.msg("scheduled-lock-invalid"));
+            send(sender, "scheduled-lock-invalid");
         }
     }
 
