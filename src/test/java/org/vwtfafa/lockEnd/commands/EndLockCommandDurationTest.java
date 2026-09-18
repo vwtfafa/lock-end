@@ -38,5 +38,7 @@ class EndLockCommandDurationTest {
         assertNull(EndLockCommand.parseDurationTarget("5x"));
         assertNull(EndLockCommand.parseDurationTarget("m"));
         assertNull(EndLockCommand.parseDurationTarget("-5m"));
+        assertNull(EndLockCommand.parseDurationTarget("999999999999999999999h"));
+        assertNull(EndLockCommand.parseDurationTarget("9223372036854775807d"));
     }
 }

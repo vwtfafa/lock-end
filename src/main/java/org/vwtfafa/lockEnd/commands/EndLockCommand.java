@@ -11,6 +11,7 @@ import org.vwtfafa.lockEnd.LockEnd;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.DateTimeException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -495,15 +496,19 @@ public final class EndLockCommand {
         if (!matcher.matches()) {
             return null;
         }
-        long amount = Long.parseLong(matcher.group(1));
-        if (amount <= 0) {
+        try {
+            long amount = Long.parseLong(matcher.group(1));
+            if (amount <= 0) {
+                return null;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            return switch (matcher.group(2).toLowerCase(Locale.ROOT)) {
+                case "m" -> now.plusMinutes(amount);
+                case "h" -> now.plusHours(amount);
+                default -> now.plusDays(amount);
+            };
+        } catch (NumberFormatException | DateTimeException | ArithmeticException exception) {
             return null;
         }
-        LocalDateTime now = LocalDateTime.now();
-        return switch (matcher.group(2).toLowerCase(Locale.ROOT)) {
-            case "m" -> now.plusMinutes(amount);
-            case "h" -> now.plusHours(amount);
-            default -> now.plusDays(amount);
-        };
     }
 }
