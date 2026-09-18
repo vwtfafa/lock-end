@@ -2,6 +2,7 @@ package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -275,8 +276,23 @@ public class ScheduleManager {
     private void disableInvalidSchedule() {
         scheduledUnlockTime = null;
         plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.action", "unlock");
+        plugin.getConfig().set("scheduled-unlock.mode", null);
+        plugin.getConfig().set("scheduled-unlock.days", null);
+        plugin.getConfig().set("scheduled-unlock.datetime", null);
         plugin.getConfig().set("scheduled-unlock.target-datetime", null);
         plugin.saveConfig();
+    }
+
+    static void persistScheduledAction(FileConfiguration config, LocalDateTime target, String action) {
+        if (config == null || target == null || action == null || action.isBlank()) {
+            return;
+        }
+        config.set("scheduled-unlock.enabled", true);
+        config.set("scheduled-unlock.action", action);
+        config.set("scheduled-unlock.mode", "datetime");
+        config.set("scheduled-unlock.datetime", target.format(LockEnd.SCHEDULE_FORMAT));
+        config.set("scheduled-unlock.target-datetime", target.format(LockEnd.SCHEDULE_FORMAT));
     }
 
     static LocalDateTime parseScheduleTime(String value) {
@@ -298,9 +314,7 @@ public class ScheduleManager {
     }
 
     private void saveScheduledAction() {
-        plugin.getConfig().set("scheduled-unlock.enabled", true);
-        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
-        plugin.getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(LockEnd.SCHEDULE_FORMAT));
+        persistScheduledAction(plugin.getConfig(), scheduledUnlockTime, scheduledAction);
         plugin.saveConfig();
     }
 

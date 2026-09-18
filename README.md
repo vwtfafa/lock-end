@@ -2,36 +2,12 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## What's new in 2.0.0
+## What's new in 2.0.2
 
-- **Lock reasons**: Customizable reasons displayed when blocking (e.g., "Maintenance", "Event in progress")
-- **Grace period**: Temporary unlock after locking to allow players to exit safely
-- **Whitelists**: Player/entity whitelists to bypass the lock
-- **Preview notifications**: Warn players before automatic lock/unlock
-- **Sound effects**: Play custom sounds when access is denied
-- **Rate limiting**: Prevent log spam from rapid attempts
-- **Detailed logging**: Log player, world, and method (portal/teleport)
-- **Countdown timers**: Visible countdown before scheduled unlock
-- **Schedule pause/resume**: Override scheduled events temporarily with `/endlock pause` and `/endlock resume`
-- **Lock history**: View recent actions with `/endlock history`
-- **Undo command**: Reverse the last action with `/endlock undo`
-- **Config validator**: Check config for errors with `/endlock validateconfig`
-- **Async logging**: File I/O moved off main thread
-- **Mobile alias**: `/el` as short command alias
-- **Scoped locking**: Restrict the lock to configured End worlds and optionally block End returns or End gateways
-- **Schedule controls**: Cancel scheduled unlocks and change the lock reason with `/endlock cancel` and `/endlock reason <reason>`
-- **Restart-safe scheduling**: Scheduled unlocks keep their absolute target time after reloads and restarts
-- **Scheduled locking**: Lock the End later with `/endlock lockin <minutes>` or `/endlock lockat <yyyy-MM-dd> <HH:mm>`
-- **Schedule status**: Inspect or clear schedules with `/endlock schedule status` and `/endlock schedule clear`
-- **Flexible bypass rules**: Allow players by name, UUID, world, or `endlock.bypass.world.<world>` permission
-- **Optional End evacuation**: Warn and move existing End players to a configured world spawn when locking
-- **PlaceholderAPI values**: Status, reason, remaining seconds, target time, blocked count, and schedule action
-- **Structured audit history**: Paginated history plus JSON/CSV export with `/endlock history <page> <json|csv>`
-- **Persistent history**: Recent history is stored in `plugins/EndLock/history.yml`
-- **Lifecycle safety**: Scheduled tasks, preview notifications, grace periods, integrations, and logging are cleaned up on reload and shutdown
-- **Brigadier commands**: `/endlock` registers through Paper's Brigadier lifecycle API with native tab completion
-- **Performance**: Cached hot-path config lookups, async evacuation teleports, in-memory stats (no disk write per blocked attempt)
-- **Robustness**: UTF-8 language loading, DST-safe schedule timing, independent update-notification channels, clean grace-period restarts
+- **Beta-ready fixes**: Scheduled lock/unlock actions keep their persisted mode and absolute target time correctly across reloads.
+- **Undo safety**: Undo only clears state after a real state change, preventing accidental reset of the previous state.
+- **Better access logging**: Blocked attempts now log the actual source world instead of the player’s current world.
+- **Stable RC compatibility**: Project metadata and release docs now match the Paper 26.3 RC-3 beta channel while keeping the 2.0.2 release version consistent.
 
 ## Requirements
 
@@ -47,7 +23,7 @@
 
 ## Installation
 
-1. Download the latest `lock-end-2.0.1.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-2.0.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -276,7 +252,7 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-2.0.1.jar`
+Output: `build/libs/lock-end-2.0.2.jar`
 
 ## Automatic releases (GitHub Actions)
 

@@ -203,7 +203,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         boolean restored = historyCommand.getLastPreviousState();
         boolean changed = changeLockState(restored, actor, "UNDO");
-        historyCommand.clearLastPreviousState();
+        if (changed) {
+            historyCommand.clearLastPreviousState();
+        }
         return changed;
     }
 
@@ -554,6 +556,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!logAttempts) {
             return;
         }
+        if (sourceWorld == null) {
+            sourceWorld = player.getWorld();
+        }
         UUID playerId = player.getUniqueId();
         long now = System.currentTimeMillis();
 
@@ -592,6 +597,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkPlayer(request, event.getCause(),
                         () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
+        World sourceWorld = event.getFrom() == null || event.getFrom().getWorld() == null
+                ? player.getWorld()
+                : event.getFrom().getWorld();
+
         switch (verdict) {
             case ALLOWED -> {}
             case GRACE_PERIOD -> player.sendMessage(messages.message("grace-period-active", Map.of()));
@@ -601,7 +610,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                         Map.of("%reason%", lockReasonManager.getReason("default"))));
                 soundPlayer.playDenialSound(player);
                 if (logAttempts) {
-                    logAttempt(player, player.getWorld(), method);
+                    logAttempt(player, sourceWorld, method);
                 }
                 recordBlockedAttempt();
             }
