@@ -3,6 +3,7 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -63,7 +64,7 @@ public class EvacuationService {
         String configuredTarget = plugin.getConfig().getString("evacuation.target-world", "world");
         World targetWorld = null;
         if (configuredTarget != null && !configuredTarget.isBlank()) {
-            targetWorld = Bukkit.getWorld(configuredTarget);
+            targetWorld = resolveConfiguredWorld(configuredTarget);
         }
         if (targetWorld == null) {
             targetWorld = Bukkit.getWorlds().stream()
@@ -98,5 +99,18 @@ public class EvacuationService {
                 }
             });
         }
+    }
+
+    private World resolveConfiguredWorld(String configuredTarget) {
+        if (configuredTarget.contains(":")) {
+            NamespacedKey key = NamespacedKey.fromString(configuredTarget);
+            if (key != null) {
+                World namespacedWorld = Bukkit.getWorld(key);
+                if (namespacedWorld != null) {
+                    return namespacedWorld;
+                }
+            }
+        }
+        return Bukkit.getWorld(configuredTarget);
     }
 }
