@@ -38,6 +38,7 @@ public class ScheduleManager {
      */
     public void loadFromConfig() {
         scheduledUnlockTime = null;
+        schedulePaused = plugin.getConfig().getBoolean("schedule.paused", false);
         String rawAction = plugin.getConfig().getString("scheduled-unlock.action", "unlock");
         if (rawAction == null || rawAction.isBlank()) {
             rawAction = "unlock";
