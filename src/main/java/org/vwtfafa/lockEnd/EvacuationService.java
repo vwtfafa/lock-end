@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * Warns and moves players out of the End after a lock becomes active.
@@ -76,7 +77,8 @@ public class EvacuationService {
         }
         Location target = targetWorld.getSpawnLocation();
         Component completeMessage = plugin.message("evacuation-complete", Map.of());
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        for (Player player : players) {
             if (player == null) {
                 continue;
             }
