@@ -7,7 +7,7 @@
 - **Beta-ready fixes**: Scheduled lock/unlock actions keep their persisted mode and absolute target time correctly across reloads.
 - **Undo safety**: Undo only clears state after a real state change, preventing accidental reset of the previous state.
 - **Better access logging**: Blocked attempts now log the actual source world instead of the player’s current world.
-- **Stable RC compatibility**: Project metadata and release docs now match the Paper 26.3 RC-3 beta channel while keeping the 2.0.2 release version consistent.
+- **Paper 26.3 beta compatibility**: The API and local test server target Paper Build #134 (BETA).
 - **Paper API modernization**: Evacuation supports namespaced world keys, snapshots players before teleports, and command output uses Adventure Components.
 
 ## Requirements
@@ -272,7 +272,7 @@ On every push to **`main`**, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads Paper 26.3-rc-3):
+Run a local test server (downloads Paper 26.3 Build #134, BETA):
 
 ```bash
 ./gradlew runServer
