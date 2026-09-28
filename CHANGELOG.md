@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Updated the Paper API and local test server target to Paper 26.3 Build #134 (BETA).
+
 ## [2.0.2] - 2026-09-18
 
 ### Fixed
