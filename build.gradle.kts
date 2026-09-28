@@ -9,7 +9,7 @@ plugins {
 group = "org.vwtfafa"
 version = "2.0.2"
 
-val paperApiVersion = "26.3-rc-3.build.1-alpha"
+val paperApiVersion = "26.3.build.134-beta"
 
 repositories {
     mavenCentral()
@@ -37,7 +37,7 @@ dependencies {
 
 tasks {
     runServer {
-        minecraftVersion("26.3-rc-3")
+        minecraftVersion("26.3")
     }
 
     jar {
