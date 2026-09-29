@@ -2,10 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.1.0] - 2026-09-29 (BETA)
+
+### Fixed
+- Very large history page numbers no longer overflow during pagination; decimal values outside the `int` range safely resolve to an empty page.
+- Locale-sensitive lowercasing no longer breaks history filters, placeholder identifiers, export extensions, or per-world bypass permissions.
+- Async evacuation completions are ignored after plugin shutdown, and scheduler shutdown races are handled safely.
+- Natural `/endlock lock in ...` and `/endlock unlock in ...` aliases are available to users with `endlock.toggle` alone.
 
 ### Changed
-- Updated the Paper API and local test server target to Paper 26.3 Build #134 (BETA).
+- Updated the Paper API target to Paper 26.3 Build #134 (BETA); the local test server uses the latest Paper 26.3 build.
 
 ## [2.0.2] - 2026-09-18
 

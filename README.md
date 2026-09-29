@@ -2,19 +2,19 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## What's new in 2.0.2
+## What's new in 2.1.0
 
-- **Beta-ready fixes**: Scheduled lock/unlock actions keep their persisted mode and absolute target time correctly across reloads.
-- **Undo safety**: Undo only clears state after a real state change, preventing accidental reset of the previous state.
-- **Better access logging**: Blocked attempts now log the actual source world instead of the player’s current world.
-- **Paper 26.3 beta compatibility**: The API and local test server target Paper Build #134 (BETA).
-- **Paper API modernization**: Evacuation supports namespaced world keys, snapshots players before teleports, and command output uses Adventure Components.
+- **Safer history pagination**: Extremely large page numbers no longer overflow or cause a command error.
+- **Locale-independent matching**: History filters, placeholders, and world bypass permissions work regardless of the server's system locale.
+- **Safer evacuation shutdown**: Late async teleport callbacks are ignored after the plugin stops.
+- **Schedule permission fix**: `/endlock lock in ...` and `/endlock unlock in ...` work with `endlock.toggle` as documented.
+- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #134 (BETA); the local server task downloads the latest 26.3 build.
 
 ## Requirements
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #134 (BETA)** or newer |
 | Minecraft | **26.3** |
 | Java | **25** |
 
@@ -24,7 +24,7 @@
 
 ## Installation
 
-1. Download the latest `lock-end-2.0.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-2.1.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -253,14 +253,14 @@ Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — u
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-2.0.2.jar`
+Output: `build/libs/lock-end-2.1.0.jar`
 
 ## Automatic releases (GitHub Actions)
 
-On every push to **`main`**, GitHub Actions will:
+On every push to a release-configured branch, GitHub Actions will:
 
 1. Build the plugin with Java 25
-2. Read the version from `build.gradle`
+2. Read the version from `build.gradle.kts`
 3. Create or **fully overwrite** the GitHub Release tagged **`v{version}`**
 4. Replace the release text from [`.github/RELEASE_TEMPLATE.md`](.github/RELEASE_TEMPLATE.md)
 5. Remove old JAR assets and upload the new `lock-end-{version}.jar`
@@ -268,11 +268,11 @@ On every push to **`main`**, GitHub Actions will:
 
 **Same version, new push?** Title, description, JAR, and tag are replaced automatically — you do not need to edit anything on GitHub.
 
-**New release version:** bump `version` in `build.gradle` (and `plugin.yml`).
+**New release version:** bump `version` in `build.gradle.kts`. The build expands that value into `plugin.yml` automatically.
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads Paper 26.3 Build #134, BETA):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #134, BETA):
 
 ```bash
 ./gradlew runServer

@@ -19,6 +19,7 @@
 | `/endlock unlockat <date> <time>` | Schedule unlock (e.g. `2026-07-01 18:00`) | `endlock.toggle` |
 | `/endlock lockin <minutes>` | Schedule a future lock | `endlock.toggle` |
 | `/endlock lockat <date> <time>` | Schedule a future lock at specific time | `endlock.toggle` |
+| `/endlock lock in <duration>` / `unlock in <duration>` | Natural schedule aliases (e.g. `5m`, `7d`) | `endlock.toggle` |
 | `/endlock status` | Show current lock status | — |
 | `/endlock stats` | Show plugin statistics | — |
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
