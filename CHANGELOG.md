@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 - Natural `/endlock lock in ...` and `/endlock unlock in ...` aliases are available to users with `endlock.toggle` alone.
 
 ### Changed
-- Updated the Paper API target to Paper 26.3 Build #134 (BETA); the local test server uses the latest Paper 26.3 build.
+- Updated the Paper API target to Paper 26.3 Build #135 (BETA); the local test server uses the latest Paper 26.3 build.
 
 ## [2.0.2] - 2026-09-18
 

@@ -8,13 +8,13 @@
 - **Locale-independent matching**: History filters, placeholders, and world bypass permissions work regardless of the server's system locale.
 - **Safer evacuation shutdown**: Late async teleport callbacks are ignored after the plugin stops.
 - **Schedule permission fix**: `/endlock lock in ...` and `/endlock unlock in ...` work with `endlock.toggle` as documented.
-- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #134 (BETA); the local server task downloads the latest 26.3 build.
+- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #135 (BETA); the local server task downloads the latest 26.3 build.
 
 ## Requirements
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #134 (BETA)** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #135 (BETA)** or newer |
 | Minecraft | **26.3** |
 | Java | **25** |
 
