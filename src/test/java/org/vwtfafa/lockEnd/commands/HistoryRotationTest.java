@@ -70,4 +70,20 @@ class HistoryRotationTest {
         assertEquals(entries.get(49).timestamp(), rotated.get(rotated.size() - 1).timestamp());
         assertEquals(entries.get(40).timestamp(), rotated.get(0).timestamp());
     }
+
+    @Test
+    void paginationHandlesHugeAndOverflowingPageNumbers() {
+        assertEquals(0, LockHistoryCommand.pageEndExclusive(1000, 429496730));
+        assertEquals(Integer.MAX_VALUE,
+                LockHistoryCommand.parsePageNumber("999999999999999999999999999999"));
+        assertEquals(0, LockHistoryCommand.pageEndExclusive(1000,
+                LockHistoryCommand.parsePageNumber("999999999999999999999999999999")));
+    }
+
+    @Test
+    void paginationUsesTenEntryPagesWithoutOverflow() {
+        assertEquals(25, LockHistoryCommand.pageEndExclusive(25, 1));
+        assertEquals(15, LockHistoryCommand.pageEndExclusive(25, 2));
+        assertEquals(0, LockHistoryCommand.pageEndExclusive(25, 4));
+    }
 }

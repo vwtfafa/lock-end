@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  */
 public class LockHistoryCommand {
     private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
+    private static final int PAGE_SIZE = 10;
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final File historyFile;
@@ -77,7 +78,7 @@ public class LockHistoryCommand {
         if (args.length > 0) {
             String arg0 = args[0];
             if (arg0.matches("\\d+")) {
-                page = Math.max(1, Integer.parseInt(arg0));
+                page = parsePageNumber(arg0);
                 index = 1;
             }
         }
@@ -140,9 +141,8 @@ public class LockHistoryCommand {
         }
 
         // Pagination
-        int pageSize = 10;
-        int end = displayedHistory.size() - ((page - 1) * pageSize);
-        int start = Math.max(0, end - pageSize);
+        int end = pageEndExclusive(displayedHistory.size(), page);
+        int start = Math.max(0, end - PAGE_SIZE);
         if (start >= displayedHistory.size() || end <= 0) {
             sender.sendMessage(plugin.message("history-page-empty", Map.of()));
             return true;
@@ -152,6 +152,19 @@ public class LockHistoryCommand {
             sender.sendMessage(plugin.messageComponent("  " + displayedHistory.get(i).display()));
         }
         return true;
+    }
+
+    static int parsePageNumber(String value) {
+        try {
+            return Math.max(1, Integer.parseInt(value));
+        } catch (NumberFormatException exception) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    static int pageEndExclusive(int historySize, int page) {
+        long pageOffset = Math.max(0L, (long) page - 1L) * PAGE_SIZE;
+        return (int) Math.max(0L, historySize - pageOffset);
     }
 
     /**
