@@ -272,7 +272,7 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #134, BETA):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #135, BETA):
 
 ```bash
 ./gradlew runServer
