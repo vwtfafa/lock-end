@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -87,7 +88,7 @@ public class LockHistoryCommand {
         if (index < args.length) {
             String arg = args[index];
             if (arg.equalsIgnoreCase("json") || arg.equalsIgnoreCase("csv")) {
-                format = arg.toLowerCase();
+                format = lowerCaseToken(arg);
                 index++;
             }
         }
@@ -96,7 +97,7 @@ public class LockHistoryCommand {
         if (index < args.length) {
             String arg = args[index];
             if (arg.equalsIgnoreCase("player") || arg.equalsIgnoreCase("action")) {
-                String filterType = arg.toLowerCase();
+                String filterType = lowerCaseToken(arg);
                 index++;
                 if (index < args.length) {
                     filter = new HistoryFilter(filterType, args[index]);
@@ -152,6 +153,10 @@ public class LockHistoryCommand {
             sender.sendMessage(plugin.messageComponent("  " + displayedHistory.get(i).display()));
         }
         return true;
+    }
+
+    static String lowerCaseToken(String value) {
+        return value.toLowerCase(Locale.ROOT);
     }
 
     static int parsePageNumber(String value) {
@@ -267,7 +272,7 @@ public class LockHistoryCommand {
         // Timestamp with millis plus a counter to avoid overwrites on rapid exports.
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS"))
                 + "-" + EXPORT_COUNTER.incrementAndGet();
-        File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + format.toLowerCase());
+        File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + lowerCaseToken(format));
         try {
             if (format.equalsIgnoreCase("json")) {
                 StringBuilder json = new StringBuilder("[\n");

@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -94,6 +95,19 @@ class WhitelistCheckerTest {
     void worldPermissionGrantsBypass() {
         Player player = stubPlayer("Alex", UUID.randomUUID().toString(), Set.of("endlock.bypass.world.resource_world"));
         assertTrue(checkerFromConfig().canBypass(player, stubWorldNamed("Resource_World")));
+    }
+
+    @Test
+    void worldPermissionIsLocaleIndependent() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Player player = stubPlayer("Alex", UUID.randomUUID().toString(),
+                    Set.of("endlock.bypass.world.resource_world"));
+            assertTrue(checkerFromConfig().canBypass(player, stubWorldNamed("RESOURCE_WORLD")));
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
     @Test

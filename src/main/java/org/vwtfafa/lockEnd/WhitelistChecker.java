@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.World;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Checks if a player is whitelisted to bypass the lock.
@@ -43,7 +44,7 @@ public class WhitelistChecker {
         if (targetWorld != null) {
             String worldName = targetWorld.getName();
             if (worldWhitelist.stream().anyMatch(world -> world.equalsIgnoreCase(worldName))
-                    || player.hasPermission("endlock.bypass.world." + worldName.toLowerCase())) {
+                    || player.hasPermission("endlock.bypass.world." + worldName.toLowerCase(Locale.ROOT))) {
                 return true;
             }
         }
