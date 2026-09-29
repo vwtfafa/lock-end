@@ -156,7 +156,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             schedules.cancelAll();
         }
         if (evacuation != null) {
-            evacuation.cancel();
+            evacuation.shutdown();
         }
         if (gracePeriodTask != null) {
             gracePeriodTask.cancel();
