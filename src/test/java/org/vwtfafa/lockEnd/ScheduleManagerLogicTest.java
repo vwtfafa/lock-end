@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd;
 
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -60,5 +61,19 @@ class ScheduleManagerLogicTest {
         assertEquals("5m 30s", ScheduleManager.formatDuration(330));
         assertEquals("2h 5m", ScheduleManager.formatDuration(7500));
         assertEquals("3d 4h", ScheduleManager.formatDuration(273600));
+    }
+
+    @Test
+    void storesPersistedScheduleStateForAbsoluteTargets() {
+        var config = new YamlConfiguration();
+        LocalDateTime target = LocalDateTime.of(2026, 9, 18, 12, 30);
+
+        ScheduleManager.persistScheduledAction(config, target, "lock");
+
+        assertEquals(true, config.getBoolean("scheduled-unlock.enabled"));
+        assertEquals("lock", config.getString("scheduled-unlock.action"));
+        assertEquals("datetime", config.getString("scheduled-unlock.mode"));
+        assertEquals("2026-09-18 12:30", config.getString("scheduled-unlock.datetime"));
+        assertEquals("2026-09-18 12:30", config.getString("scheduled-unlock.target-datetime"));
     }
 }

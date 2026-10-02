@@ -89,8 +89,15 @@ The base commands do not have a global permission in `plugin.yml`; each subcomma
 
 ```yaml
 # EndLock Plugin Configuration
+config-version: 2
 locked: false
-language: en
+language: en  # Supported: de en es fr it ja ru zh
+
+# End access scope. An empty world list means all End worlds.
+end:
+  worlds: []
+  block-end-gateway: true
+  block-entities: true  # Also block non-player entities from entering the End
 
 # Update Checker: Notifications for available updates
 update-checker:
@@ -112,7 +119,7 @@ preview-notifications:
 # Sound effects for access denial
 sound-effects:
   enabled: false
-  sound: "BLOCK_ANVIL_LAND"
+  sound: "BLOCK_ANVIL_LAND"  # Enum style or namespaced key (minecraft:block.anvil.land)
   volume: 1.0
   pitch: 1.0
 
@@ -123,7 +130,7 @@ lock-reasons:
   event: "Event in progress"
 
 # Grace period - Delays enforcement of a new lock so players inside the
-# End can finish and leave safely
+# End can finish and leave safely. Access is blocked once it ends.
 grace-period:
   enabled: false
   duration: 10  # seconds
@@ -133,6 +140,13 @@ whitelists:
   players: []  # Player names that can bypass the lock
   uuids: []    # Player UUIDs that can bypass the lock
   worlds: []   # End world names where players can bypass the lock
+
+# Evacuation - Optional removal of players already inside the End when locking
+evacuation:
+  enabled: false
+  warning-seconds: 10
+  target-world: "world"
+  exclude-bypass: true
 
 # Logging - Audit log for lock actions and access attempts
 logging:
@@ -153,7 +167,14 @@ test-command:
 stats:
   enabled: true
   lock-count: 0
+  unlock-count: 0
   blocked-count: 0
+  evacuated-count: 0
+
+# Lock history storage
+history:
+  max-entries: 1000    # Oldest entries are dropped beyond this size
+  retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
 
 # Optional join notifications for players joining while the End is locked
 join-notifications:
@@ -162,10 +183,11 @@ join-notifications:
 # Optional scheduled unlock
 scheduled-unlock:
   enabled: false
-  mode: "days"        # days or datetime
+  action: "unlock"     # lock or unlock
+  mode: "days"         # days or datetime
   days: 7
   datetime: ""
-  target-datetime: "" # Persisted absolute target; maintained by EndLock
+  target-datetime: ""  # Internal absolute target, persisted across restarts
   # Countdown timer - Visible countdown before scheduled lock/unlock
   countdown:
     enabled: true
@@ -239,7 +261,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-2.0.1.jar` into your `plugins` folder
+2. Put `lock-end-2.1.0.jar` into your `plugins` folder
 3. Restart your server (Paper 26.3+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 

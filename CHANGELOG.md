@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-10-02
+
+### Fixed
+- Very large history page numbers no longer overflow during pagination; decimal values outside the `int` range safely resolve to an empty page.
+- Locale-sensitive lowercasing no longer breaks history filters, placeholder identifiers, export extensions, or per-world bypass permissions.
+- Async evacuation completions are ignored after plugin shutdown, and scheduler shutdown races are handled safely.
+- Natural `/endlock lock in ...` and `/endlock unlock in ...` aliases are available to users with `endlock.toggle` alone.
+
+### Changed
+- Updated the Paper API target to Paper 26.3 Build #142 (BETA); the local test server uses the latest Paper 26.3 build.
+- Updated the Gradle wrapper to 9.8.0.
+
+## [2.0.2] - 2026-09-18
+
+### Fixed
+- Persisted scheduled lock/unlock targets now keep their mode and absolute datetime after reloads instead of silently losing the schedule type.
+- Undo now clears the previous state only after a successful state transition, avoiding accidental state resets.
+- Blocked-teleport logging records the actual source world instead of the player's current world.
+- Paused schedules remain paused after a server restart instead of being armed automatically.
+- Oversized or overflowing `lock in` / `unlock in` durations are rejected with the normal localized error response.
+- Direct `lock` and `unlock` command visibility now matches their required `endlock.admin` permission.
+- Corrected generated release command permissions and date/time syntax in the GitHub release template.
+- Updated the `endlock.admin` permission description to cover all administrative commands.
+- Evacuation now snapshots online players before asynchronous teleports to avoid iteration side effects.
+- Evacuation targets support namespaced world keys while retaining legacy plain world names.
+- Command, history, undo, and validation responses now use Adventure Components with literal-safe placeholders.
+- Release metadata and docs are aligned to the 2.0.2 beta release for the Paper 26.3 RC-3 line.
+
 ## [2.0.1] - 2026-09-09
 
 ### Changed

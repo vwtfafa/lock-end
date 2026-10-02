@@ -3,11 +3,14 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * Warns and moves players out of the End after a lock becomes active.
@@ -15,6 +18,7 @@ import java.util.Map;
 public class EvacuationService {
     private final LockEnd plugin;
     private BukkitTask task;
+    private volatile boolean shuttingDown;
 
     public EvacuationService(LockEnd plugin) {
         this.plugin = plugin;
@@ -54,6 +58,11 @@ public class EvacuationService {
         }
     }
 
+    public void shutdown() {
+        shuttingDown = true;
+        cancel();
+    }
+
     private void evacuate() {
         task = null;
         if (!plugin.isLocked() || !plugin.getConfig().getBoolean("evacuation.enabled", false)) {
@@ -62,7 +71,7 @@ public class EvacuationService {
         String configuredTarget = plugin.getConfig().getString("evacuation.target-world", "world");
         World targetWorld = null;
         if (configuredTarget != null && !configuredTarget.isBlank()) {
-            targetWorld = Bukkit.getWorld(configuredTarget);
+            targetWorld = resolveConfiguredWorld(configuredTarget);
         }
         if (targetWorld == null) {
             targetWorld = Bukkit.getWorlds().stream()
@@ -76,7 +85,8 @@ public class EvacuationService {
         }
         Location target = targetWorld.getSpawnLocation();
         Component completeMessage = plugin.message("evacuation-complete", Map.of());
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        for (Player player : players) {
             if (player == null) {
                 continue;
             }
@@ -86,15 +96,40 @@ public class EvacuationService {
                 continue;
             }
             player.teleportAsync(target).thenAccept(success -> {
-                if (success) {
-                    // The future may complete off the main thread; FileConfiguration
-                    // and most Bukkit state must only be touched on the main thread.
+                if (!success || shuttingDown) {
+                    return;
+                }
+                try {
                     Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (!canNotifyCompletion(shuttingDown, plugin.isEnabled(), player.isOnline())) {
+                            return;
+                        }
                         player.sendMessage(completeMessage);
                         plugin.recordEvacuatedPlayer();
                     });
+                } catch (IllegalPluginAccessException exception) {
+                    if (!shuttingDown) {
+                        plugin.getLogger().warning("Could not schedule evacuation completion: " + exception.getMessage());
+                    }
                 }
             });
         }
+    }
+
+    static boolean canNotifyCompletion(boolean shuttingDown, boolean pluginEnabled, boolean playerOnline) {
+        return !shuttingDown && pluginEnabled && playerOnline;
+    }
+
+    private World resolveConfiguredWorld(String configuredTarget) {
+        if (configuredTarget.contains(":")) {
+            NamespacedKey key = NamespacedKey.fromString(configuredTarget);
+            if (key != null) {
+                World namespacedWorld = Bukkit.getWorld(key);
+                if (namespacedWorld != null) {
+                    return namespacedWorld;
+                }
+            }
+        }
+        return Bukkit.getWorld(configuredTarget);
     }
 }

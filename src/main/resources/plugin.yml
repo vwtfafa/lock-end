@@ -15,7 +15,7 @@ permissions:
     description: Reloads the plugin configuration without a server restart
     default: op
   endlock.admin:
-    description: Receive broadcast notifications and use test command
+    description: Lock or unlock the End directly, manage schedules, and use administrative commands
     default: op
   endlock.toggle:
     description: Toggle lock state (no arguments)

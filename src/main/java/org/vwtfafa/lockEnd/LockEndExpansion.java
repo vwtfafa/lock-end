@@ -3,6 +3,8 @@ package org.vwtfafa.lockEnd;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
+
 public class LockEndExpansion extends PlaceholderExpansion {
     private final LockEnd plugin;
 
@@ -36,7 +38,7 @@ public class LockEndExpansion extends PlaceholderExpansion {
             return null;
         }
 
-        return switch (identifier.toLowerCase()) {
+        return switch (identifier.toLowerCase(Locale.ROOT)) {
             case "status" -> plugin.isLocked() ? "Locked" : "Unlocked";
             case "remaining" -> plugin.getRemainingText();
             case "remaining_seconds" -> String.valueOf(plugin.getScheduledRemainingSeconds());

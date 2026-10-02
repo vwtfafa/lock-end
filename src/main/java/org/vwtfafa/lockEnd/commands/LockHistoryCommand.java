@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  */
 public class LockHistoryCommand {
     private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
+    private static final int PAGE_SIZE = 10;
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final File historyFile;
@@ -58,12 +60,12 @@ public class LockHistoryCommand {
      */
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.history")) {
-            sender.sendMessage(plugin.msg("permission"));
+            sender.sendMessage(plugin.message("permission", Map.of()));
             return true;
         }
 
         if (history.isEmpty()) {
-            sender.sendMessage(plugin.msg("history.empty"));
+            sender.sendMessage(plugin.message("history.empty", Map.of()));
             return true;
         }
 
@@ -77,7 +79,7 @@ public class LockHistoryCommand {
         if (args.length > 0) {
             String arg0 = args[0];
             if (arg0.matches("\\d+")) {
-                page = Math.max(1, Integer.parseInt(arg0));
+                page = parsePageNumber(arg0);
                 index = 1;
             }
         }
@@ -86,7 +88,7 @@ public class LockHistoryCommand {
         if (index < args.length) {
             String arg = args[index];
             if (arg.equalsIgnoreCase("json") || arg.equalsIgnoreCase("csv")) {
-                format = arg.toLowerCase();
+                format = lowerCaseToken(arg);
                 index++;
             }
         }
@@ -95,13 +97,13 @@ public class LockHistoryCommand {
         if (index < args.length) {
             String arg = args[index];
             if (arg.equalsIgnoreCase("player") || arg.equalsIgnoreCase("action")) {
-                String filterType = arg.toLowerCase();
+                String filterType = lowerCaseToken(arg);
                 index++;
                 if (index < args.length) {
                     filter = new HistoryFilter(filterType, args[index]);
                     index++;
                 } else {
-                    sender.sendMessage(plugin.msg("history-usage"));
+                    sender.sendMessage(plugin.message("history-usage", Map.of()));
                     return true;
                 }
             }
@@ -111,10 +113,10 @@ public class LockHistoryCommand {
         if (format != null) {
             File exportFile = export(format, filter);
             if (exportFile == null) {
-                sender.sendMessage(plugin.msg("history-export-failed"));
+                sender.sendMessage(plugin.message("history-export-failed", Map.of()));
                 return true;
             }
-            sender.sendMessage(plugin.msg("history-exported").replace("%file%", exportFile.getName()));
+            sender.sendMessage(plugin.message("history-exported", Map.of("%file%", exportFile.getName())));
             return true;
         }
 
@@ -125,33 +127,49 @@ public class LockHistoryCommand {
                     .filter(filter::matches)
                     .collect(Collectors.toList());
             if (filter.type().equals("player")) {
-                sender.sendMessage(plugin.msg("history.filter-player")
-                        .replace("%player%", plugin.sanitize(filter.value())));
+                sender.sendMessage(plugin.message("history.filter-player",
+                    Map.of("%player%", plugin.sanitize(filter.value()))));
             } else if (filter.type().equals("action")) {
-                sender.sendMessage(plugin.msg("history.filter-action")
-                        .replace("%action%", plugin.sanitize(filter.value())));
+                sender.sendMessage(plugin.message("history.filter-action",
+                    Map.of("%action%", plugin.sanitize(filter.value()))));
             }
             if (displayedHistory.isEmpty()) {
-                sender.sendMessage(plugin.msg("history.filter-no-results")
-                        .replace("%type%", filter.type())
-                        .replace("%value%", plugin.sanitize(filter.value())));
+                sender.sendMessage(plugin.message("history.filter-no-results", Map.of(
+                    "%type%", filter.type(),
+                    "%value%", plugin.sanitize(filter.value()))));
                 return true;
             }
         }
 
         // Pagination
-        int pageSize = 10;
-        int end = displayedHistory.size() - ((page - 1) * pageSize);
-        int start = Math.max(0, end - pageSize);
+        int end = pageEndExclusive(displayedHistory.size(), page);
+        int start = Math.max(0, end - PAGE_SIZE);
         if (start >= displayedHistory.size() || end <= 0) {
-            sender.sendMessage(plugin.msg("history-page-empty"));
+            sender.sendMessage(plugin.message("history-page-empty", Map.of()));
             return true;
         }
-        sender.sendMessage(plugin.msg("history-header-page").replace("%page%", String.valueOf(page)));
+        sender.sendMessage(plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
         for (int i = end - 1; i >= start; i--) {
-            sender.sendMessage("  " + displayedHistory.get(i).display());
+            sender.sendMessage(plugin.messageComponent("  " + displayedHistory.get(i).display()));
         }
         return true;
+    }
+
+    static String lowerCaseToken(String value) {
+        return value.toLowerCase(Locale.ROOT);
+    }
+
+    static int parsePageNumber(String value) {
+        try {
+            return Math.max(1, Integer.parseInt(value));
+        } catch (NumberFormatException exception) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    static int pageEndExclusive(int historySize, int page) {
+        long pageOffset = Math.max(0L, (long) page - 1L) * PAGE_SIZE;
+        return (int) Math.max(0L, historySize - pageOffset);
     }
 
     /**
@@ -254,7 +272,7 @@ public class LockHistoryCommand {
         // Timestamp with millis plus a counter to avoid overwrites on rapid exports.
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS"))
                 + "-" + EXPORT_COUNTER.incrementAndGet();
-        File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + format.toLowerCase());
+        File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + lowerCaseToken(format));
         try {
             if (format.equalsIgnoreCase("json")) {
                 StringBuilder json = new StringBuilder("[\n");
