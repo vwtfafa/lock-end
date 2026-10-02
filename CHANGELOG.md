@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.1.0] - 2026-09-29 (BETA)
+## [2.1.0] - 2026-10-02
 
 ### Fixed
 - Very large history page numbers no longer overflow during pagination; decimal values outside the `int` range safely resolve to an empty page.
@@ -11,7 +11,8 @@ All notable changes to this project will be documented in this file.
 - Natural `/endlock lock in ...` and `/endlock unlock in ...` aliases are available to users with `endlock.toggle` alone.
 
 ### Changed
-- Updated the Paper API target to Paper 26.3 Build #135 (BETA); the local test server uses the latest Paper 26.3 build.
+- Updated the Paper API target to Paper 26.3 Build #142 (BETA); the local test server uses the latest Paper 26.3 build.
+- Updated the Gradle wrapper to 9.8.0.
 
 ## [2.0.2] - 2026-09-18
 

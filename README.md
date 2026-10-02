@@ -8,13 +8,13 @@
 - **Locale-independent matching**: History filters, placeholders, and world bypass permissions work regardless of the server's system locale.
 - **Safer evacuation shutdown**: Late async teleport callbacks are ignored after the plugin stops.
 - **Schedule permission fix**: `/endlock lock in ...` and `/endlock unlock in ...` work with `endlock.toggle` as documented.
-- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #135 (BETA); the local server task downloads the latest 26.3 build.
+- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #142 (BETA); the local server task downloads the latest 26.3 build.
 
 ## Requirements
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #135 (BETA)** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #142 (BETA)** or newer |
 | Minecraft | **26.3** |
 | Java | **25** |
 
@@ -131,8 +131,9 @@ permissions:
 
 ```yaml
 # EndLock Plugin Configuration
+config-version: 2
 locked: false
-language: en
+language: en  # Supported: de en es fr it ja ru zh
 
 # End access scope. An empty world list means all End worlds.
 end:
@@ -160,43 +161,43 @@ preview-notifications:
 # Sound effects for access denial
 sound-effects:
   enabled: false
-  sound: "BLOCK_ANVIL_LAND"
+  sound: "BLOCK_ANVIL_LAND"  # Enum style or namespaced key (minecraft:block.anvil.land)
   volume: 1.0
   pitch: 1.0
 
-# Lock reasons
+# Lock reasons - Customizable reasons shown when blocking
 lock-reasons:
   default: "Maintenance"
   maintenance: "Maintenance in progress"
   event: "Event in progress"
 
 # Grace period - Delays enforcement of a new lock so players inside the
-# End can finish and leave safely
+# End can finish and leave safely. Access is blocked once it ends.
 grace-period:
   enabled: false
   duration: 10  # seconds
 
-# Whitelists
+# Whitelists - Players, UUIDs, and worlds that can bypass the lock
 whitelists:
   players: []  # Player names that can bypass the lock
   uuids: []    # Player UUIDs that can bypass the lock
   worlds: []   # End world names where players can bypass the lock
 
-# Optional evacuation of players already inside the End when locking
+# Evacuation - Optional removal of players already inside the End when locking
 evacuation:
   enabled: false
   warning-seconds: 10
   target-world: "world"
   exclude-bypass: true
 
-# Logging & Analytics
+# Logging - Audit log for lock actions and access attempts
 logging:
   enabled: true
   log-file: "EndLock.log"  # Created in plugins/EndLock/logs/
   log-attempts: true       # Log attempted access to locked End
   rate-limit-seconds: 5    # Minimum seconds between logged attempts per player
 
-# Schedule pause/resume
+# Schedule pause/resume - Temporarily override scheduled events
 schedule:
   paused: false
 
@@ -214,8 +215,8 @@ stats:
 
 # Lock history storage
 history:
-  max-entries: 1000
-  retention-days: 30
+  max-entries: 1000    # Oldest entries are dropped beyond this size
+  retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
 
 # Optional join notifications for players joining while the End is locked
 join-notifications:
@@ -225,11 +226,11 @@ join-notifications:
 scheduled-unlock:
   enabled: false
   action: "unlock"     # lock or unlock
-  mode: "days"        # days or datetime
+  mode: "days"         # days or datetime
   days: 7
   datetime: ""
-  target-datetime: "" # Persisted absolute target; maintained by EndLock
-  # Countdown timer
+  target-datetime: ""  # Internal absolute target, persisted across restarts
+  # Countdown timer - Visible countdown before scheduled lock/unlock
   countdown:
     enabled: true
     interval: 10      # Seconds between countdown updates
@@ -272,7 +273,7 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #135, BETA):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #142, BETA):
 
 ```bash
 ./gradlew runServer
