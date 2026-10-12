@@ -2,25 +2,24 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## What's new in 2.1.0
+## EndLock 3.0 development
 
-- **Safer history pagination**: Extremely large page numbers no longer overflow or cause a command error.
-- **Locale-independent matching**: History filters, placeholders, and world bypass permissions work regardless of the server's system locale.
-- **Safer evacuation shutdown**: Late async teleport callbacks are ignored after the plugin stops.
-- **Schedule permission fix**: `/endlock lock in ...` and `/endlock unlock in ...` work with `endlock.toggle` as documented.
-- **Paper 26.3 beta compatibility**: The compile/test API targets Paper Build #142 (BETA); the local server task downloads the latest 26.3 build.
+EndLock remains focused exclusively on access to the End. The 3.0 work adds a
+preview-and-confirm workflow for manual End evacuation and makes the bounded
+audit history versioned, UTC-based, and safer to migrate and write. This is a
+development update, not a published 3.0 release.
 
 ## Requirements
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #142 (BETA)** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #175 (STABLE)** or newer |
 | Minecraft | **26.3** |
 | Java | **25** |
 
 > Spigot and older Minecraft versions are **not** supported. Purpur 26.3+ is supported because it is Paper-based. The plugin uses `api-version: 26.3`.
 
-> Folia is currently **not supported**. EndLock uses BukkitScheduler main-thread tasks and global player iteration. Folia support requires a separate scheduler and per-player execution model.
+> **Folia support is not yet verified or declared.** EndLock is being moved to Paper's global, async, and entity schedulers, but PaperMC's [published Folia builds](https://fill.papermc.io/v3/projects/folia/versions) currently stop at 26.2, not 26.3. Do not deploy this development build on Folia. The `folia-supported` metadata will only be added after a matching Folia 26.3 build is available and the runtime paths have been tested.
 
 ## Installation
 
@@ -61,9 +60,15 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
 | `history <page> [json|csv] [player|action <value>]` | Filter and/or export history | `endlock.history` |
+| `evacuate preview` | Preview eligible End players and destination | `endlock.admin` |
+| `evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 
 - **Console** can toggle without a permission node.
 - **Players** need `endlock.toggle` to lock or unlock.
+- Manual evacuation requires the End to be locked and `evacuation.enabled: true`.
+  Run a fresh preview before every execution. The preview is requester-bound,
+  expires after 30 seconds, and must be repeated if the eligible players or
+  destination changes. Automatic evacuation on lock remains a separate option.
 
 ## Permissions
 
@@ -217,6 +222,9 @@ stats:
 history:
   max-entries: 1000    # Oldest entries are dropped beyond this size
   retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
+# history.yml stores versioned entries with UTC timestamps. Legacy local
+# timestamps are migrated; malformed or newer-schema files are preserved and
+# reported in the server log instead of being overwritten.
 
 # Optional join notifications for players joining while the End is locked
 join-notifications:
@@ -248,6 +256,16 @@ Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock
 
 Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`.
 
+### Audit history
+
+`plugins/EndLock/history.yml` keeps a bounded, versioned history. Existing
+2.x local timestamps are migrated using the server's current time zone; new
+entries are stored and displayed in UTC. Writes use a temporary file and
+atomic replacement where supported. If the file is malformed, contains an
+invalid entry, or uses a newer schema, EndLock logs the problem and will not
+overwrite that file. Manually confirmed evacuations are recorded as
+`EVACUATE` actions with the actor, intended player count, and destination.
+
 ## Build from source
 
 ```bash
@@ -273,7 +291,7 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #142, BETA):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #175, STABLE):
 
 ```bash
 ./gradlew runServer
@@ -285,6 +303,7 @@ Run a local test server (downloads the latest Paper 26.3 build; currently Build 
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
+- Folia support remains pending a Folia 26.3 build and successful integration tests; the plugin does not currently advertise Folia compatibility.
 
 ## License
 

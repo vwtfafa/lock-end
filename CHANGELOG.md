@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - In development
+
+### Added
+- Added `/endlock evacuate preview` and a separate `/endlock evacuate execute` confirmation. Previews are requester-bound, expire after 30 seconds, and must be repeated if the eligible players or destination changes.
+- Recorded manually confirmed End evacuations in the audit history with the actor, intended player count, and destination.
+- Added a schema-versioned history store with UTC timestamps, legacy local-time migration, and temporary-file/atomic-replacement writes.
+- Preserved malformed and newer-schema history files and reported read/write failures instead of silently replacing history.
+- Added focused tests for history migration, UTC round trips, corrupt/future schema preservation, and evacuation message coverage.
+
+### Changed
+- Updated the Paper API compile/test target to Paper 26.3 Build #175 (STABLE).
+- Routed timed work through Paper's global/async schedulers and player-specific work through entity schedulers.
+
+### Compatibility status
+- Folia support is still pending runtime verification. PaperMC [currently publishes Folia through 26.2](https://fill.papermc.io/v3/projects/folia/versions) but has not published a Folia 26.3 build, so this version does not declare `folia-supported`.
+
 ## [2.1.0] - 2026-10-02
 
 ### Fixed
@@ -328,4 +344,3 @@ test-command:
 
 ## [1.1] - previous
 - Initial public release baseline (prior changelog entries omitted).
-

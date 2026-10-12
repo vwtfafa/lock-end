@@ -124,6 +124,15 @@ jobs:
           fi
 
           echo "Found: $ARTIFACT"
+          jar tf "$ARTIFACT" | grep -Fxq "plugin.yml"
+          for language in de en es fr it ja ru zh; do
+            jar tf "$ARTIFACT" | grep -Fxq "lang/messages_${language}.yml"
+          done
+          PLUGIN_YML=$(unzip -p "$ARTIFACT" plugin.yml)
+          printf '%s\n' "$PLUGIN_YML" | grep -Fxq "version: '${VERSION}'"
+          printf '%s\n' "$PLUGIN_YML" | grep -Fxq "api-version: '26.3'"
+          printf '%s\n' "$PLUGIN_YML" | grep -Fxq "main: org.vwtfafa.lockEnd.LockEnd"
+          echo "Plugin descriptor and all language resources verified."
 
       - name: Prepare release body
         env:

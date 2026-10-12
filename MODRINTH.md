@@ -35,8 +35,9 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🧾 Structured audit history with pagination and JSON/CSV export
 * 🔍 Filter history by player or action with tab completion
 * 🚨 Optional evacuation: warn and move players out of the End after locking
+* 🔎 Manual End evacuation preview and separate, time-limited confirmation
 * 🔔 Optional join notifications for locked state
-* 📝 Logging with history tracking
+* 📝 Versioned audit history with UTC timestamps and safer legacy migration
 * 📊 bStats integration for anonymous usage statistics
 * ⬆️ Update checker with clickable links for Ops
 * 🌍 8 languages: EN, DE, FR, ES, IT, RU, ZH, JA
@@ -68,6 +69,8 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock lock in <duration>` / `unlock in <duration>` | Natural alias, e.g. `lock in 5m` | `endlock.toggle` |
 | `/endlock schedule status` | Show the active schedule | `endlock.admin` |
 | `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
+| `/endlock evacuate preview` | Preview eligible End players and destination | `endlock.admin` |
+| `/endlock evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 
@@ -175,6 +178,8 @@ stats:
 history:
   max-entries: 1000    # Oldest entries are dropped beyond this size
   retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
+# history.yml stores versioned entries with UTC timestamps. Legacy local
+# timestamps are migrated; malformed or newer-schema files are never overwritten.
 
 # Optional join notifications for players joining while the End is locked
 join-notifications:
@@ -224,7 +229,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 | **Paper** 26.3+ | ✅ Recommended |
 | **Purpur** 26.3+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
-| **Folia** | ❌ Not supported |
+| **Folia** | ⏳ Not yet verified ([no 26.3 build published](https://fill.papermc.io/v3/projects/folia/versions)) |
 
 * **Minecraft:** `26.3`
 * **Java:** `25` 
@@ -235,6 +240,9 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * Players and, when enabled, non-player entities are blocked from entering the End (`end.block-entities`, enabled by default)
 * Players already inside the End when locking stay there unless `evacuation.enabled` is set (then they are warned and teleported out)
+* Manual evacuation requires a locked End and `evacuation.enabled: true`; always review a fresh preview before executing. It expires after 30 seconds and is refreshed when the eligible players or target changes.
+* The bounded `history.yml` audit file migrates 2.x timestamps, stores new entries in UTC, and uses atomic replacement where supported. Malformed or newer-schema files are logged and preserved.
+* Folia compatibility is not declared until a Folia 26.3 server build is available and runtime tests pass.
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
