@@ -82,7 +82,8 @@ stats:
   evacuated-count: 0
 
 # Lock history storage
-# The history file is versioned internally and stores timestamps in UTC.
+# The bounded/rotating history file is versioned internally and stores
+# timestamps in UTC. It is not an immutable or complete long-term audit log.
 history:
   max-entries: 1000    # Oldest entries are dropped beyond this size
   retention-days: 30   # Entries older than this are removed (<=0 keeps forever)

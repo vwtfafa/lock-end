@@ -66,7 +66,7 @@ public class EvacuationService {
      * Shows a side-effect-free preview of the players an End evacuation would
      * affect. The preview is bound to the requester and expires after 30 seconds.
      */
-    public void preview(CommandSender sender, String requester) {
+    public void preview(CommandSender sender, String requester, UUID requesterUuid) {
         if (!canEvacuate(sender)) {
             return;
         }
@@ -87,7 +87,7 @@ public class EvacuationService {
      * Executes only after a recent preview by the same requester. A fresh
      * snapshot is compared immediately before starting teleports.
      */
-    public void executePreview(CommandSender sender, String requester) {
+    public void executePreview(CommandSender sender, String requester, UUID requesterUuid) {
         if (!canEvacuate(sender)) {
             return;
         }
@@ -133,10 +133,8 @@ public class EvacuationService {
             }
             send(sender, "evacuation-execution-started",
                     Map.of("%count%", String.valueOf(current.eligiblePlayers().size())));
-            plugin.getHistoryCommand().addEntry(requester, "EVACUATE", true,
-                    "MANUAL (" + current.eligiblePlayers().size() + " players to "
-                            + current.targetWorld().getName() + ")");
-            evacuate(current);
+            evacuate(current, new AuditContext(requester, requesterUuid, current.targetWorld().getName(),
+                    "MANUAL", true));
         });
     }
 
@@ -258,51 +256,112 @@ public class EvacuationService {
         boolean excludeBypass = plugin.getConfig().getBoolean("evacuation.exclude-bypass", true);
         Component completeMessage = plugin.message("evacuation-complete", Map.of());
         Location target = targetWorld.getSpawnLocation();
+        AuditContext audit = new AuditContext("System", null, targetWorld.getName(), "AUTOMATIC", false);
         for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
-            movePlayer(player, target, excludeBypass, completeMessage);
+            movePlayer(player, target, excludeBypass, completeMessage, audit);
         }
     }
 
-    private void evacuate(Plan plan) {
+    private void evacuate(Plan plan, AuditContext audit) {
         Location target = plan.targetWorld().getSpawnLocation();
         boolean excludeBypass = plugin.getConfig().getBoolean("evacuation.exclude-bypass", true);
         Component completeMessage = plugin.message("evacuation-complete", Map.of());
         Set<UUID> plannedPlayers = plan.eligiblePlayers();
+        Map<UUID, Player> onlinePlayers = new java.util.HashMap<>();
         for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
-            if (plannedPlayers.contains(player.getUniqueId())) {
-                movePlayer(player, target, excludeBypass, completeMessage);
+            onlinePlayers.put(player.getUniqueId(), player);
+        }
+        for (UUID playerId : plannedPlayers) {
+            Player player = onlinePlayers.get(playerId);
+            if (player == null) {
+                recordOutcome(audit, playerId, "SKIPPED_OFFLINE");
+            } else {
+                movePlayer(player, target, excludeBypass, completeMessage, audit);
             }
         }
     }
 
-    private void movePlayer(Player player, Location target, boolean excludeBypass, Component completeMessage) {
-        plugin.getPaperScheduler().executeEntity(player, () -> {
+    private void movePlayer(Player player, Location target, boolean excludeBypass, Component completeMessage,
+                            AuditContext audit) {
+        AtomicBoolean resolved = new AtomicBoolean();
+        boolean scheduled = plugin.getPaperScheduler().executeEntity(player, () -> {
             if (!player.isOnline()) {
+                resolveOutcome(audit, player.getUniqueId(), "SKIPPED_OFFLINE", resolved);
                 return;
             }
             World playerWorld = player.getWorld();
-            if (!plugin.isGuardedEndWorld(playerWorld)
-                    || (excludeBypass && plugin.getWhitelistChecker().canBypass(player, playerWorld))) {
+            if (!plugin.isGuardedEndWorld(playerWorld)) {
+                if (audit.requirePlannedPlayer()) {
+                    resolveOutcome(audit, player.getUniqueId(), "SKIPPED_LEFT_END", resolved);
+                }
                 return;
             }
-            player.teleportAsync(target.clone()).thenAccept(success -> {
-                if (!success) {
-                    plugin.getLogger().warning("Could not evacuate player " + player.getUniqueId()
-                            + " from the End.");
-                    return;
+            if (excludeBypass && plugin.getWhitelistChecker().canBypass(player, playerWorld)) {
+                if (audit.requirePlannedPlayer()) {
+                    resolveOutcome(audit, player.getUniqueId(), "SKIPPED_BYPASS", resolved);
                 }
-                if (shuttingDown) {
-                    return;
-                }
-                plugin.getPaperScheduler().executeEntity(player, () -> {
-                    if (!canNotifyCompletion(shuttingDown, plugin.isEnabled(), player.isOnline())) {
+                return;
+            }
+            try {
+                player.teleportAsync(target.clone()).whenComplete((success, error) -> {
+                    if (error != null || !Boolean.TRUE.equals(success)) {
+                        if (error != null) {
+                            plugin.getLogger().warning("Could not evacuate player " + player.getUniqueId()
+                                    + " from the End: " + error.getMessage());
+                        } else {
+                            plugin.getLogger().warning("Could not evacuate player " + player.getUniqueId()
+                                    + " from the End.");
+                        }
+                        resolveOutcome(audit, player.getUniqueId(), "FAILED", resolved);
                         return;
                     }
-                    player.sendMessage(completeMessage);
-                    plugin.recordEvacuatedPlayer();
-                }, () -> {});
+                    resolveOutcome(audit, player.getUniqueId(), "MOVED", resolved);
+                    if (shuttingDown) {
+                        return;
+                    }
+                    plugin.getPaperScheduler().executeEntity(player, () -> {
+                        if (!canNotifyCompletion(shuttingDown, plugin.isEnabled(), player.isOnline())) {
+                            return;
+                        }
+                        player.sendMessage(completeMessage);
+                        plugin.recordEvacuatedPlayer();
+                    }, () -> {});
+                });
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("Could not start evacuation for player " + player.getUniqueId()
+                        + ": " + exception.getMessage());
+                resolveOutcome(audit, player.getUniqueId(), "FAILED", resolved);
+            }
+        }, () -> resolveOutcome(audit, player.getUniqueId(), "SKIPPED_OFFLINE", resolved));
+        if (!scheduled) {
+            resolveOutcome(audit, player.getUniqueId(), "SKIPPED_OFFLINE", resolved);
+        }
+    }
+
+    private void resolveOutcome(AuditContext audit, UUID playerId, String result, AtomicBoolean resolved) {
+        if ((audit.requirePlannedPlayer() || "MOVED".equals(result) || "FAILED".equals(result))
+                && resolved.compareAndSet(false, true)) {
+            recordOutcome(audit, playerId, result);
+        }
+    }
+
+    private void recordOutcome(AuditContext audit, UUID playerId, String result) {
+        if (shuttingDown) {
+            return;
+        }
+        try {
+            plugin.getPaperScheduler().executeGlobal(() -> {
+                if (!shuttingDown) {
+                    plugin.getHistoryCommand().recordEvacuationResult(
+                            audit.actor(), audit.actorUuid(), playerId, audit.source(), result, audit.targetWorld());
+                }
             });
-        }, () -> {});
+        } catch (IllegalPluginAccessException exception) {
+            if (!shuttingDown) {
+                plugin.getLogger().warning("Could not record evacuation outcome for player " + playerId + ": "
+                        + exception.getMessage());
+            }
+        }
     }
 
     static boolean canNotifyCompletion(boolean shuttingDown, boolean pluginEnabled, boolean playerOnline) {
@@ -355,4 +414,7 @@ public class EvacuationService {
     private record PlanResult(Plan plan, String errorKey) {}
 
     private record PendingPreview(Plan plan, long expiresAtNanos) {}
+
+    private record AuditContext(String actor, UUID actorUuid, String targetWorld,
+                                String source, boolean requirePlannedPlayer) {}
 }

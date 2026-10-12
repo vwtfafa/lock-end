@@ -21,7 +21,8 @@ class EvacuationMessageKeysTest {
             "evacuation-preview-required",
             "evacuation-preview-expired",
             "evacuation-preview-changed",
-            "evacuation-execution-started"
+            "evacuation-execution-started",
+            "history-storage-status"
     );
 
     @Test
@@ -41,6 +42,8 @@ class EvacuationMessageKeysTest {
                 assertTrue(messages.getString("evacuation-preview-changed").contains("%count%"));
                 assertTrue(messages.getString("evacuation-preview-changed").contains("%world%"));
                 assertTrue(messages.getString("evacuation-preview-changed").contains("%bypassed%"));
+                assertTrue(messages.getString("history-storage-status").contains("%status%"));
+                assertTrue(messages.getString("history-storage-status").contains("%entries%"));
             } catch (java.io.IOException exception) {
                 throw new AssertionError("Could not close language resource " + resource, exception);
             }

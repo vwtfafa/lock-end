@@ -65,6 +65,13 @@ public class LockHistoryCommand {
             return true;
         }
 
+        if (args.length == 1 && args[0].equalsIgnoreCase("status")) {
+            send(sender, plugin.message("history-storage-status", Map.of(
+                    "%status%", historyStore.status(),
+                    "%entries%", String.valueOf(history.size()))));
+            return true;
+        }
+
         if (history.isEmpty()) {
             send(sender, plugin.message("history.empty", Map.of()));
             return true;
@@ -201,11 +208,27 @@ public class LockHistoryCommand {
      * @param entry The history entry
      */
     public void addEntry(String actor, String action, boolean previousState, String source) {
-        history.add(new HistoryEntry(Instant.now(), actor, action, source, previousState));
+        addEntry(actor, null, action, source, "RECORDED", null, previousState, null);
+    }
+
+    public boolean addEntry(String actor, java.util.UUID actorUuid, String action, String source, String result,
+                            java.util.UUID subjectUuid, Boolean previousState, Boolean newState) {
+        history.add(new HistoryEntry(Instant.now(), actor, actorUuid, action, source, subjectUuid, result,
+                previousState, newState));
         List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
         history.clear();
         history.addAll(rotated);
-        historyStore.save(history);
+        return historyStore.save(history);
+    }
+
+    public boolean recordEvacuationResult(String actor, java.util.UUID actorUuid, java.util.UUID playerUuid,
+                                          String source, String result, String targetWorld) {
+        return addEntry(actor, actorUuid, "EVACUATE", source + " -> " + targetWorld, result, playerUuid,
+                null, null);
+    }
+
+    public String getStorageStatus() {
+        return historyStore.status();
     }
 
     public void recordPreviousState(boolean previousState) {
@@ -253,21 +276,31 @@ public class LockHistoryCommand {
                     HistoryEntry entry = exportHistory.get(i);
                     output.append("  {\"timestamp\":\"").append(escape(entry.timestamp().toString()))
                             .append("\",\"actor\":\"").append(escape(entry.actor()))
-                            .append("\",\"action\":\"").append(escape(entry.action()))
+                            .append("\",\"actorUuid\":").append(jsonString(entry.actorUuid() == null
+                                    ? null : entry.actorUuid().toString()))
+                            .append(",\"action\":\"").append(escape(entry.action()))
                             .append("\",\"source\":\"").append(escape(entry.source()))
-                            .append("\",\"previousState\":").append(entry.previousState()).append("}");
+                            .append("\",\"subjectUuid\":").append(jsonString(entry.subjectUuid() == null
+                                    ? null : entry.subjectUuid().toString()))
+                            .append(",\"result\":\"").append(escape(entry.result()))
+                            .append("\",\"previousState\":").append(jsonBoolean(entry.previousState()))
+                            .append(",\"newState\":").append(jsonBoolean(entry.newState())).append("}");
                     if (i < exportHistory.size() - 1) output.append(',');
                     output.append('\n');
                 }
                 output.append(']');
             } else {
-                output.append("timestamp,actor,action,source,previousState\n");
+                output.append("timestamp,actor,actorUuid,action,source,subjectUuid,result,previousState,newState\n");
                 for (HistoryEntry entry : exportHistory) {
                     output.append(csv(entry.timestamp().toString())).append(',')
                             .append(csv(entry.actor())).append(',')
+                            .append(csv(entry.actorUuid() == null ? "" : entry.actorUuid().toString())).append(',')
                             .append(csv(entry.action())).append(',')
                             .append(csv(entry.source())).append(',')
-                            .append(entry.previousState()).append('\n');
+                            .append(csv(entry.subjectUuid() == null ? "" : entry.subjectUuid().toString())).append(',')
+                            .append(csv(entry.result())).append(',')
+                            .append(entry.previousState() == null ? "" : entry.previousState()).append(',')
+                            .append(entry.newState() == null ? "" : entry.newState()).append('\n');
                 }
             }
             Path exportPath = exportFile.toPath();
@@ -314,6 +347,14 @@ public class LockHistoryCommand {
             }
         }
         return escaped.toString();
+    }
+
+    private String jsonString(String value) {
+        return value == null ? "null" : "\"" + escape(value) + "\"";
+    }
+
+    private String jsonBoolean(Boolean value) {
+        return value == null ? "null" : value.toString();
     }
 
     private String csv(String value) {

@@ -43,6 +43,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `stats` | Show lock and blocked-attempt counters | *(none)* |
 | `reload` | Reload configuration without restart | `endlock.reload` |
 | `history` | View recent lock/unlock history | `endlock.history` |
+| `history status` | Check history storage status and in-memory entry count | `endlock.history` |
 | `undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `validateconfig` | Validate configuration file | `endlock.validate` |
 | `pause` | Pause scheduled unlock timers | `endlock.admin` |
@@ -264,7 +265,19 @@ entries are stored and displayed in UTC. Writes use a temporary file and
 atomic replacement where supported. If the file is malformed, contains an
 invalid entry, or uses a newer schema, EndLock logs the problem and will not
 overwrite that file. Manually confirmed evacuations are recorded as
-`EVACUATE` actions with the actor, intended player count, and destination.
+per-player `EVACUATE` results with the actor UUID when available, target player
+UUID, destination, and outcome (`MOVED`, `FAILED`, or a `SKIPPED_*` reason).
+Lock and unlock rows record the previous and new states plus the actor UUID
+when the command sender is a player. Run `/endlock history status` to check
+whether persistence is `AVAILABLE`, `WRITE_FAILED`, or `READ_ONLY`; write
+failures are also reported to the server log. Entries in active server memory
+may still be viewed/exported after a failed write, but are not guaranteed to
+survive a restart.
+
+History is intentionally bounded by `history.max-entries` and
+`history.retention-days`. It is an operational record, not an immutable or
+complete long-term audit system; retain server logs separately if durable
+compliance records are required.
 
 ## Build from source
 

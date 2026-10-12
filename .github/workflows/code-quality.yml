@@ -27,7 +27,63 @@ jobs:
 
       - name: Run Gradle checks
         run: |
-          ./gradlew checkstyleMain spotbugsMain test --no-daemon --stacktrace
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: Smoke test on pinned Paper 26.3 Build 175
+        run: |
+          mkdir -p smoke-paper/plugins
+          curl --fail --location --retry 3 \
+            https://fill-data.papermc.io/v1/objects/ece5afb6d0cdf0c930489618bf92341e33d2ebcd4f21e6d365daff6ed26dafb0/paper-26.3-175.jar \
+            --output smoke-paper/paper.jar
+          echo "ece5afb6d0cdf0c930489618bf92341e33d2ebcd4f21e6d365daff6ed26dafb0  smoke-paper/paper.jar" \
+            | sha256sum --check
+          cp build/libs/lock-end-*.jar smoke-paper/plugins/EndLock.jar
+          printf 'eula=true\n' > smoke-paper/eula.txt
+          cat > smoke-paper/server.properties <<'EOF'
+          online-mode=false
+          server-port=25575
+          enable-query=false
+          enable-rcon=false
+          spawn-protection=0
+          EOF
+          mkfifo smoke-paper/console
+          exec 3<>smoke-paper/console
+          java -jar smoke-paper/paper.jar --nogui < smoke-paper/console > smoke-paper/server.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            printf 'stop\n' >&3 || true
+            for attempt in $(seq 1 30); do
+              if ! kill -0 "$server_pid" 2>/dev/null; then
+                wait "$server_pid" || true
+                return
+              fi
+              sleep 1
+            done
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 120); do
+            if grep -Fq '[EndLock] EndLock enabled' smoke-paper/server.log; then
+              printf 'endlock history status\n' >&3
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat smoke-paper/server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'History storage:' smoke-paper/server.log; then
+              echo "EndLock loaded and history status command responded on Paper 26.3 Build 175."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat smoke-paper/server.log
+          echo "Paper smoke test did not observe the history status response."
+          exit 1
 
       - name: Archive Checkstyle report
         if: always()

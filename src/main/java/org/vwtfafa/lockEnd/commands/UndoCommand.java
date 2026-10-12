@@ -4,6 +4,7 @@ import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Command to undo the last lock/unlock action.
@@ -26,12 +27,17 @@ public class UndoCommand {
     }
 
     public boolean execute(CommandSender sender, String actor) {
+        return execute(sender, actor, sender instanceof org.bukkit.entity.Entity entity
+                ? entity.getUniqueId() : null);
+    }
+
+    public boolean execute(CommandSender sender, String actor, UUID actorUuid) {
         if (!sender.hasPermission("endlock.undo")) {
             plugin.getPaperScheduler().sendMessage(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
-        if (!plugin.undoLastAction(actor)) {
+        if (!plugin.undoLastAction(actor, actorUuid)) {
             plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.empty", Map.of()));
             return true;
         }

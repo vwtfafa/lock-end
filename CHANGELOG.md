@@ -6,9 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Added `/endlock evacuate preview` and a separate `/endlock evacuate execute` confirmation. Previews are requester-bound, expire after 30 seconds, and must be repeated if the eligible players or destination changes.
-- Recorded manually confirmed End evacuations in the audit history with the actor, intended player count, and destination.
-- Added a schema-versioned history store with UTC timestamps, legacy local-time migration, and temporary-file/atomic-replacement writes.
+- Recorded actual per-player End evacuation outcomes, including moved, failed, offline, left-End, and bypass-skipped cases; actor and subject UUIDs are stored where applicable.
+- Added `/endlock history status` to inspect whether persistence is available, failed, or read-only.
+- Added a schema-versioned history store with UTC timestamps, actor/subject identifiers, state transitions, legacy migration, and temporary-file/atomic-replacement writes.
 - Preserved malformed and newer-schema history files and reported read/write failures instead of silently replacing history.
+- Documented that the rotating, retention-bounded history is not an immutable or complete long-term audit.
 - Added focused tests for history migration, UTC round trips, corrupt/future schema preservation, and evacuation message coverage.
 
 ### Changed

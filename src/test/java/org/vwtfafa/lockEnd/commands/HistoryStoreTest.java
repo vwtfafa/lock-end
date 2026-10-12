@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +41,7 @@ class HistoryStoreTest {
         assertTrue(store.needsRewrite());
         assertTrue(store.isWritable());
         assertTrue(store.save(entries));
-        assertTrue(Files.readString(historyFile).contains("schema-version: 1"));
+        assertTrue(Files.readString(historyFile).contains("schema-version: 2"));
         assertTrue(Files.readString(historyFile).contains("2026-10-01T"));
 
         HistoryStore reloaded = new HistoryStore(historyFile.toFile(), Logger.getLogger("HistoryStoreTest"));
@@ -58,6 +59,43 @@ class HistoryStoreTest {
         assertTrue(store.save(List.of(entry)));
         assertEquals(List.of(entry), new HistoryStore(historyFile.toFile(),
                 Logger.getLogger("HistoryStoreTest")).load());
+    }
+
+    @Test
+    void persistsActorAndSubjectIdentifiersAndActualResult() {
+        Path historyFile = temporaryDirectory.resolve("history.yml");
+        HistoryStore store = new HistoryStore(historyFile.toFile(), Logger.getLogger("HistoryStoreTest"));
+        UUID actor = UUID.randomUUID();
+        UUID subject = UUID.randomUUID();
+        HistoryEntry entry = new HistoryEntry(Instant.parse("2026-10-01T12:34:56Z"), "Admin", actor,
+                "EVACUATE", "MANUAL -> world", subject, "MOVED", true, false);
+
+        assertTrue(store.save(List.of(entry)));
+        assertEquals(List.of(entry), new HistoryStore(historyFile.toFile(),
+                Logger.getLogger("HistoryStoreTest")).load());
+    }
+
+    @Test
+    void migratesVersionOneEntriesWithoutChangingTheirUtcInstant() throws Exception {
+        Path historyFile = temporaryDirectory.resolve("history.yml");
+        Files.writeString(historyFile, """
+                schema-version: 1
+                entries:
+                  - timestamp: "2026-10-01T12:34:56Z"
+                    actor: Admin
+                    action: LOCK
+                    source: COMMAND
+                    previous-state: false
+                """);
+        HistoryStore store = new HistoryStore(historyFile.toFile(), Logger.getLogger("HistoryStoreTest"));
+
+        List<HistoryEntry> entries = store.load();
+        assertEquals(1, entries.size());
+        assertEquals(Instant.parse("2026-10-01T12:34:56Z"), entries.get(0).timestamp());
+        assertEquals("LEGACY", entries.get(0).result());
+        assertTrue(store.needsRewrite());
+        assertTrue(store.save(entries));
+        assertTrue(Files.readString(historyFile).contains("schema-version: 2"));
     }
 
     @Test
@@ -94,13 +132,29 @@ class HistoryStoreTest {
                 "Admin", "LOCK", "COMMAND", false);
         assertTrue(store.save(List.of(entry)));
 
-        Files.writeString(historyFile, Files.readString(historyFile).replace("schema-version: 1",
-                "schema-version: 2"));
+        Files.writeString(historyFile, Files.readString(historyFile).replace("schema-version: 2",
+                "schema-version: 3"));
         String futureHistory = Files.readString(historyFile);
 
         assertEquals(List.of(entry), store.load());
         assertFalse(store.isWritable());
         assertFalse(store.save(List.of()));
         assertEquals(futureHistory, Files.readString(historyFile));
+    }
+
+    @Test
+    void reportsWriteFailureAndRecoversWhenStorageBecomesWritable() throws Exception {
+        Path historyFile = temporaryDirectory.resolve("history.yml");
+        Files.createDirectory(historyFile);
+        HistoryStore store = new HistoryStore(historyFile.toFile(), Logger.getLogger("HistoryStoreTest"));
+        HistoryEntry entry = new HistoryEntry(Instant.parse("2026-10-01T12:34:56Z"),
+                "Admin", "LOCK", "COMMAND", false);
+
+        assertFalse(store.save(List.of(entry)));
+        assertEquals("WRITE_FAILED", store.status());
+
+        Files.delete(historyFile);
+        assertTrue(store.save(List.of(entry)));
+        assertEquals("AVAILABLE", store.status());
     }
 }

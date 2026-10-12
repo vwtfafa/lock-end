@@ -54,6 +54,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
 | `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
+| `/endlock history status` | Check history storage status and in-memory entry count | `endlock.history` |
 | `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
@@ -242,6 +243,8 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 * Players already inside the End when locking stay there unless `evacuation.enabled` is set (then they are warned and teleported out)
 * Manual evacuation requires a locked End and `evacuation.enabled: true`; always review a fresh preview before executing. It expires after 30 seconds and is refreshed when the eligible players or target changes.
 * The bounded `history.yml` audit file migrates 2.x timestamps, stores new entries in UTC, and uses atomic replacement where supported. Malformed or newer-schema files are logged and preserved.
+* `/endlock history status` reports `AVAILABLE`, `WRITE_FAILED`, or `READ_ONLY`. Evacuation outcomes are recorded per player; lock transitions include previous/new state and actor UUID when available. A failed write is logged, and unpersisted in-memory entries may be lost on restart.
+* History rotation/retention makes this an operational record, not an immutable or complete long-term audit. Keep separate server logs for durable records.
 * Folia compatibility is not declared until a Folia 26.3 server build is available and runtime tests pass.
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 

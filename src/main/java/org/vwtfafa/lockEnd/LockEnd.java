@@ -185,6 +185,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action) {
+        return changeLockState(newLocked, actor, action, null);
+    }
+
+    public boolean changeLockState(boolean newLocked, String actor, String action, UUID actorUuid) {
         if (locked == newLocked) {
             return false;
         }
@@ -204,7 +208,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
-        historyCommand.addEntry(actor, action, previousState, action);
+        historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
         if (locked) {
             startGracePeriodIfEnabled();
             evacuation.schedule();
@@ -213,11 +217,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean undoLastAction(String actor) {
+        return undoLastAction(actor, null);
+    }
+
+    public boolean undoLastAction(String actor, UUID actorUuid) {
         if (historyCommand.getLastPreviousState() == null) {
             return false;
         }
         boolean restored = historyCommand.getLastPreviousState();
-        boolean changed = changeLockState(restored, actor, "UNDO");
+        boolean changed = changeLockState(restored, actor, "UNDO", actorUuid);
         if (changed) {
             historyCommand.clearLastPreviousState();
         }
