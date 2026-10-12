@@ -46,9 +46,10 @@ jobs:
           enable-rcon=false
           spawn-protection=0
           EOF
-          mkfifo smoke-paper/console
-          exec 3<>smoke-paper/console
-          java -jar smoke-paper/paper.jar --nogui < smoke-paper/console > smoke-paper/server.log 2>&1 &
+          cd smoke-paper
+          mkfifo console
+          exec 3<>console
+          java -jar paper.jar --nogui < console > server.log 2>&1 &
           server_pid=$!
           cleanup() {
             printf 'stop\n' >&3 || true
@@ -64,24 +65,24 @@ jobs:
           }
           trap cleanup EXIT
           for attempt in $(seq 1 120); do
-            if grep -Fq '[EndLock] EndLock enabled' smoke-paper/server.log; then
+            if grep -Fq 'EndLock v' server.log && grep -Fq 'enabled (Paper 26.3+)' server.log; then
               printf 'endlock history status\n' >&3
               break
             fi
             if ! kill -0 "$server_pid" 2>/dev/null; then
-              cat smoke-paper/server.log
+              cat server.log
               exit 1
             fi
             sleep 1
           done
           for attempt in $(seq 1 30); do
-            if grep -Fq 'History storage:' smoke-paper/server.log; then
+            if grep -Fq 'History storage:' server.log; then
               echo "EndLock loaded and history status command responded on Paper 26.3 Build 175."
               exit 0
             fi
             sleep 1
           done
-          cat smoke-paper/server.log
+          cat server.log
           echo "Paper smoke test did not observe the history status response."
           exit 1
 
