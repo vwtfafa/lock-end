@@ -133,6 +133,9 @@ public class EvacuationService {
             }
             send(sender, "evacuation-execution-started",
                     Map.of("%count%", String.valueOf(current.eligiblePlayers().size())));
+            plugin.getHistoryCommand().addEntry(requester, "EVACUATE", true,
+                    "MANUAL (" + current.eligiblePlayers().size() + " players to "
+                            + current.targetWorld().getName() + ")");
             evacuate(current);
         });
     }

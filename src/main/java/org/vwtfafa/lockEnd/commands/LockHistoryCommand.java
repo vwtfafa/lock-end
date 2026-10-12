@@ -1,16 +1,17 @@
 package org.vwtfafa.lockEnd.commands;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.vwtfafa.lockEnd.LockEnd;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -25,7 +26,7 @@ public class LockHistoryCommand {
     private static final int PAGE_SIZE = 10;
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
-    private final File historyFile;
+    private final HistoryStore historyStore;
     private final int maxEntries;
     private final int retentionDays;
     private Boolean lastPreviousState;
@@ -34,7 +35,7 @@ public class LockHistoryCommand {
         this.plugin = plugin;
         this.maxEntries = Math.max(1, plugin.getConfig().getInt("history.max-entries", 1000));
         this.retentionDays = plugin.getConfig().getInt("history.retention-days", 30);
-        historyFile = new File(plugin.getDataFolder(), "history.yml");
+        historyStore = new HistoryStore(new File(plugin.getDataFolder(), "history.yml"), plugin.getLogger());
         loadHistory();
     }
 
@@ -184,7 +185,7 @@ public class LockHistoryCommand {
     static List<HistoryEntry> applyRotation(List<HistoryEntry> entries, int maxEntries, int retentionDays) {
         List<HistoryEntry> result = entries;
         if (retentionDays > 0) {
-            LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+            Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
             result = result.stream()
                     .filter(entry -> !entry.timestamp().isBefore(cutoff))
                     .collect(Collectors.toList());
@@ -200,11 +201,11 @@ public class LockHistoryCommand {
      * @param entry The history entry
      */
     public void addEntry(String actor, String action, boolean previousState, String source) {
-        history.add(new HistoryEntry(java.time.LocalDateTime.now(), actor, action, source, previousState));
+        history.add(new HistoryEntry(Instant.now(), actor, action, source, previousState));
         List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
         history.clear();
         history.addAll(rotated);
-        saveHistory();
+        historyStore.save(history);
     }
 
     public void recordPreviousState(boolean previousState) {
@@ -220,47 +221,13 @@ public class LockHistoryCommand {
     }
 
     private void loadHistory() {
-        if (!historyFile.isFile()) {
-            return;
-        }
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(historyFile);
-        for (Object rawEntry : config.getList("entries", List.of())) {
-            if (rawEntry instanceof Map<?, ?> entry) {
-                try {
-                    history.add(new HistoryEntry(
-                            java.time.LocalDateTime.parse(String.valueOf(entry.get("timestamp"))),
-                            String.valueOf(entry.get("actor")),
-                            String.valueOf(entry.get("action")),
-                            String.valueOf(entry.get("source")),
-                            Boolean.parseBoolean(String.valueOf(entry.get("previous-state")))));
-                } catch (RuntimeException ignored) {
-                    plugin.getLogger().warning("Skipping invalid history entry.");
-                }
-            } else if (rawEntry != null) {
-                history.add(new HistoryEntry(java.time.LocalDateTime.now(), "unknown", rawEntry.toString(), "legacy", false));
-            }
-        }
+        history.addAll(historyStore.load());
         List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
+        boolean changedByRotation = !history.equals(rotated);
         history.clear();
         history.addAll(rotated);
-    }
-
-    private void saveHistory() {
-        YamlConfiguration historyConfig = new YamlConfiguration();
-        List<Map<String, Object>> entries = new ArrayList<>();
-        for (HistoryEntry entry : history) {
-            entries.add(Map.of(
-                "timestamp", entry.timestamp().toString(),
-                "actor", entry.actor(),
-                "action", entry.action(),
-                "source", entry.source(),
-                "previous-state", entry.previousState()));
-        }
-        historyConfig.set("entries", entries);
-        try {
-            historyConfig.save(historyFile);
-        } catch (IOException exception) {
-            plugin.getLogger().warning("Could not save history: " + exception.getMessage());
+        if (historyStore.isWritable() && (historyStore.needsRewrite() || changedByRotation)) {
+            historyStore.save(history);
         }
     }
 
@@ -274,43 +241,79 @@ public class LockHistoryCommand {
         }
 
         // Timestamp with millis plus a counter to avoid overwrites on rapid exports.
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS"))
-                + "-" + EXPORT_COUNTER.incrementAndGet();
+        String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS")
+                .withZone(ZoneOffset.UTC).format(Instant.now()) + "-" + EXPORT_COUNTER.incrementAndGet();
         File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + lowerCaseToken(format));
+        Path temporaryFile = null;
         try {
+            StringBuilder output = new StringBuilder();
             if (format.equalsIgnoreCase("json")) {
-                StringBuilder json = new StringBuilder("[\n");
+                output.append("[\n");
                 for (int i = 0; i < exportHistory.size(); i++) {
                     HistoryEntry entry = exportHistory.get(i);
-                    json.append("  {\"timestamp\":\"").append(escape(entry.timestamp().toString()))
+                    output.append("  {\"timestamp\":\"").append(escape(entry.timestamp().toString()))
                             .append("\",\"actor\":\"").append(escape(entry.actor()))
                             .append("\",\"action\":\"").append(escape(entry.action()))
                             .append("\",\"source\":\"").append(escape(entry.source()))
                             .append("\",\"previousState\":").append(entry.previousState()).append("}");
-                    if (i < exportHistory.size() - 1) json.append(',');
-                    json.append('\n');
+                    if (i < exportHistory.size() - 1) output.append(',');
+                    output.append('\n');
                 }
-                json.append(']');
-                Files.writeString(exportFile.toPath(), json.toString(), StandardCharsets.UTF_8);
+                output.append(']');
             } else {
-                try (FileWriter writer = new FileWriter(exportFile, StandardCharsets.UTF_8)) {
-                    writer.write("timestamp,actor,action,source,previousState\n");
-                    for (HistoryEntry entry : exportHistory) {
-                        writer.write(csv(entry.timestamp().toString()) + "," + csv(entry.actor()) + ","
-                                + csv(entry.action()) + "," + csv(entry.source()) + ","
-                                + entry.previousState() + "\n");
-                    }
+                output.append("timestamp,actor,action,source,previousState\n");
+                for (HistoryEntry entry : exportHistory) {
+                    output.append(csv(entry.timestamp().toString())).append(',')
+                            .append(csv(entry.actor())).append(',')
+                            .append(csv(entry.action())).append(',')
+                            .append(csv(entry.source())).append(',')
+                            .append(entry.previousState()).append('\n');
                 }
             }
+            Path exportPath = exportFile.toPath();
+            Path parent = exportPath.toAbsolutePath().getParent();
+            Files.createDirectories(parent);
+            temporaryFile = Files.createTempFile(parent, ".history-export-", ".tmp");
+            Files.writeString(temporaryFile, output.toString(), StandardCharsets.UTF_8);
+            HistoryStore.replaceAtomically(temporaryFile, exportPath);
         } catch (IOException exception) {
             plugin.getLogger().warning("Could not export history: " + exception.getMessage());
             return null;
+        } finally {
+            if (temporaryFile != null) {
+                try {
+                    Files.deleteIfExists(temporaryFile);
+                } catch (IOException exception) {
+                    plugin.getLogger().warning("Could not remove temporary history export "
+                            + temporaryFile + ": " + exception.getMessage());
+                }
+            }
         }
         return exportFile;
     }
 
     private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            switch (character) {
+                case '"' -> escaped.append("\\\"");
+                case '\\' -> escaped.append("\\\\");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+        return escaped.toString();
     }
 
     private String csv(String value) {
