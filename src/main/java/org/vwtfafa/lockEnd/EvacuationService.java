@@ -6,8 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.IllegalPluginAccessException;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.util.Map;
 import java.util.List;
@@ -17,7 +16,7 @@ import java.util.List;
  */
 public class EvacuationService {
     private final LockEnd plugin;
-    private BukkitTask task;
+    private ScheduledTask task;
     private volatile boolean shuttingDown;
 
     public EvacuationService(LockEnd plugin) {
@@ -33,19 +32,22 @@ public class EvacuationService {
         }
         cancel();
         long warningSeconds = Math.max(0, plugin.getConfig().getLong("evacuation.warning-seconds", 10));
+        boolean excludeBypass = plugin.getConfig().getBoolean("evacuation.exclude-bypass", true);
         Component warning = plugin.message("evacuation-warning",
                 Map.of("%seconds%", String.valueOf(warningSeconds)));
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;
             }
-            if (plugin.isGuardedEndWorld(player.getWorld())
-                    && (!plugin.getConfig().getBoolean("evacuation.exclude-bypass", true)
-                    || !plugin.getWhitelistChecker().canBypass(player, player.getWorld()))) {
-                player.sendMessage(warning);
-            }
+            plugin.getPaperScheduler().executeEntity(player, () -> {
+                World playerWorld = player.getWorld();
+                if (plugin.isGuardedEndWorld(playerWorld)
+                        && (!excludeBypass || !plugin.getWhitelistChecker().canBypass(player, playerWorld))) {
+                    player.sendMessage(warning);
+                }
+            }, () -> {});
         }
-        task = Bukkit.getScheduler().runTaskLater(plugin, this::evacuate, warningSeconds * 20L);
+        task = plugin.getPaperScheduler().runGlobalLater(this::evacuate, warningSeconds * 20L);
     }
 
     /**
@@ -85,34 +87,31 @@ public class EvacuationService {
         }
         Location target = targetWorld.getSpawnLocation();
         Component completeMessage = plugin.message("evacuation-complete", Map.of());
+        boolean excludeBypass = plugin.getConfig().getBoolean("evacuation.exclude-bypass", true);
         List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
         for (Player player : players) {
             if (player == null) {
                 continue;
             }
-            if (!plugin.isGuardedEndWorld(player.getWorld())
-                    || (plugin.getConfig().getBoolean("evacuation.exclude-bypass", true)
-                    && plugin.getWhitelistChecker().canBypass(player, player.getWorld()))) {
-                continue;
-            }
-            player.teleportAsync(target).thenAccept(success -> {
-                if (!success || shuttingDown) {
+            plugin.getPaperScheduler().executeEntity(player, () -> {
+                World playerWorld = player.getWorld();
+                if (!player.isOnline() || !plugin.isGuardedEndWorld(playerWorld)
+                        || (excludeBypass && plugin.getWhitelistChecker().canBypass(player, playerWorld))) {
                     return;
                 }
-                try {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
+                player.teleportAsync(target).thenAccept(success -> {
+                    if (!success || shuttingDown) {
+                        return;
+                    }
+                    plugin.getPaperScheduler().executeEntity(player, () -> {
                         if (!canNotifyCompletion(shuttingDown, plugin.isEnabled(), player.isOnline())) {
                             return;
                         }
                         player.sendMessage(completeMessage);
                         plugin.recordEvacuatedPlayer();
-                    });
-                } catch (IllegalPluginAccessException exception) {
-                    if (!shuttingDown) {
-                        plugin.getLogger().warning("Could not schedule evacuation completion: " + exception.getMessage());
-                    }
-                }
-            });
+                    }, () -> {});
+                });
+            }, () -> {});
         }
     }
 

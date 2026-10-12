@@ -44,7 +44,7 @@ public class ConfigValidatorCommand {
      */
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.validate")) {
-            sender.sendMessage(plugin.message("permission", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
@@ -116,11 +116,12 @@ public class ConfigValidatorCommand {
 
         // Output results
         if (issues.isEmpty()) {
-            sender.sendMessage(plugin.message("config.valid", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("config.valid", Map.of()));
         } else {
-            sender.sendMessage(plugin.message("config.issues", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("config.issues", Map.of()));
             for (String issue : issues) {
-                sender.sendMessage(plugin.message("config-issue", Map.of("%issue%", issue)));
+                plugin.getPaperScheduler().sendMessage(sender,
+                        plugin.message("config-issue", Map.of("%issue%", issue)));
             }
         }
 

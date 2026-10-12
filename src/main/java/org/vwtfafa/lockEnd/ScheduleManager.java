@@ -4,7 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -23,10 +23,10 @@ public class ScheduleManager {
     private final PreviewNotificationManager previewManager;
     // Volatile because bStats reads the pending action from an async thread.
     private volatile LocalDateTime scheduledUnlockTime;
-    private String scheduledAction = "unlock";
-    private boolean schedulePaused;
-    private BukkitTask checkTask;
-    private BukkitTask countdownTask;
+    private volatile String scheduledAction = "unlock";
+    private volatile boolean schedulePaused;
+    private ScheduledTask checkTask;
+    private ScheduledTask countdownTask;
 
     public ScheduleManager(LockEnd plugin) {
         this.plugin = plugin;
@@ -331,7 +331,7 @@ public class ScheduleManager {
 
         long remainingTicks = Math.max(1L, (remainingMillis + 49L) / 50L);
         long delay = Math.min(remainingTicks, SCHEDULE_RECHECK_TICKS);
-        checkTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        checkTask = plugin.getPaperScheduler().runGlobalLater(() -> {
             checkTask = null;
             scheduleDueCheck();
         }, delay);
@@ -360,7 +360,7 @@ public class ScheduleManager {
         }
         long startBefore = plugin.getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
         long interval = Math.max(1, plugin.getConfig().getLong("scheduled-unlock.countdown.interval", 10));
-        countdownTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        countdownTask = plugin.getPaperScheduler().runGlobalRepeating(() -> {
             if (scheduledUnlockTime == null || schedulePaused) {
                 return;
             }
@@ -374,11 +374,13 @@ public class ScheduleManager {
                 if (player == null) {
                     continue;
                 }
-                if (player.isOp() || player.hasPermission("endlock.admin")) {
-                    player.sendMessage(rendered);
-                }
+                plugin.getPaperScheduler().executeEntity(player, () -> {
+                    if (player.isOp() || player.hasPermission("endlock.admin")) {
+                        player.sendMessage(rendered);
+                    }
+                }, () -> {});
             }
-        }, 0L, interval * 20L);
+        }, 1L, interval * 20L);
     }
 
     private void cancelCountdown() {

@@ -2,7 +2,7 @@ package org.vwtfafa.lockEnd;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -10,12 +10,22 @@ import java.util.Map;
  */
 public class LockReasonManager {
     private static final String DEFAULT_REASON = "Maintenance";
-    private final FileConfiguration config;
+    private final Map<String, Object> reasons;
     private final String defaultReason;
 
     public LockReasonManager(FileConfiguration config) {
-        this.config = config;
-        this.defaultReason = config.getString("lock-reasons.default", DEFAULT_REASON);
+        Map<String, Object> configuredReasons = new HashMap<>();
+        ConfigurationSection section = config.getConfigurationSection("lock-reasons");
+        if (section != null) {
+            for (Map.Entry<String, Object> entry : section.getValues(false).entrySet()) {
+                if (entry.getValue() instanceof String reason) {
+                    configuredReasons.put(entry.getKey(), reason);
+                }
+            }
+        }
+        this.reasons = Map.copyOf(configuredReasons);
+        Object configuredDefault = reasons.get("default");
+        this.defaultReason = configuredDefault instanceof String reason ? reason : DEFAULT_REASON;
     }
 
     /**
@@ -27,8 +37,8 @@ public class LockReasonManager {
         if (key == null || key.isEmpty()) {
             return getDefaultReason();
         }
-        String reason = config.getString("lock-reasons." + key);
-        return reason != null ? reason : getDefaultReason();
+        Object reason = reasons.get(key);
+        return reason instanceof String configured ? configured : getDefaultReason();
     }
 
     /**
@@ -44,7 +54,6 @@ public class LockReasonManager {
      * @return Map of reason keys to reason messages
      */
     public Map<String, Object> getReasons() {
-        ConfigurationSection section = config.getConfigurationSection("lock-reasons");
-        return section != null ? section.getValues(false) : Collections.emptyMap();
+        return reasons;
     }
 }

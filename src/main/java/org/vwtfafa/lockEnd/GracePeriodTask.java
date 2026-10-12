@@ -1,7 +1,6 @@
 package org.vwtfafa.lockEnd;
 
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * Handles the grace period after locking: while it is active the lock is not
@@ -11,7 +10,7 @@ import org.bukkit.scheduler.BukkitTask;
 public class GracePeriodTask {
     private final LockEnd plugin;
     private volatile boolean active;
-    private BukkitTask task;
+    private ScheduledTask task;
 
     public GracePeriodTask(LockEnd plugin) {
         this.plugin = plugin;
@@ -27,7 +26,7 @@ public class GracePeriodTask {
         cancel();
         int safeDuration = Math.max(0, durationSeconds);
         active = true;
-        task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        task = plugin.getPaperScheduler().runGlobalLater(() -> {
             task = null;
             active = false;
             plugin.getLogger().info("Grace period ended, End lock is now fully enforced.");

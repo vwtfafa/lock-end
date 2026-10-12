@@ -23,16 +23,16 @@ public class UndoCommand {
      */
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.undo")) {
-            sender.sendMessage(plugin.message("permission", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
         if (!plugin.undoLastAction(sender.getName())) {
-            sender.sendMessage(plugin.message("undo.empty", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.empty", Map.of()));
             return true;
         }
 
-        sender.sendMessage(plugin.message("undo.success", Map.of(
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.success", Map.of(
                 "%action%", plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open"))));
         return true;
     }

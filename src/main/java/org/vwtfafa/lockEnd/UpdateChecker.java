@@ -6,7 +6,6 @@ import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.IllegalPluginAccessException;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -16,12 +15,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class UpdateChecker {
-    private final JavaPlugin plugin;
+    private final LockEnd plugin;
     private final String currentVersion;
     private volatile String latestVersion;
     private volatile boolean updateAvailable;
 
-    public UpdateChecker(JavaPlugin plugin) {
+    public UpdateChecker(LockEnd plugin) {
         this.plugin = plugin;
         this.currentVersion = plugin.getPluginMeta().getVersion();
     }
@@ -32,7 +31,7 @@ public class UpdateChecker {
     public void checkForUpdates() {
         boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
         boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getPaperScheduler().runAsync(() -> {
             try {
                 // Abrufen der neuesten Version von GitHub API
                 URI releasesUri = URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
@@ -84,21 +83,27 @@ public class UpdateChecker {
      * Sends a chat notification with the release link to online operators
      */
     private void notifyOnlineAdmins() {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
-            Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
-                .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
-                .clickEvent(ClickEvent.openUrl(releaseUrl))
-                .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player == null) {
-                    continue;
+        try {
+            plugin.getPaperScheduler().executeGlobal(() -> {
+                String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
+                Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
+                    .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
+                    .clickEvent(ClickEvent.openUrl(releaseUrl))
+                    .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player == null) {
+                        continue;
+                    }
+                    plugin.getPaperScheduler().executeEntity(player, () -> {
+                        if (player.isOp() || player.hasPermission("endlock.admin")) {
+                            player.sendMessage(message);
+                        }
+                    }, () -> {});
                 }
-                if (player.isOp() || player.hasPermission("endlock.admin")) {
-                    player.sendMessage(message);
-                }
-            }
-        });
+            });
+        } catch (IllegalPluginAccessException exception) {
+            plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
+        }
     }
 
     /**

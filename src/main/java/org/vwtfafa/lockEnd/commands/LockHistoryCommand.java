@@ -60,12 +60,12 @@ public class LockHistoryCommand {
      */
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.history")) {
-            sender.sendMessage(plugin.message("permission", Map.of()));
+            send(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
         if (history.isEmpty()) {
-            sender.sendMessage(plugin.message("history.empty", Map.of()));
+            send(sender, plugin.message("history.empty", Map.of()));
             return true;
         }
 
@@ -103,7 +103,7 @@ public class LockHistoryCommand {
                     filter = new HistoryFilter(filterType, args[index]);
                     index++;
                 } else {
-                    sender.sendMessage(plugin.message("history-usage", Map.of()));
+                    send(sender, plugin.message("history-usage", Map.of()));
                     return true;
                 }
             }
@@ -113,10 +113,10 @@ public class LockHistoryCommand {
         if (format != null) {
             File exportFile = export(format, filter);
             if (exportFile == null) {
-                sender.sendMessage(plugin.message("history-export-failed", Map.of()));
+                send(sender, plugin.message("history-export-failed", Map.of()));
                 return true;
             }
-            sender.sendMessage(plugin.message("history-exported", Map.of("%file%", exportFile.getName())));
+            send(sender, plugin.message("history-exported", Map.of("%file%", exportFile.getName())));
             return true;
         }
 
@@ -127,16 +127,16 @@ public class LockHistoryCommand {
                     .filter(filter::matches)
                     .collect(Collectors.toList());
             if (filter.type().equals("player")) {
-                sender.sendMessage(plugin.message("history.filter-player",
-                    Map.of("%player%", plugin.sanitize(filter.value()))));
+                send(sender, plugin.message("history.filter-player",
+                        Map.of("%player%", plugin.sanitize(filter.value()))));
             } else if (filter.type().equals("action")) {
-                sender.sendMessage(plugin.message("history.filter-action",
-                    Map.of("%action%", plugin.sanitize(filter.value()))));
+                send(sender, plugin.message("history.filter-action",
+                        Map.of("%action%", plugin.sanitize(filter.value()))));
             }
             if (displayedHistory.isEmpty()) {
-                sender.sendMessage(plugin.message("history.filter-no-results", Map.of(
-                    "%type%", filter.type(),
-                    "%value%", plugin.sanitize(filter.value()))));
+                send(sender, plugin.message("history.filter-no-results", Map.of(
+                        "%type%", filter.type(),
+                        "%value%", plugin.sanitize(filter.value()))));
                 return true;
             }
         }
@@ -145,14 +145,18 @@ public class LockHistoryCommand {
         int end = pageEndExclusive(displayedHistory.size(), page);
         int start = Math.max(0, end - PAGE_SIZE);
         if (start >= displayedHistory.size() || end <= 0) {
-            sender.sendMessage(plugin.message("history-page-empty", Map.of()));
+            send(sender, plugin.message("history-page-empty", Map.of()));
             return true;
         }
-        sender.sendMessage(plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
+        send(sender, plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
         for (int i = end - 1; i >= start; i--) {
-            sender.sendMessage(plugin.messageComponent("  " + displayedHistory.get(i).display()));
+            send(sender, plugin.messageComponent("  " + displayedHistory.get(i).display()));
         }
         return true;
+    }
+
+    private void send(CommandSender sender, net.kyori.adventure.text.Component message) {
+        plugin.getPaperScheduler().sendMessage(sender, message);
     }
 
     static String lowerCaseToken(String value) {

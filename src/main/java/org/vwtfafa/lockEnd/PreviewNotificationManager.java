@@ -3,7 +3,7 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -14,7 +14,7 @@ import java.util.Map;/**
 public class PreviewNotificationManager {
     private static final long PREVIEW_RECHECK_TICKS = 20L * 60L;
     private final LockEnd plugin;
-    private final Map<String, BukkitTask> previewTasks = new HashMap<>();
+    private final Map<String, ScheduledTask> previewTasks = new HashMap<>();
 
     public PreviewNotificationManager(LockEnd plugin) {
         this.plugin = plugin;
@@ -67,7 +67,7 @@ public class PreviewNotificationManager {
         long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
         delayTicks = Math.min(delayTicks, PREVIEW_RECHECK_TICKS);
 
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        ScheduledTask task = plugin.getPaperScheduler().runGlobalLater(() -> {
             long remaining = Duration.between(LocalDateTime.now(), targetTime).toMillis();
             if (remaining > previewMillis) {
                 schedulePreview(type, targetTime, previewSeconds, notification);
@@ -84,7 +84,7 @@ public class PreviewNotificationManager {
      * @param type The preview type ("lock" or "unlock")
      */
     public void cancelPreview(String type) {
-        BukkitTask task = previewTasks.get(type);
+        ScheduledTask task = previewTasks.get(type);
         if (task != null) {
             task.cancel();
             previewTasks.remove(type);
@@ -95,7 +95,7 @@ public class PreviewNotificationManager {
      * Cancels all preview tasks.
      */
     public void cancelAll() {
-        for (BukkitTask task : previewTasks.values()) {
+        for (ScheduledTask task : previewTasks.values()) {
             task.cancel();
         }
         previewTasks.clear();
@@ -110,9 +110,11 @@ public class PreviewNotificationManager {
             if (player == null) {
                 continue;
             }
-            if (player.hasPermission("endlock.admin") || player.isOp()) {
-                player.sendMessage(message);
-            }
+            plugin.getPaperScheduler().executeEntity(player, () -> {
+                if (player.hasPermission("endlock.admin") || player.isOp()) {
+                    player.sendMessage(message);
+                }
+            }, () -> {});
         }
     }
 }

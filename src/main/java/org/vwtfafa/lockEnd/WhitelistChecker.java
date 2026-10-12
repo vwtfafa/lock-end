@@ -16,9 +16,9 @@ public class WhitelistChecker {
     private final List<String> worldWhitelist;
 
     public WhitelistChecker(FileConfiguration config) {
-        this.playerWhitelist = config.getStringList("whitelists.players");
-        this.uuidWhitelist = config.getStringList("whitelists.uuids");
-        this.worldWhitelist = config.getStringList("whitelists.worlds");
+        this.playerWhitelist = List.copyOf(config.getStringList("whitelists.players"));
+        this.uuidWhitelist = List.copyOf(config.getStringList("whitelists.uuids"));
+        this.worldWhitelist = List.copyOf(config.getStringList("whitelists.worlds"));
     }
 
     /**
