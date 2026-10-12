@@ -505,6 +505,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return whitelistChecker;
     }
 
+    public EvacuationService getEvacuationService() {
+        return evacuation;
+    }
+
     // --- Schedule delegates ---
 
     public boolean hasScheduledAction() {

@@ -7,7 +7,7 @@ open: "§aopen"
 closed: "§clocked"
 already-locked: "§cThe End is already locked!"
 already-unlocked: "§cThe End is already unlocked!"
-usage: "§cUsage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§cUsage: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§cThe test command is disabled."
 scheduled-unlock-set-days: "§aScheduled unlock in %days% days."
 scheduled-unlock-set-at: "§aScheduled unlock at %datetime%."
@@ -91,3 +91,13 @@ grace-period-active: "§eThe End lock grace period is active - access will be bl
 # Extended statistics
 stats-line-unlocks: "§7Unlocks: §f%unlockcount%"
 stats-line-evacuated: "§7Evacuated players: §f%evacuated%"
+
+# End evacuation administration
+evacuation-disabled: "§cManual evacuation is disabled in the EndLock config."
+evacuation-not-locked: "§cLock the End before evacuating players."
+evacuation-target-unavailable: "§cNo valid evacuation destination is available. No players were moved."
+evacuation-preview: "§eEnd evacuation preview: §f%count%§e players to §b%world%§e; §f%bypassed%§e bypassed. Review this result, then run §f/endlock evacuate execute§e within 30 seconds."
+evacuation-preview-required: "§cRun /endlock evacuate preview first. The preview must be less than 30 seconds old."
+evacuation-preview-expired: "§cThe evacuation preview expired. Run /endlock evacuate preview again."
+evacuation-preview-changed: "§eThe affected players or destination changed. Updated preview: §f%count%§e players to §b%world%§e; §f%bypassed%§e bypassed. Review it, then run §f/endlock evacuate execute§e."
+evacuation-execution-started: "§aEnd evacuation started for up to %count% players."

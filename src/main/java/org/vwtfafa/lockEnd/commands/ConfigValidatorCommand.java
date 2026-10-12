@@ -27,7 +27,10 @@ public class ConfigValidatorCommand {
             "history-header-page", "history-page-empty", "history-usage", "history-exported",
             "history-export-failed",
             "usage", "test-disabled", "scheduled-unlock-set-days", "scheduled-unlock-set-at",
-            "grace-period-active", "stats-line-unlocks", "stats-line-evacuated"
+            "grace-period-active", "stats-line-unlocks", "stats-line-evacuated",
+            "evacuation-disabled", "evacuation-not-locked", "evacuation-target-unavailable",
+            "evacuation-preview", "evacuation-preview-required", "evacuation-preview-expired",
+            "evacuation-preview-changed", "evacuation-execution-started"
     );
 
     private final LockEnd plugin;

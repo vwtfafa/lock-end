@@ -22,12 +22,16 @@ public class UndoCommand {
      * @return true when handled
      */
     public boolean execute(CommandSender sender, String[] args) {
+        return execute(sender, sender.getName());
+    }
+
+    public boolean execute(CommandSender sender, String actor) {
         if (!sender.hasPermission("endlock.undo")) {
             plugin.getPaperScheduler().sendMessage(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
-        if (!plugin.undoLastAction(sender.getName())) {
+        if (!plugin.undoLastAction(actor)) {
             plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.empty", Map.of()));
             return true;
         }

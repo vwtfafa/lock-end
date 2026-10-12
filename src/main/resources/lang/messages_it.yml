@@ -7,7 +7,7 @@ open: "§aaperta"
 closed: "§cbloccata"
 already-locked: "§cLa End è già bloccata!"
 already-unlocked: "§cLa End è già sbloccata!"
-usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§cIl comando di test è disabilitato."
 scheduled-unlock-set-days: "§aSblocco programmato tra %days% giorni."
 scheduled-unlock-set-at: "§aSblocco programmato per il %datetime%."
@@ -92,3 +92,13 @@ grace-period-active: "§eIl periodo di grazia del blocco dell'End è attivo - l'
 # Extended statistics
 stats-line-unlocks: "§7Sbloccchi: §f%unlockcount%"
 stats-line-evacuated: "§7Giocatori evacuati: §f%evacuated%"
+
+# Amministrazione evacuazione dell'End
+evacuation-disabled: "§cL'evacuazione manuale è disattivata nella configurazione di EndLock."
+evacuation-not-locked: "§cBlocca l'End prima di evacuare i giocatori."
+evacuation-target-unavailable: "§cNessuna destinazione di evacuazione valida. Nessun giocatore è stato spostato."
+evacuation-preview: "§eAnteprima evacuazione End: §f%count%§e giocatori verso §b%world%§e; §f%bypassed%§e esclusi. Controlla il risultato e poi esegui §f/endlock evacuate execute§e entro 30 secondi."
+evacuation-preview-required: "§cEsegui prima /endlock evacuate preview. L'anteprima deve avere meno di 30 secondi."
+evacuation-preview-expired: "§cL'anteprima dell'evacuazione è scaduta. Esegui di nuovo /endlock evacuate preview."
+evacuation-preview-changed: "§eI giocatori interessati o la destinazione sono cambiati. Nuova anteprima: §f%count%§e giocatori verso §b%world%§e; §f%bypassed%§e esclusi. Controllala e poi esegui §f/endlock evacuate execute§e."
+evacuation-execution-started: "§aEvacuazione dell'End avviata per un massimo di %count% giocatori."

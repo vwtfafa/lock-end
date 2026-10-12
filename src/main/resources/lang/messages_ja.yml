@@ -7,7 +7,7 @@ open: "§a開放"
 closed: "§cロック中"
 already-locked: "§cジ・エンドはすでにロックされています！"
 already-unlocked: "§cジ・エンドはすでにロック解除されています！"
-usage: "§c使用法: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§c使用法: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§cテストコマンドは無効です。"
 scheduled-unlock-set-days: "§a%days%日後にロック解除を予定しました。"
 scheduled-unlock-set-at: "§a%datetime%にロック解除を予定しました。"
@@ -92,3 +92,13 @@ grace-period-active: "§eエンドロックの猶予期間が有効です - 間�
 # Extended statistics
 stats-line-unlocks: "§7解除回数： §f%unlockcount%"
 stats-line-evacuated: "§7避難したプレイヤー： §f%evacuated%"
+
+# ジ・エンドの退避管理
+evacuation-disabled: "§cEndLockの設定で手動退避が無効になっています。"
+evacuation-not-locked: "§cプレイヤーを退避する前にジ・エンドをロックしてください。"
+evacuation-target-unavailable: "§c有効な退避先がありません。プレイヤーは移動されませんでした。"
+evacuation-preview: "§eジ・エンド退避プレビュー: §f%count%§e人を§b%world%§eへ移動、バイパス対象§f%bypassed%§e人。内容を確認し、30秒以内に§f/endlock evacuate execute§eを実行してください。"
+evacuation-preview-required: "§c先に/endlock evacuate previewを実行してください。プレビューは30秒以内のものが必要です。"
+evacuation-preview-expired: "§c退避プレビューの有効期限が切れました。/endlock evacuate previewを再実行してください。"
+evacuation-preview-changed: "§e対象プレイヤーまたは移動先が変更されました。更新プレビュー: §f%count%§e人を§b%world%§eへ移動、バイパス対象§f%bypassed%§e人。確認後§f/endlock evacuate execute§eを実行してください。"
+evacuation-execution-started: "§a最大%count%人のジ・エンド退避を開始しました。"
