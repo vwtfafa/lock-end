@@ -63,6 +63,12 @@ tasks {
     }
 }
 
+// Local Folia test server, pinned to the first Folia 26.3 build (ALPHA) for compatibility testing.
+runPaper.folia.registerTask {
+    build(3)
+    runDirectory(file("run/folia"))
+}
+
 val targetJavaVersion = 25
 
 java {

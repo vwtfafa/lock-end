@@ -310,6 +310,12 @@ Run a local test server (downloads the latest Paper 26.3 build; currently Build 
 ./gradlew runServer
 ```
 
+Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, working directory `run/folia/`):
+
+```bash
+./gradlew runFolia
+```
+
 ## Limitations
 
 - Only **player** movement is blocked by default; non-player entities can be blocked too via `end.block-entities`.

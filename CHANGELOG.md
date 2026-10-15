@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - The schedule status line is now rendered through the message service with literal-safe placeholders instead of raw string replacement.
 - Updated the SpotBugs Gradle plugin to 6.5.12.
 - Updated the Gradle wrapper to 9.8.1.
+- Local Folia testing is available via the pinned `runFolia` Gradle task (Folia 26.3 alpha build 3, working directory `run/folia/`).
 - README and MODRINTH descriptions now match the current behavior: whitelists cover player names, UUIDs, and worlds, and custom language files are documented under `plugins/EndLock/lang/`.
 
 ### Removed
