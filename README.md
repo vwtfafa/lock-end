@@ -116,7 +116,7 @@ permissions:
 - **bStats Integration**: Anonymous usage statistics to help developers improve the plugin (optional)
 - **Lock Reasons**: Customizable reason displayed when blocking
 - **Grace Period**: Temporary unlock after locking for safe player exit
-- **Whitelists**: Player/entity whitelists to bypass the lock
+- **Whitelists**: Player, UUID, and per-world whitelists to bypass the lock
 - **Preview Notifications**: Warn players before automatic lock/unlock
 - **Sound Effects**: Play sounds when access is denied
 - **Rate Limiting**: Prevent log spam from rapid attempts
@@ -253,7 +253,7 @@ hooks:
 
 ### Custom messages
 
-Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock/` and edit it. If the file exists on disk, it overrides the built-in version.
+Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock/lang/` and edit it. If the file exists on disk, it overrides the built-in version.
 
 Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`.
 
