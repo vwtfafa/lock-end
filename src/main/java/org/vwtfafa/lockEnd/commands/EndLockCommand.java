@@ -180,6 +180,10 @@ public final class EndLockCommand {
         plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of(placeholder, value)));
     }
 
+    private void send(CommandSender sender, String key, Map<String, String> placeholders) {
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, placeholders));
+    }
+
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
         return argument(name, word())
                 .suggests(suggest(suggestions));
@@ -230,10 +234,20 @@ public final class EndLockCommand {
 
     private int stats(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        send(sender, "stats-header", "%lockcount%", String.valueOf(plugin.getLockCount()));
+        send(sender, "stats-header", statsPlaceholders(plugin.getLockCount(), plugin.getBlockedCount()));
         send(sender, "stats-line-unlocks", "%unlockcount%", String.valueOf(plugin.getUnlockCount()));
         send(sender, "stats-line-evacuated", "%evacuated%", String.valueOf(plugin.getEvacuatedCount()));
         return 1;
+    }
+
+    /**
+     * Placeholders for the {@code stats-header} line. Package-private so tests can verify
+     * that every placeholder used by the message templates is supplied.
+     */
+    static Map<String, String> statsPlaceholders(int lockCount, int blockedCount) {
+        return Map.of(
+                "%lockcount%", String.valueOf(lockCount),
+                "%blockedcount%", String.valueOf(blockedCount));
     }
 
     private int test(CommandContext<CommandSourceStack> context, CommandActor actor) {
