@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 - Fixed the release workflow so release tags point at the pushed commit: new tags are created with `--target` and existing tags are moved on every release, as documented. The `v3.0.0-beta` tag that was created at the default branch is corrected by the next run.
 - The `/endlock stats` header now replaces `%blockedcount%`; a new test checks that every placeholder used by the `stats-header` messages is supplied. The French stats line no longer labels the blocked count as "Déverrouillages".
 - Release notes are now generated against the most recent stable release instead of the nearest tag, so beta notes list every change since v2.1.0 (merge commits are omitted). The v3.0.0-beta notes were regenerated accordingly.
+- The release template now lists Folia support in the requirements, the compatibility table, and the installation steps.
 
 ### Compatibility status
 - Folia is supported: the plugin declares `folia-supported: true` and was verified against Folia 26.3 alpha build 3 with a console smoke test. The server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, `/endlock stats`, `/endlock schedule status`, `/endlock history status`, and `/endlock undo` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
