@@ -9,7 +9,6 @@ import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -174,7 +173,7 @@ public class MessageService {
         }
     }
 
-    public @NotNull String msg(@NotNull String key) {
+    public String msg(String key) {
         return messageStrings.getOrDefault(key, key);
     }
 
@@ -224,7 +223,7 @@ public class MessageService {
      * @param placeholders placeholder tokens (including %) mapped to values
      * @return the rendered component; safe to reuse across players
      */
-    public Component message(@NotNull String key, @NotNull Map<String, String> placeholders) {
+    public Component message(String key, Map<String, String> placeholders) {
         Component template = templateCache.computeIfAbsent(key, this::miniMsg);
         return applyPlaceholders(template, placeholders);
     }
