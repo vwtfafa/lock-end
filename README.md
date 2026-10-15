@@ -13,7 +13,7 @@ development update, not a published 3.0 release.
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #175 (STABLE)** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #190 (STABLE)** or newer |
 | Minecraft | **26.3** |
 | Java | **25** |
 
@@ -23,7 +23,7 @@ development update, not a published 3.0 release.
 
 ## Installation
 
-1. Download the latest `lock-end-2.1.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-3.0.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -285,7 +285,7 @@ compliance records are required.
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-2.1.0.jar`
+Output: `build/libs/lock-end-3.0.0.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -304,7 +304,7 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #175, STABLE):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #190, STABLE):
 
 ```bash
 ./gradlew runServer
