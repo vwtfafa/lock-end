@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Routed timed work through Paper's global/async schedulers and player-specific work through entity schedulers.
 - The schedule status line is now rendered through the message service with literal-safe placeholders instead of raw string replacement.
 - Updated the SpotBugs Gradle plugin to 6.5.12.
+- Updated the Gradle wrapper to 9.8.1.
 - README and MODRINTH descriptions now match the current behavior: whitelists cover player names, UUIDs, and worlds, and custom language files are documented under `plugins/EndLock/lang/`.
 
 ### Removed
