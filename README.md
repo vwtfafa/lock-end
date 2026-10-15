@@ -14,12 +14,13 @@ development update, not a published 3.0 release.
 | Requirement | Version |
 |-------------|---------|
 | Server | [Paper](https://papermc.io/) **26.3 Build #190 (STABLE)** or newer |
+| Folia | **26.3** (alpha builds; console-verified, see the note below) |
 | Minecraft | **26.3** |
 | Java | **25** |
 
 > Spigot and older Minecraft versions are **not** supported. Purpur 26.3+ is supported because it is Paper-based. The plugin uses `api-version: 26.3`.
 
-> **Folia support is not yet verified or declared.** EndLock is being moved to Paper's global, async, and entity schedulers, but PaperMC's [published Folia builds](https://fill.papermc.io/v3/projects/folia/versions) currently stop at 26.2, not 26.3. Do not deploy this development build on Folia. The `folia-supported` metadata will only be added after a matching Folia 26.3 build is available and the runtime paths have been tested.
+> **Folia is supported as of 3.0.0** (`folia-supported: true`). Timed work runs through the global/async schedulers and player-specific work through entity schedulers. Compatibility was verified with a console smoke test on Folia 26.3 alpha build 3: the server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, and `/endlock stats` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA; player-driven paths were not exercised with a live player.
 
 ## Installation
 
@@ -322,7 +323,7 @@ Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, worki
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
-- Folia support remains pending a Folia 26.3 build and successful integration tests; the plugin does not currently advertise Folia compatibility.
+- Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on the Folia 26.3 alpha build 3; in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
 
 ## License
 

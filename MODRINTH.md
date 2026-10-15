@@ -230,7 +230,7 @@ Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR 
 | **Paper** 26.3+ | ✅ Recommended |
 | **Purpur** 26.3+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
-| **Folia** | ⏳ Not yet verified ([no 26.3 build published](https://fill.papermc.io/v3/projects/folia/versions)) |
+| **Folia** | ✅ Supported since 3.0.0 (verified on 26.3 alpha build 3 with a console smoke test) |
 
 * **Minecraft:** `26.3`
 * **Java:** `25` 
@@ -245,7 +245,7 @@ Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR 
 * The bounded `history.yml` audit file migrates 2.x timestamps, stores new entries in UTC, and uses atomic replacement where supported. Malformed or newer-schema files are logged and preserved.
 * `/endlock history status` reports `AVAILABLE`, `WRITE_FAILED`, or `READ_ONLY`. Evacuation outcomes are recorded per player; lock transitions include previous/new state and actor UUID when available. A failed write is logged, and unpersisted in-memory entries may be lost on restart.
 * History rotation/retention makes this an operational record, not an immutable or complete long-term audit. Keep separate server logs for durable records.
-* Folia compatibility is not declared until a Folia 26.3 server build is available and runtime tests pass.
+* Folia is supported since 3.0.0: the plugin declares `folia-supported` and passed a console smoke test on Folia 26.3 alpha build 3 (boot, plugin load, and command paths). PaperMC still marks the Folia 26.3 builds as ALPHA.
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
@@ -273,7 +273,7 @@ Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR 
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
 2. Put `lock-end-3.0.0.jar` into your `plugins` folder
-3. Restart your server (Paper 26.3+, Java 25)
+3. Restart your server (Paper or Folia 26.3+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
 ---

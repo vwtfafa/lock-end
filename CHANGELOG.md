@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [3.0.0] - In development
 
 ### Added
+- Declared Folia support (`folia-supported: true`) after a console smoke test on Folia 26.3 alpha build 3 (boot, plugin load, and command paths) passed.
 - Added `/endlock evacuate preview` and a separate `/endlock evacuate execute` confirmation. Previews are requester-bound, expire after 30 seconds, and must be repeated if the eligible players or destination changes.
 - Recorded actual per-player End evacuation outcomes, including moved, failed, offline, left-End, and bypass-skipped cases; actor and subject UUIDs are stored where applicable.
 - Added `/endlock history status` to inspect whether persistence is available, failed, or read-only.
@@ -33,7 +34,7 @@ All notable changes to this project will be documented in this file.
 - The `/endlock stats` header now replaces `%blockedcount%`; a new test checks that every placeholder used by the `stats-header` messages is supplied. The French stats line no longer labels the blocked count as "Déverrouillages".
 
 ### Compatibility status
-- Folia support is still pending runtime verification. PaperMC [currently publishes Folia through 26.2](https://fill.papermc.io/v3/projects/folia/versions) but has not published a Folia 26.3 build, so this version does not declare `folia-supported`.
+- Folia is supported: the plugin declares `folia-supported: true` and was verified against Folia 26.3 alpha build 3 with a console smoke test. The server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, `/endlock stats`, `/endlock schedule status`, `/endlock history status`, and `/endlock undo` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
 
 ## [2.1.0] - 2026-10-02
 
