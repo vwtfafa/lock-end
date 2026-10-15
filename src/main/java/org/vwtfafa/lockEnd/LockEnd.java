@@ -582,11 +582,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     public String getRemainingText() {
         if (!locked) {
-            return "Unlocked";
+            return messages.msg("remaining-unlocked");
         }
         return schedules.hasAction()
                 ? schedules.getTime().format(SCHEDULE_FORMAT)
-                : "Permanent";
+                : messages.msg("remaining-permanent");
     }
 
     /**

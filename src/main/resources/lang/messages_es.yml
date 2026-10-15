@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§cEndLock§6] No se puede continuar: no hay ni
 schedule-status-usage: "§cUso: /endlock schedule <status|clear>"
 schedule-status: "§6[§cEndLock§6] Acción: §e%action% §6| Objetivo: §e%target% §6| Restante: §e%remaining% §6| Pausado: §e%paused%"
 schedule-none: "ninguna"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "Desbloqueado"
+remaining-permanent: "Permanente"
 schedule-cleared: "§aAcción programada eliminada."
 countdown-notification: "§6[§cEndLock§6] El End se desbloqueará en §e%time%§6."
 

@@ -255,7 +255,7 @@ hooks:
 
 Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock/lang/` and edit it. If the file exists on disk, it overrides the built-in version.
 
-Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`.
+Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`. `remaining-unlocked` and `remaining-permanent` provide the plain-text `%lockend_remaining%` PlaceholderAPI value.
 
 ### Audit history
 

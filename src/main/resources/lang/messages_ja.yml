@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§cEndLock§6] 再開できません：一時�
 schedule-status-usage: "§c使用方法: /endlock schedule <status|clear>"
 schedule-status: "§6[§cEndLock§6] アクション: §e%action% §6| 目標: §e%target% §6| 残り: §e%remaining% §6| 一時停止: §e%paused%"
 schedule-none: "なし"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "ロック解除済み"
+remaining-permanent: "永続"
 schedule-cleared: "§a予約アクションを削除しました。"
 countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
 

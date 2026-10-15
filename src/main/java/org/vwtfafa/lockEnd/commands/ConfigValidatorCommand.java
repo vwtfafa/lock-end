@@ -22,6 +22,7 @@ public class ConfigValidatorCommand {
             "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
             "scheduled-lock-set", "scheduled-lock-invalid", "countdown-lock-notification",
             "schedule-cancelled", "schedule-status-usage", "schedule-status", "schedule-none", "schedule-cleared",
+            "remaining-unlocked", "remaining-permanent",
             "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",
             "reload-success", "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed",
             "history-header-page", "history-page-empty", "history-usage", "history-exported",

@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§c末地Lock§6] 无法恢复：没有时间�
 schedule-status-usage: "§c用法: /endlock schedule <status|clear>"
 schedule-status: "§6[§c末地Lock§6] 操作: §e%action% §6| 目标: §e%target% §6| 剩余: §e%remaining% §6| 暂停: §e%paused%"
 schedule-none: "无"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "已解锁"
+remaining-permanent: "永久"
 schedule-cleared: "§a已清除计划操作。"
 countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
 

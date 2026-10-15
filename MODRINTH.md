@@ -219,7 +219,7 @@ hooks:
 | `zh` | Chinese |
 | `ja` | Japanese |
 
-Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR or plugin folder after first run).
+Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR or plugin folder after first run). The `remaining-unlocked` and `remaining-permanent` keys control the `%lockend_remaining%` PlaceholderAPI value.
 
 ---
 

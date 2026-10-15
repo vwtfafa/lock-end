@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Preserved malformed and newer-schema history files and reported read/write failures instead of silently replacing history.
 - Documented that the rotating, retention-bounded history is not an immutable or complete long-term audit.
 - Added focused tests for history migration, UTC round trips, corrupt/future schema preservation, and evacuation message coverage.
+- Added `remaining-unlocked` and `remaining-permanent` message keys so the `%lockend_remaining%` PlaceholderAPI value is localized; a parity test now keeps all eight language files on the same key set.
 
 ### Changed
 - Bumped the project version to 3.0.0 and the Paper API compile/test target to Paper 26.3 Build #190 (STABLE); the CI smoke test is pinned to the same build.
