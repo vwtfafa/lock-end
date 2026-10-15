@@ -53,6 +53,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
     public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
             .ofPattern("uuuu-MM-dd HH:mm")
             .withResolverStyle(java.time.format.ResolverStyle.STRICT);
+    private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // Volatile because bStats chart suppliers read them from an async thread.
     private volatile boolean locked = false;
     private volatile MessageService messages;
@@ -140,7 +142,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             schedules.arm();
         }
 
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
         }
@@ -482,7 +484,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         soundPlayer.loadConfig();
         schedules.reload();
 
-        boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
+        boolean placeholderEnabled = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
                 && getConfig().getBoolean("hooks.placeholderapi", true);
         if (placeholderEnabled && placeholderExpansion == null) {
             placeholderExpansion = new LockEndExpansion(this);
@@ -634,7 +636,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         lastAttemptTimes.put(playerId, now);
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String timestamp = LocalDateTime.now().format(ATTEMPT_LOG_FORMAT);
         String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
                 timestamp, player.getName(), sourceWorld.getName(), method);
 

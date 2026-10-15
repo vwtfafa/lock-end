@@ -371,11 +371,8 @@ public class ScheduleManager {
             String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
             Component rendered = plugin.message(messageKey, Map.of("%time%", formatDuration(remaining)));
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player == null) {
-                    continue;
-                }
                 plugin.getPaperScheduler().executeEntity(player, () -> {
-                    if (player.isOp() || player.hasPermission("endlock.admin")) {
+                    if (player.hasPermission("endlock.admin")) {
                         player.sendMessage(rendered);
                     }
                 }, () -> {});

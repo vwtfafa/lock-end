@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Command to view lock history.
@@ -24,6 +23,8 @@ import java.util.stream.Collectors;
 public class LockHistoryCommand {
     private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
     private static final int PAGE_SIZE = 10;
+    private static final DateTimeFormatter EXPORT_TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS").withZone(ZoneOffset.UTC);
     private final LockEnd plugin;
     private final List<HistoryEntry> history = new ArrayList<>();
     private final HistoryStore historyStore;
@@ -133,7 +134,7 @@ public class LockHistoryCommand {
         if (filter != null && filter.value() != null) {
             displayedHistory = history.stream()
                     .filter(filter::matches)
-                    .collect(Collectors.toList());
+                    .toList();
             if (filter.type().equals("player")) {
                 send(sender, plugin.message("history.filter-player",
                         Map.of("%player%", plugin.sanitize(filter.value()))));
@@ -195,7 +196,7 @@ public class LockHistoryCommand {
             Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
             result = result.stream()
                     .filter(entry -> !entry.timestamp().isBefore(cutoff))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         if (maxEntries > 0 && result.size() > maxEntries) {
             result = result.subList(result.size() - maxEntries, result.size());
@@ -260,12 +261,11 @@ public class LockHistoryCommand {
         if (filter != null && filter.value() != null) {
             exportHistory = history.stream()
                     .filter(filter::matches)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Timestamp with millis plus a counter to avoid overwrites on rapid exports.
-        String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS")
-                .withZone(ZoneOffset.UTC).format(Instant.now()) + "-" + EXPORT_COUNTER.incrementAndGet();
+        String timestamp = EXPORT_TIMESTAMP_FORMAT.format(Instant.now()) + "-" + EXPORT_COUNTER.incrementAndGet();
         File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + lowerCaseToken(format));
         Path temporaryFile = null;
         try {

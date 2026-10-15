@@ -48,9 +48,6 @@ public class EvacuationService {
         Component warning = plugin.message("evacuation-warning",
                 Map.of("%seconds%", String.valueOf(warningSeconds)));
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player == null) {
-                continue;
-            }
             plugin.getPaperScheduler().executeEntity(player, () -> {
                 World playerWorld = player.getWorld();
                 if (plugin.isGuardedEndWorld(playerWorld)

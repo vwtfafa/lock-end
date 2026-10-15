@@ -100,11 +100,8 @@ public class UpdateChecker {
                     .clickEvent(ClickEvent.openUrl(releaseUrl))
                     .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player == null) {
-                        continue;
-                    }
                     plugin.getPaperScheduler().executeEntity(player, () -> {
-                        if (player.isOp() || player.hasPermission("endlock.admin")) {
+                        if (player.hasPermission("endlock.admin")) {
                             player.sendMessage(message);
                         }
                     }, () -> {});

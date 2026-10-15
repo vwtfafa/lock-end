@@ -278,11 +278,8 @@ public class MessageService {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player == null) {
-                continue;
-            }
             plugin.getPaperScheduler().executeEntity(player, () -> {
-                if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
+                if (notifyAll || player.hasPermission("endlock.admin")) {
                     if (useActionbar) {
                         player.sendActionBar(component);
                     } else {

@@ -107,11 +107,8 @@ public class PreviewNotificationManager {
      */
     private void sendPreviewToAll(Component message) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player == null) {
-                continue;
-            }
             plugin.getPaperScheduler().executeEntity(player, () -> {
-                if (player.hasPermission("endlock.admin") || player.isOp()) {
+                if (player.hasPermission("endlock.admin")) {
                     player.sendMessage(message);
                 }
             }, () -> {});
