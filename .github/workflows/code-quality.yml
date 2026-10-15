@@ -86,6 +86,75 @@ jobs:
           echo "Paper smoke test did not observe the history status response."
           exit 1
 
+      - name: Smoke test on pinned Folia 26.3 Build 3 (ALPHA)
+        run: |
+          mkdir -p smoke-folia/plugins
+          curl --fail --location --retry 3 \
+            https://fill-data.papermc.io/v1/objects/0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022/folia-26.3-3.jar \
+            --output smoke-folia/folia.jar
+          echo "0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022  smoke-folia/folia.jar" \
+            | sha256sum --check
+          cp build/libs/lock-end-*.jar smoke-folia/plugins/EndLock.jar
+          printf 'eula=true\n' > smoke-folia/eula.txt
+          cat > smoke-folia/server.properties <<'EOF'
+          online-mode=false
+          server-port=25576
+          enable-query=false
+          enable-rcon=false
+          spawn-protection=0
+          EOF
+          cd smoke-folia
+          mkfifo console
+          exec 3<>console
+          java -jar folia.jar --nogui < console > server.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            printf 'stop\n' >&3 || true
+            for attempt in $(seq 1 30); do
+              if ! kill -0 "$server_pid" 2>/dev/null; then
+                wait "$server_pid" || true
+                return
+              fi
+              sleep 1
+            done
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 120); do
+            if grep -Fq 'EndLock v' server.log && grep -Fq 'enabled (Paper 26.3+)' server.log; then
+              printf 'endlock history status\n' >&3
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'History storage:' server.log; then
+              printf 'endlock stats\n' >&3
+              break
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'Blocked count' server.log; then
+              if grep -Fq '%blockedcount%' server.log; then
+                cat server.log
+                echo "Folia smoke test observed an unsubstituted placeholder."
+                exit 1
+              fi
+              echo "EndLock loaded and command responses were healthy on Folia 26.3 Build 3 (ALPHA)."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat server.log
+          echo "Folia smoke test did not observe the stats response."
+          exit 1
+
       - name: Archive Checkstyle report
         if: always()
         uses: actions/upload-artifact@v7
