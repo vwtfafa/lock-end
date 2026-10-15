@@ -19,7 +19,7 @@ public class ConfigValidatorCommand {
             "locked", "locked-reason", "toggle", "status", "permission", "open", "closed",
             "already-locked", "already-unlocked", "broadcast-locked", "broadcast-unlocked",
             "actionbar-locked", "actionbar-unlocked", "test-success", "test-info", "countdown-notification",
-            "history.header", "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
+            "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
             "scheduled-lock-set", "scheduled-lock-invalid", "countdown-lock-notification",
             "schedule-cancelled", "schedule-status-usage", "schedule-status", "schedule-none", "schedule-cleared",
             "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",

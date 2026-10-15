@@ -62,7 +62,6 @@ countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解�
 countdown-lock-notification: "§6[§cEndLock§6] 末地将在 §e%time%§6 后锁定。"
 
 # History command
-history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
 history-header-page: "§6[§c末地Lock§6] §e锁定历史（第%page%页）:"
 history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
 history-page-empty: "§c[EndLock] 此历史页面为空。"

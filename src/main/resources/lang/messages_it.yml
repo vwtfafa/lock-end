@@ -62,7 +62,6 @@ countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%
 countdown-lock-notification: "§6[§cEndLock§6] La End sarà bloccata tra §e%time%§6."
 
 # History command
-history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"
 history-header-page: "§6[§cEndLock§6] §eStorico blocchi (pagina %page%):"
 history.empty: "§6[§cEndLock§6] Nessun storico di blocchi."
 history-page-empty: "§c[EndLock] Questa pagina dello storico è vuota."

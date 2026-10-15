@@ -62,7 +62,6 @@ countdown-notification: "§6[§cEndLock§6] Край будет разблоки
 countdown-lock-notification: "§6[§cEndLock§6] Край будет заблокирован через §e%time%§6."
 
 # History command
-history.header: "§6[§cEndLock§6] §eИстория блокировок (последние 10):"
 history-header-page: "§6[§cEndLock§6] §eИстория блокировок (страница %page%):"
 history.empty: "§6[§cEndLock§6] Нет истории блокировок."
 history-page-empty: "§c[EndLock] Эта страница истории пуста."

@@ -62,7 +62,6 @@ countdown-notification: "§6[§cEndLock§6] L'End sera déverrouillé dans §e%t
 countdown-lock-notification: "§6[§cEndLock§6] L'End sera verrouillé dans §e%time%§6."
 
 # History command
-history.header: "§6[§cEndLock§6] §eHistorique de verrouillage (10 derniers):"
 history-header-page: "§6[§cEndLock§6] §eHistorique de verrouillage (page %page%):"
 history.empty: "§6[§cEndLock§6] Aucun historique de verrouillage."
 history-page-empty: "§c[EndLock] Cette page d'historique est vide."

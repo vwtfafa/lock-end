@@ -60,7 +60,6 @@ countdown-notification: "§6[§cEndLock§6] The End will be unlocked in §e%time
 countdown-lock-notification: "§6[§cEndLock§6] The End will be locked in §e%time%§6."
 
 # History command
-history.header: "§6[§cEndLock§6] §eLock History (last 10):"
 history-header-page: "§6[§cEndLock§6] §eLock History (page %page%):"
 history.empty: "§6[§cEndLock§6] No lock history recorded."
 history-page-empty: "§c[EndLock] This history page is empty."
