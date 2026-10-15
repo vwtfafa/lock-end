@@ -22,6 +22,9 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - Removed the unused `history.header` message key from all eight language files; the config validator no longer requires it. History output has used the paginated `history-header-page` key since 2.0.0.
 
+### Fixed
+- Loading a language file no longer fails silently: errors while reading the bundled language file or the English fallback are logged as warnings with their cause.
+
 ### Compatibility status
 - Folia support is still pending runtime verification. PaperMC [currently publishes Folia through 26.2](https://fill.papermc.io/v3/projects/folia/versions) but has not published a Folia 26.3 build, so this version does not declare `folia-supported`.
 

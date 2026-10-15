@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Loads language files and converts raw message strings into Adventure components.
@@ -123,13 +124,17 @@ public class MessageService {
                 publishMessageStrings();
                 return;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not load bundled language file " + fileName, exception);
+        }
         try (InputStream in = plugin.getResource(LANG_FOLDER + "/" + FILE_PREFIX + "en.yml")) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
                 publishMessageStrings();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not load bundled English language file", exception);
+        }
     }
 
     private void publishMessageStrings() {
