@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Loading a language file no longer fails silently: errors while reading the bundled language file or the English fallback are logged as warnings with their cause.
 - The update checker now parses the GitHub releases payload as JSON (Gson, provided by the Paper API) instead of a hand-written regular expression, with tests for missing or malformed fields.
+- Fixed the release workflow so release tags point at the pushed commit: new tags are created with `--target` and existing tags are moved on every release, as documented. The `v3.0.0-beta` tag that was created at the default branch is corrected by the next run.
 
 ### Compatibility status
 - Folia support is still pending runtime verification. PaperMC [currently publishes Folia through 26.2](https://fill.papermc.io/v3/projects/folia/versions) but has not published a Folia 26.3 build, so this version does not declare `folia-supported`.

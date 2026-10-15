@@ -265,8 +265,13 @@ jobs:
               --title "Lock-End ${TAG}" \
               --notes-file release-body.md \
               --prerelease="$PRERELEASE" \
-              --latest="$LATEST"
+              --latest="$LATEST" \
+              --target "$GITHUB_SHA"
           fi
+
+          echo "Moving $TAG to $GITHUB_SHA"
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG" --force
 
       - name: Delete beta tags after stable release
         if: steps.config.outputs.type == 'stable'
