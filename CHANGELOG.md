@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Bumped the project version to 3.0.0 and the Paper API compile/test target to Paper 26.3 Build #190 (STABLE); the CI smoke test is pinned to the same build.
 - Routed timed work through Paper's global/async schedulers and player-specific work through entity schedulers.
+- The schedule status line is now rendered through the message service with literal-safe placeholders instead of raw string replacement.
 - README and MODRINTH descriptions now match the current behavior: whitelists cover player names, UUIDs, and worlds, and custom language files are documented under `plugins/EndLock/lang/`.
 
 ### Removed

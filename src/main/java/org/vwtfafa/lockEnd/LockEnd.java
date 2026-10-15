@@ -551,7 +551,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         schedules.clear();
     }
 
-    public String buildScheduleStatusMessage() {
+    public Component buildScheduleStatusMessage() {
         return schedules.buildStatusMessage();
     }
 

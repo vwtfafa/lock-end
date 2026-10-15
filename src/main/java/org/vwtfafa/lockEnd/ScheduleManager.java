@@ -259,14 +259,14 @@ public class ScheduleManager {
     /**
      * Builds the localized schedule status line for commands and placeholders.
      */
-    public String buildStatusMessage() {
+    public Component buildStatusMessage() {
         String target = scheduledUnlockTime == null ? plugin.msg("schedule-none") : scheduledUnlockTime.format(LockEnd.SCHEDULE_FORMAT);
         String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getRemainingSeconds());
-        return plugin.msg("schedule-status")
-                .replace("%action%", scheduledUnlockTime == null ? "-" : scheduledAction)
-                .replace("%target%", target)
-                .replace("%remaining%", remaining)
-                .replace("%paused%", String.valueOf(schedulePaused));
+        return plugin.message("schedule-status", Map.of(
+                "%action%", scheduledUnlockTime == null ? "-" : scheduledAction,
+                "%target%", target,
+                "%remaining%", remaining,
+                "%paused%", String.valueOf(schedulePaused)));
     }
 
     private void setPending(LocalDateTime time, String action) {

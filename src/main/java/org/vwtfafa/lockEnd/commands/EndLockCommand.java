@@ -303,7 +303,7 @@ public final class EndLockCommand {
 
     private int scheduleStatus(CommandContext<CommandSourceStack> context) {
         plugin.getPaperScheduler().sendMessage(context.getSource().getSender(),
-                plugin.messageComponent(plugin.buildScheduleStatusMessage()));
+                plugin.buildScheduleStatusMessage());
         return 1;
     }
 
