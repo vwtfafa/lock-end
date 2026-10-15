@@ -3,6 +3,8 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.IllegalPluginAccessException;
@@ -11,8 +13,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URLConnection;
 import java.net.URI;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class UpdateChecker {
     private final LockEnd plugin;
@@ -49,9 +49,9 @@ public class UpdateChecker {
                 }
 
                 // Parse the version from the JSON response
-                Matcher matcher = Pattern.compile("\\\"tag_name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"").matcher(response);
-                if (matcher.find()) {
-                    latestVersion = matcher.group(1);
+                String tagName = parseTagName(response.toString());
+                if (tagName != null) {
+                    latestVersion = tagName;
                     updateAvailable = isNewerVersion(latestVersion, currentVersion);
 
                     if (updateAvailable && notifyOps) {
@@ -103,6 +103,28 @@ public class UpdateChecker {
             });
         } catch (IllegalPluginAccessException exception) {
             plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
+        }
+    }
+
+    /**
+     * Extracts the release tag from a GitHub releases API response.
+     */
+    static String parseTagName(String json) {
+        if (json == null) {
+            return null;
+        }
+        try {
+            JsonElement element = JsonParser.parseString(json);
+            if (!element.isJsonObject()) {
+                return null;
+            }
+            JsonElement tagName = element.getAsJsonObject().get("tag_name");
+            if (tagName == null || !tagName.isJsonPrimitive() || !tagName.getAsJsonPrimitive().isString()) {
+                return null;
+            }
+            return tagName.getAsString();
+        } catch (RuntimeException exception) {
+            return null;
         }
     }
 
