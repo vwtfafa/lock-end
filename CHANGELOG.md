@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Added `remaining-unlocked` and `remaining-permanent` message keys so the `%lockend_remaining%` PlaceholderAPI value is localized; a parity test now keeps all eight language files on the same key set.
 
 ### Changed
+- Log entries are now written through NIO (`Files.writeString`) with explicit UTF-8 encoding instead of reopening a `FileWriter` per line with the platform default charset.
 - Bumped the project version to 3.0.0 and the Paper API compile/test target to Paper 26.3 Build #190 (STABLE); the CI smoke test is pinned to the same build.
 - The code-quality workflow now also smoke-tests the plugin on the pinned Folia 26.3 alpha build 3 (headless boot, plugin load, and command responses, including a check that no raw placeholders leak into the output).
 - Routed timed work through Paper's global/async schedulers and player-specific work through entity schedulers.
