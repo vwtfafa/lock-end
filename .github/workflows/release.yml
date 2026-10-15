@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - master
-      - main
       - beta
-      - paper-26.3
       - v2.0
 
 defaults:
