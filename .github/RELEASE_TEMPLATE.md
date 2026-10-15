@@ -4,7 +4,7 @@
 
 **Requirements:** Paper @PAPER@+, Java @JAVA@
 
-### 📋 Changes since last release
+### 📋 Changes since @BASE_LABEL@
 
 @CHANGELOG@
 
