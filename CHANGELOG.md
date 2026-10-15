@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Loading a language file no longer fails silently: errors while reading the bundled language file or the English fallback are logged as warnings with their cause.
 - The update checker now parses the GitHub releases payload as JSON (Gson, provided by the Paper API) instead of a hand-written regular expression, with tests for missing or malformed fields.
+- The update checker now uses the JDK `HttpClient` with explicit UTF-8 decoding, request timeouts, and an HTTP status check instead of `URLConnection` (which decoded with the platform default charset).
 - Fixed the release workflow so release tags point at the pushed commit: new tags are created with `--target` and existing tags are moved on every release, as documented. The `v3.0.0-beta` tag that was created at the default branch is corrected by the next run.
 - The `/endlock stats` header now replaces `%blockedcount%`; a new test checks that every placeholder used by the `stats-header` messages is supplied. The French stats line no longer labels the blocked count as "Déverrouillages".
 - Release notes are now generated against the most recent stable release instead of the nearest tag, so beta notes list every change since v2.1.0 (merge commits are omitted). The v3.0.0-beta notes were regenerated accordingly.

@@ -24,6 +24,18 @@ class UpdateCheckerParsingTest {
     }
 
     @Test
+    void failedHttpStatusesYieldNoTag() {
+        assertNull(UpdateChecker.parseLatestTag(404, "{\"message\":\"Not Found\"}"));
+        assertNull(UpdateChecker.parseLatestTag(403, "{\"tag_name\":\"v9.9.9\"}"));
+        assertNull(UpdateChecker.parseLatestTag(500, ""));
+    }
+
+    @Test
+    void successStatusDecodesTheTag() {
+        assertEquals("v3.0.0", UpdateChecker.parseLatestTag(200, "{\"tag_name\":\"v3.0.0\"}"));
+    }
+
+    @Test
     void missingFieldsAndMalformedPayloadsYieldNoTag() {
         assertNull(UpdateChecker.parseTagName("{\"message\":\"Not Found\"}"));
         assertNull(UpdateChecker.parseTagName("{\"tag_name\":null}"));

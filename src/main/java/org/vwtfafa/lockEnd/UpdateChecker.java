@@ -9,14 +9,21 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.IllegalPluginAccessException;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URLConnection;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 public class UpdateChecker {
+    private static final URI LATEST_RELEASE_URI =
+            URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
+    private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
+
     private final LockEnd plugin;
     private final String currentVersion;
+    private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(HTTP_TIMEOUT).build();
     private volatile String latestVersion;
     private volatile boolean updateAvailable;
 
@@ -33,46 +40,48 @@ public class UpdateChecker {
         boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
         plugin.getPaperScheduler().runAsync(() -> {
             try {
-                // Abrufen der neuesten Version von GitHub API
-                URI releasesUri = URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
-                URLConnection connection = releasesUri.toURL().openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
-                connection.setRequestProperty("User-Agent", "EndLock/" + currentVersion);
-
-                StringBuilder response = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                }
+                // Fetch the latest release from the GitHub API
+                HttpRequest request = HttpRequest.newBuilder(LATEST_RELEASE_URI)
+                        .timeout(HTTP_TIMEOUT)
+                        .header("User-Agent", "EndLock/" + currentVersion)
+                        .header("Accept", "application/vnd.github+json")
+                        .GET()
+                        .build();
+                HttpResponse<String> response = httpClient.send(request,
+                        HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 // Parse the version from the JSON response
-                String tagName = parseTagName(response.toString());
-                if (tagName != null) {
-                    latestVersion = tagName;
-                    updateAvailable = isNewerVersion(latestVersion, currentVersion);
-
-                    if (updateAvailable && notifyOps) {
-                        plugin.getLogger().info("========================================");
-                        plugin.getLogger().info("EndLock update available!");
-                        plugin.getLogger().info("Current version: " + currentVersion);
-                        plugin.getLogger().info("New version: " + latestVersion);
-                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
-                        plugin.getLogger().info("========================================");
+                String tagName = parseLatestTag(response.statusCode(), response.body());
+                if (tagName == null) {
+                    if (response.statusCode() != 200) {
+                        plugin.getLogger().warning("Update check failed: HTTP " + response.statusCode());
                     }
+                    return;
+                }
 
-                    // Notify online operators via chat; the server may shut down
-                    // before the follow-up task can be scheduled.
-                    if (updateAvailable && notifyChat) {
-                        try {
-                            notifyOnlineAdmins();
-                        } catch (IllegalPluginAccessException exception) {
-                            plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
-                        }
+                latestVersion = tagName;
+                updateAvailable = isNewerVersion(latestVersion, currentVersion);
+
+                if (updateAvailable && notifyOps) {
+                    plugin.getLogger().info("========================================");
+                    plugin.getLogger().info("EndLock update available!");
+                    plugin.getLogger().info("Current version: " + currentVersion);
+                    plugin.getLogger().info("New version: " + latestVersion);
+                    plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
+                    plugin.getLogger().info("========================================");
+                }
+
+                // Notify online operators via chat; the server may shut down
+                // before the follow-up task can be scheduled.
+                if (updateAvailable && notifyChat) {
+                    try {
+                        notifyOnlineAdmins();
+                    } catch (IllegalPluginAccessException exception) {
+                        plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
                     }
                 }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 plugin.getLogger().warning("Update check failed: " + e.getMessage());
             }
@@ -104,6 +113,14 @@ public class UpdateChecker {
         } catch (IllegalPluginAccessException exception) {
             plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
         }
+    }
+
+    /**
+     * Extracts the tag name from a GitHub latest-release response; null when
+     * the request did not succeed or the payload carries no tag.
+     */
+    static String parseLatestTag(int statusCode, String body) {
+        return statusCode == 200 ? parseTagName(body) : null;
     }
 
     /**
