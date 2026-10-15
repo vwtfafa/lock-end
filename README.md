@@ -2,12 +2,12 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
-## EndLock 3.0 development
+## What's new in 3.0
 
-EndLock remains focused exclusively on access to the End. The 3.0 work adds a
-preview-and-confirm workflow for manual End evacuation and makes the bounded
-audit history versioned, UTC-based, and safer to migrate and write. This is a
-development update, not a published 3.0 release.
+EndLock remains focused exclusively on access to the End. Version 3.0 adds a
+preview-and-confirm workflow for manual End evacuation, declares support for
+Folia, and makes the bounded audit history versioned, UTC-based, and safer to
+migrate and write.
 
 ## Requirements
 
@@ -130,7 +130,7 @@ permissions:
 - **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
 - **Mobile Alias**: `/el` short command for console/mobile
-- No dependencies (bStats is shaded), small JAR (~40 KB)
+- No dependencies (bStats is shaded), small JAR (~150 KB)
 
 ## Configuration
 

@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.0.0] - In development
+## [3.0.0] - 2026-10-15
 
 ### Added
 - Declared Folia support (`folia-supported: true`) after a console smoke test on Folia 26.3 alpha build 3 (boot, plugin load, and command paths) passed.

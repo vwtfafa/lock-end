@@ -85,6 +85,11 @@ The base commands do not have a global permission in `plugin.yml`; each subcomma
 | ---------- | ----------- | ------- |
 | `endlock.toggle` | Allows locking/unlocking the End | OP |
 | `endlock.admin` | Allows locking/unlocking the End, pausing/resuming schedules, and using the test command | OP |
+| `endlock.reload` | Reload the plugin configuration | OP |
+| `endlock.history` | View persistent lock history | OP |
+| `endlock.undo` | Undo the last recorded state change | OP |
+| `endlock.validate` | Validate the plugin configuration | OP |
+| `endlock.whitelist.bypass` | Bypass the End lock | OP |
 ---
 
 ## ⚙️ Configuration
