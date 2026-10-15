@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-10-15
+
+### Added
+- Declared Folia support (`folia-supported: true`) after a console smoke test on Folia 26.3 alpha build 3 (boot, plugin load, and command paths) passed.
+- Added `/endlock evacuate preview` and a separate `/endlock evacuate execute` confirmation. Previews are requester-bound, expire after 30 seconds, and must be repeated if the eligible players or destination changes.
+- Recorded actual per-player End evacuation outcomes, including moved, failed, offline, left-End, and bypass-skipped cases; actor and subject UUIDs are stored where applicable.
+- Added `/endlock history status` to inspect whether persistence is available, failed, or read-only.
+- Added a schema-versioned history store with UTC timestamps, actor/subject identifiers, state transitions, legacy migration, and temporary-file/atomic-replacement writes.
+- Preserved malformed and newer-schema history files and reported read/write failures instead of silently replacing history.
+- Documented that the rotating, retention-bounded history is not an immutable or complete long-term audit.
+- Added focused tests for history migration, UTC round trips, corrupt/future schema preservation, and evacuation message coverage.
+- Added `remaining-unlocked` and `remaining-permanent` message keys so the `%lockend_remaining%` PlaceholderAPI value is localized; a parity test now keeps all eight language files on the same key set.
+
+### Changed
+- Log entries are now written through NIO (`Files.writeString`) with explicit UTF-8 encoding instead of reopening a `FileWriter` per line with the platform default charset.
+- The PlaceholderAPI hook now overrides `onRequest(OfflinePlayer, …)` instead of the legacy player-only `onPlaceholderRequest`, so the placeholders also resolve for offline players.
+- Notification, countdown, and update notices are gated by `endlock.admin` only: the redundant `isOp()` short-circuits were removed, so permission plugins can now negate the permission for operators (it still defaults to op).
+- PlaceholderAPI is detected via `isPluginEnabled`, dead null guards on online-player iterations were removed, `Stream#toList()` replaced `Collectors.toList()`, and per-call date formatters were hoisted to constants.
+- Adopted Paper's JSpecify nullness annotations: every plugin package is `@NullMarked`, replacing the remaining JetBrains `@NotNull` annotations.
+- Bumped the project version to 3.0.0 and the Paper API compile/test target to Paper 26.3 Build #190 (STABLE); the CI smoke test is pinned to the same build.
+- The code-quality workflow now also smoke-tests the plugin on the pinned Folia 26.3 alpha build 3 (headless boot, plugin load, and command responses, including a check that no raw placeholders leak into the output).
+- Routed timed work through Paper's global/async schedulers and player-specific work through entity schedulers.
+- The schedule status line is now rendered through the message service with literal-safe placeholders instead of raw string replacement.
+- Updated the SpotBugs Gradle plugin to 6.5.12.
+- Updated the Gradle wrapper to 9.8.1.
+- Local Folia testing is available via the pinned `runFolia` Gradle task (Folia 26.3 alpha build 3, working directory `run/folia/`).
+- README and MODRINTH descriptions now match the current behavior: whitelists cover player names, UUIDs, and worlds, and custom language files are documented under `plugins/EndLock/lang/`.
+
+### Removed
+- Removed the unused `history.header` message key from all eight language files; the config validator no longer requires it. History output has used the paginated `history-header-page` key since 2.0.0.
+
+### Fixed
+- Loading a language file no longer fails silently: errors while reading the bundled language file or the English fallback are logged as warnings with their cause.
+- The update checker now parses the GitHub releases payload as JSON (Gson, provided by the Paper API) instead of a hand-written regular expression, with tests for missing or malformed fields.
+- The update checker now uses the JDK `HttpClient` with explicit UTF-8 decoding, request timeouts, and an HTTP status check instead of `URLConnection` (which decoded with the platform default charset).
+- Fixed the release workflow so release tags point at the pushed commit: new tags are created with `--target` and existing tags are moved on every release, as documented. The `v3.0.0-beta` tag that was created at the default branch is corrected by the next run.
+- The `/endlock stats` header now replaces `%blockedcount%`; a new test checks that every placeholder used by the `stats-header` messages is supplied. The French stats line no longer labels the blocked count as "Déverrouillages".
+- Release notes are now generated against the most recent stable release instead of the nearest tag, so beta notes list every change since v2.1.0 (merge commits are omitted). The v3.0.0-beta notes were regenerated accordingly.
+- The release template now lists Folia support in the requirements, the compatibility table, and the installation steps.
+
+### Compatibility status
+- Folia is supported: the plugin declares `folia-supported: true` and was verified against Folia 26.3 alpha build 3 with a console smoke test. The server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, `/endlock stats`, `/endlock schedule status`, `/endlock history status`, and `/endlock undo` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
+
 ## [2.1.0] - 2026-10-02
 
 ### Fixed
@@ -328,4 +371,3 @@ test-command:
 
 ## [1.1] - previous
 - Initial public release baseline (prior changelog entries omitted).
-

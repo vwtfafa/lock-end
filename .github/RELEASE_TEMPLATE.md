@@ -2,9 +2,9 @@
 
 @WARNING@
 
-**Requirements:** Paper @PAPER@+, Java @JAVA@
+**Requirements:** Paper or Folia @PAPER@+, Java @JAVA@
 
-### 📋 Changes since last release
+### 📋 Changes since @BASE_LABEL@
 
 @CHANGELOG@
 
@@ -59,12 +59,13 @@
 | -------- | ------- | ------- |
 | **Paper** | @PAPER@+ | ✅ Recommended |
 | **Purpur** | @PAPER@+ | ✅ Works |
+| **Folia** | @PAPER@+ | ✅ Supported (console-verified on alpha builds) |
 
 ### 📦 Installation
 
 1. Download `lock-end-@VERSION@.jar` below
 2. Place it in your `plugins/` folder
-3. Restart your server (Paper @PAPER@+, Java @JAVA@)
+3. Restart your server (Paper or Folia @PAPER@+, Java @JAVA@)
 
 ### 📚 Documentation
 

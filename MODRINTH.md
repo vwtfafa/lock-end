@@ -35,8 +35,9 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🧾 Structured audit history with pagination and JSON/CSV export
 * 🔍 Filter history by player or action with tab completion
 * 🚨 Optional evacuation: warn and move players out of the End after locking
+* 🔎 Manual End evacuation preview and separate, time-limited confirmation
 * 🔔 Optional join notifications for locked state
-* 📝 Logging with history tracking
+* 📝 Versioned audit history with UTC timestamps and safer legacy migration
 * 📊 bStats integration for anonymous usage statistics
 * ⬆️ Update checker with clickable links for Ops
 * 🌍 8 languages: EN, DE, FR, ES, IT, RU, ZH, JA
@@ -53,6 +54,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
 | `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
+| `/endlock history status` | Check history storage status and in-memory entry count | `endlock.history` |
 | `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
@@ -68,6 +70,8 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 | `/endlock lock in <duration>` / `unlock in <duration>` | Natural alias, e.g. `lock in 5m` | `endlock.toggle` |
 | `/endlock schedule status` | Show the active schedule | `endlock.admin` |
 | `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
+| `/endlock evacuate preview` | Preview eligible End players and destination | `endlock.admin` |
+| `/endlock evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Mobile-friendly alias for `/endlock` | `endlock.toggle` |
 
@@ -81,6 +85,11 @@ The base commands do not have a global permission in `plugin.yml`; each subcomma
 | ---------- | ----------- | ------- |
 | `endlock.toggle` | Allows locking/unlocking the End | OP |
 | `endlock.admin` | Allows locking/unlocking the End, pausing/resuming schedules, and using the test command | OP |
+| `endlock.reload` | Reload the plugin configuration | OP |
+| `endlock.history` | View persistent lock history | OP |
+| `endlock.undo` | Undo the last recorded state change | OP |
+| `endlock.validate` | Validate the plugin configuration | OP |
+| `endlock.whitelist.bypass` | Bypass the End lock | OP |
 ---
 
 ## ⚙️ Configuration
@@ -175,6 +184,8 @@ stats:
 history:
   max-entries: 1000    # Oldest entries are dropped beyond this size
   retention-days: 30   # Entries older than this are removed (<=0 keeps forever)
+# history.yml stores versioned entries with UTC timestamps. Legacy local
+# timestamps are migrated; malformed or newer-schema files are never overwritten.
 
 # Optional join notifications for players joining while the End is locked
 join-notifications:
@@ -213,7 +224,7 @@ hooks:
 | `zh` | Chinese |
 | `ja` | Japanese |
 
-Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or plugin folder after first run).
+Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR or plugin folder after first run). The `remaining-unlocked` and `remaining-permanent` keys control the `%lockend_remaining%` PlaceholderAPI value.
 
 ---
 
@@ -224,7 +235,7 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 | **Paper** 26.3+ | ✅ Recommended |
 | **Purpur** 26.3+ | ✅ Paper-based, works |
 | **Spigot** | ❌ Not supported |
-| **Folia** | ❌ Not supported |
+| **Folia** | ✅ Supported since 3.0.0 (verified on 26.3 alpha build 3 with a console smoke test) |
 
 * **Minecraft:** `26.3`
 * **Java:** `25` 
@@ -235,6 +246,11 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 
 * Players and, when enabled, non-player entities are blocked from entering the End (`end.block-entities`, enabled by default)
 * Players already inside the End when locking stay there unless `evacuation.enabled` is set (then they are warned and teleported out)
+* Manual evacuation requires a locked End and `evacuation.enabled: true`; always review a fresh preview before executing. It expires after 30 seconds and is refreshed when the eligible players or target changes.
+* The bounded `history.yml` audit file migrates 2.x timestamps, stores new entries in UTC, and uses atomic replacement where supported. Malformed or newer-schema files are logged and preserved.
+* `/endlock history status` reports `AVAILABLE`, `WRITE_FAILED`, or `READ_ONLY`. Evacuation outcomes are recorded per player; lock transitions include previous/new state and actor UUID when available. A failed write is logged, and unpersisted in-memory entries may be lost on restart.
+* History rotation/retention makes this an operational record, not an immutable or complete long-term audit. Keep separate server logs for durable records.
+* Folia is supported since 3.0.0: the plugin declares `folia-supported` and passed a console smoke test on Folia 26.3 alpha build 3 (boot, plugin load, and command paths). PaperMC still marks the Folia 26.3 builds as ALPHA.
 * The End dimension remains accessible via commands that bypass the player check (e.g., certain custom plugins); this plugin blocks the common vanilla pathways.
 
 ---
@@ -261,8 +277,8 @@ Customize messages in `plugins/EndLock/messages_xx.yml` (copy from the JAR or pl
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-2.1.0.jar` into your `plugins` folder
-3. Restart your server (Paper 26.3+, Java 25)
+2. Put `lock-end-3.0.0.jar` into your `plugins` folder
+3. Restart your server (Paper or Folia 26.3+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
 ---

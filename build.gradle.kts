@@ -3,13 +3,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.6.1"
     checkstyle
-    id("com.github.spotbugs") version "6.5.11"
+    id("com.github.spotbugs") version "6.5.12"
 }
 
 group = "org.vwtfafa"
-version = "2.1.0"
+version = "3.0.0"
 
-val paperApiVersion = "26.3.build.142-beta"
+val paperApiVersion = "26.3.build.190-stable"
 
 repositories {
     mavenCentral()
@@ -61,6 +61,12 @@ tasks {
         // plugins using bStats
         relocate("org.bstats", project.group.toString())
     }
+}
+
+// Local Folia test server, pinned to the first Folia 26.3 build (ALPHA) for compatibility testing.
+runPaper.folia.registerTask {
+    build(3)
+    runDirectory(file("run/folia"))
 }
 
 val targetJavaVersion = 25

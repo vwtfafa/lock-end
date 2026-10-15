@@ -4,21 +4,11 @@ branches:
     paper: "26.3"
     java: "25"
 
-  main:
-    type: stable
-    paper: "26.3"
-    java: "25"
-
   beta:
     type: beta
     paper: "26.3"
     java: "25"
 
-  paper-26.3:
-    type: test
-    paper: "26.3"
-    java: "25"
-  
   v2.0:
     type: test
     paper: "26.3"

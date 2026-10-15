@@ -7,7 +7,7 @@ open: "§a開放"
 closed: "§cロック中"
 already-locked: "§cジ・エンドはすでにロックされています！"
 already-unlocked: "§cジ・エンドはすでにロック解除されています！"
-usage: "§c使用法: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§c使用法: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§cテストコマンドは無効です。"
 scheduled-unlock-set-days: "§a%days%日後にロック解除を予定しました。"
 scheduled-unlock-set-at: "§a%datetime%にロック解除を予定しました。"
@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§cEndLock§6] 再開できません：一時�
 schedule-status-usage: "§c使用方法: /endlock schedule <status|clear>"
 schedule-status: "§6[§cEndLock§6] アクション: §e%action% §6| 目標: §e%target% §6| 残り: §e%remaining% §6| 一時停止: §e%paused%"
 schedule-none: "なし"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "ロック解除済み"
+remaining-permanent: "永続"
 schedule-cleared: "§a予約アクションを削除しました。"
 countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後に解除されます。"
 
@@ -62,13 +65,13 @@ countdown-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後�
 countdown-lock-notification: "§6[§cEndLock§6] ジ・エンドは §e%time%§6 後にロックされます。"
 
 # History command
-history.header: "§6[§cEndLock§6] §eロック履歴（最新10件）:"
 history-header-page: "§6[§cEndLock§6] §eロック履歴（%page%ページ）:"
 history.empty: "§6[§cEndLock§6] ロック履歴はありません。"
 history-page-empty: "§c[EndLock] この履歴ページは空です。"
-history-usage: "§c使用方法: /endlock history [ページ] [json|csv] [player|action <値>]"
+history-usage: "§c使用方法: /endlock history [status|ページ] [json|csv] [player|action <値>]"
 history-exported: "§a履歴を%file%に出力しました。"
 history-export-failed: "§c履歴の出力に失敗しました。コンソールを確認してください。"
+history-storage-status: "§6履歴ストレージ: §e%status%§6、メモリ内 §f%entries%§6 件。件数制限とローテーションのある記録であり、改ざん不能または長期完全監査ログではありません。"
 history-entry: "§7- %entry%"
 history.filter-player: "§7プレイヤーで履歴をフィルタ: §b%player%"
 history.filter-action: "§7アクションで履歴をフィルタ: §e%action%"
@@ -92,3 +95,13 @@ grace-period-active: "§eエンドロックの猶予期間が有効です - 間�
 # Extended statistics
 stats-line-unlocks: "§7解除回数： §f%unlockcount%"
 stats-line-evacuated: "§7避難したプレイヤー： §f%evacuated%"
+
+# ジ・エンドの退避管理
+evacuation-disabled: "§cEndLockの設定で手動退避が無効になっています。"
+evacuation-not-locked: "§cプレイヤーを退避する前にジ・エンドをロックしてください。"
+evacuation-target-unavailable: "§c有効な退避先がありません。プレイヤーは移動されませんでした。"
+evacuation-preview: "§eジ・エンド退避プレビュー: §f%count%§e人を§b%world%§eへ移動、バイパス対象§f%bypassed%§e人。内容を確認し、30秒以内に§f/endlock evacuate execute§eを実行してください。"
+evacuation-preview-required: "§c先に/endlock evacuate previewを実行してください。プレビューは30秒以内のものが必要です。"
+evacuation-preview-expired: "§c退避プレビューの有効期限が切れました。/endlock evacuate previewを再実行してください。"
+evacuation-preview-changed: "§e対象プレイヤーまたは移動先が変更されました。更新プレビュー: §f%count%§e人を§b%world%§eへ移動、バイパス対象§f%bypassed%§e人。確認後§f/endlock evacuate execute§eを実行してください。"
+evacuation-execution-started: "§a最大%count%人のジ・エンド退避を開始しました。"

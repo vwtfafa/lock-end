@@ -1,7 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.entity.Player;
+import org.bukkit.OfflinePlayer;
 
 import java.util.Locale;
 
@@ -33,7 +33,7 @@ public class LockEndExpansion extends PlaceholderExpansion {
     }
 
     @Override
-    public String onPlaceholderRequest(Player player, String identifier) {
+    public String onRequest(OfflinePlayer player, String identifier) {
         if (identifier == null) {
             return null;
         }

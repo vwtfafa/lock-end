@@ -2,7 +2,7 @@ package org.vwtfafa.lockEnd.commands;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class HistoryFilterTest {
     private static final HistoryEntry ENTRY = new HistoryEntry(
-            LocalDateTime.of(2026, 8, 23, 12, 0),
+            Instant.parse("2026-08-23T12:00:00Z"),
             "Admin", "LOCK", "COMMAND", true);
 
     @Test

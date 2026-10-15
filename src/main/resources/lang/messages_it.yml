@@ -7,7 +7,7 @@ open: "§aaperta"
 closed: "§cbloccata"
 already-locked: "§cLa End è già bloccata!"
 already-unlocked: "§cLa End è già sbloccata!"
-usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§cUso: /endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§cIl comando di test è disabilitato."
 scheduled-unlock-set-days: "§aSblocco programmato tra %days% giorni."
 scheduled-unlock-set-at: "§aSblocco programmato per il %datetime%."
@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§cEndLock§6] Impossibile riprendere: nessuna 
 schedule-status-usage: "§cUtilizzo: /endlock schedule <status|clear>"
 schedule-status: "§6[§cEndLock§6] Azione: §e%action% §6| Obiettivo: §e%target% §6| Restante: §e%remaining% §6| In pausa: §e%paused%"
 schedule-none: "nessuna"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "Sbloccato"
+remaining-permanent: "Permanente"
 schedule-cleared: "§aAzione programmata cancellata."
 countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%§6."
 
@@ -62,13 +65,13 @@ countdown-notification: "§6[§cEndLock§6] La End sarà sbloccata tra §e%time%
 countdown-lock-notification: "§6[§cEndLock§6] La End sarà bloccata tra §e%time%§6."
 
 # History command
-history.header: "§6[§cEndLock§6] §eStorico blocchi (ultimi 10):"
 history-header-page: "§6[§cEndLock§6] §eStorico blocchi (pagina %page%):"
 history.empty: "§6[§cEndLock§6] Nessun storico di blocchi."
 history-page-empty: "§c[EndLock] Questa pagina dello storico è vuota."
-history-usage: "§cUtilizzo: /endlock history [pagina] [json|csv] [player|action <valore>]"
+history-usage: "§cUtilizzo: /endlock history [status|pagina] [json|csv] [player|action <valore>]"
 history-exported: "§aStorico esportato in %file%."
 history-export-failed: "§cEsportazione dello storico non riuscita. Vedi console."
+history-storage-status: "§6Archiviazione storico: §e%status%§6; §f%entries%§6 voci in memoria. È un registro limitato e rotativo, non un audit immutabile o completo a lungo termine."
 history-entry: "§7- %entry%"
 history.filter-player: "§7Filtro storico per giocatore: §b%player%"
 history.filter-action: "§7Filtro storico per azione: §e%action%"
@@ -92,3 +95,13 @@ grace-period-active: "§eIl periodo di grazia del blocco dell'End è attivo - l'
 # Extended statistics
 stats-line-unlocks: "§7Sbloccchi: §f%unlockcount%"
 stats-line-evacuated: "§7Giocatori evacuati: §f%evacuated%"
+
+# Amministrazione evacuazione dell'End
+evacuation-disabled: "§cL'evacuazione manuale è disattivata nella configurazione di EndLock."
+evacuation-not-locked: "§cBlocca l'End prima di evacuare i giocatori."
+evacuation-target-unavailable: "§cNessuna destinazione di evacuazione valida. Nessun giocatore è stato spostato."
+evacuation-preview: "§eAnteprima evacuazione End: §f%count%§e giocatori verso §b%world%§e; §f%bypassed%§e esclusi. Controlla il risultato e poi esegui §f/endlock evacuate execute§e entro 30 secondi."
+evacuation-preview-required: "§cEsegui prima /endlock evacuate preview. L'anteprima deve avere meno di 30 secondi."
+evacuation-preview-expired: "§cL'anteprima dell'evacuazione è scaduta. Esegui di nuovo /endlock evacuate preview."
+evacuation-preview-changed: "§eI giocatori interessati o la destinazione sono cambiati. Nuova anteprima: §f%count%§e giocatori verso §b%world%§e; §f%bypassed%§e esclusi. Controllala e poi esegui §f/endlock evacuate execute§e."
+evacuation-execution-started: "§aEvacuazione dell'End avviata per un massimo di %count% giocatori."

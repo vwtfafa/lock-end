@@ -2,9 +2,9 @@ name: Code Quality Checks
 
 on:
   push:
-    branches: [master, main, beta, v2.0]
+    branches: [master, beta, v2.0]
   pull_request:
-    branches: [master, main, beta]
+    branches: [master, beta]
 
 jobs:
   quality:
@@ -27,7 +27,133 @@ jobs:
 
       - name: Run Gradle checks
         run: |
-          ./gradlew checkstyleMain spotbugsMain test --no-daemon --stacktrace
+          ./gradlew build --no-daemon --stacktrace
+
+      - name: Smoke test on pinned Paper 26.3 Build 190
+        run: |
+          mkdir -p smoke-paper/plugins
+          curl --fail --location --retry 3 \
+            https://fill-data.papermc.io/v1/objects/db0fd32588e732fd0de57cc95a2076624b0e73c1cb2dba87dc5f5f3340bcbb1b/paper-26.3-190.jar \
+            --output smoke-paper/paper.jar
+          echo "db0fd32588e732fd0de57cc95a2076624b0e73c1cb2dba87dc5f5f3340bcbb1b  smoke-paper/paper.jar" \
+            | sha256sum --check
+          cp build/libs/lock-end-*.jar smoke-paper/plugins/EndLock.jar
+          printf 'eula=true\n' > smoke-paper/eula.txt
+          cat > smoke-paper/server.properties <<'EOF'
+          online-mode=false
+          server-port=25575
+          enable-query=false
+          enable-rcon=false
+          spawn-protection=0
+          EOF
+          cd smoke-paper
+          mkfifo console
+          exec 3<>console
+          java -jar paper.jar --nogui < console > server.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            printf 'stop\n' >&3 || true
+            for attempt in $(seq 1 30); do
+              if ! kill -0 "$server_pid" 2>/dev/null; then
+                wait "$server_pid" || true
+                return
+              fi
+              sleep 1
+            done
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 120); do
+            if grep -Fq 'EndLock v' server.log && grep -Fq 'enabled (Paper 26.3+)' server.log; then
+              printf 'endlock history status\n' >&3
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'History storage:' server.log; then
+              echo "EndLock loaded and history status command responded on Paper 26.3 Build 190."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat server.log
+          echo "Paper smoke test did not observe the history status response."
+          exit 1
+
+      - name: Smoke test on pinned Folia 26.3 Build 3 (ALPHA)
+        run: |
+          mkdir -p smoke-folia/plugins
+          curl --fail --location --retry 3 \
+            https://fill-data.papermc.io/v1/objects/0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022/folia-26.3-3.jar \
+            --output smoke-folia/folia.jar
+          echo "0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022  smoke-folia/folia.jar" \
+            | sha256sum --check
+          cp build/libs/lock-end-*.jar smoke-folia/plugins/EndLock.jar
+          printf 'eula=true\n' > smoke-folia/eula.txt
+          cat > smoke-folia/server.properties <<'EOF'
+          online-mode=false
+          server-port=25576
+          enable-query=false
+          enable-rcon=false
+          spawn-protection=0
+          EOF
+          cd smoke-folia
+          mkfifo console
+          exec 3<>console
+          java -jar folia.jar --nogui < console > server.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            printf 'stop\n' >&3 || true
+            for attempt in $(seq 1 30); do
+              if ! kill -0 "$server_pid" 2>/dev/null; then
+                wait "$server_pid" || true
+                return
+              fi
+              sleep 1
+            done
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" || true
+          }
+          trap cleanup EXIT
+          for attempt in $(seq 1 120); do
+            if grep -Fq 'EndLock v' server.log && grep -Fq 'enabled (Paper 26.3+)' server.log; then
+              printf 'endlock history status\n' >&3
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'History storage:' server.log; then
+              printf 'endlock stats\n' >&3
+              break
+            fi
+            sleep 1
+          done
+          for attempt in $(seq 1 30); do
+            if grep -Fq 'Blocked count' server.log; then
+              if grep -Fq '%blockedcount%' server.log; then
+                cat server.log
+                echo "Folia smoke test observed an unsubstituted placeholder."
+                exit 1
+              fi
+              echo "EndLock loaded and command responses were healthy on Folia 26.3 Build 3 (ALPHA)."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat server.log
+          echo "Folia smoke test did not observe the stats response."
+          exit 1
 
       - name: Archive Checkstyle report
         if: always()

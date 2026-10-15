@@ -7,7 +7,7 @@ open: "§a开放"
 closed: "§c已锁定"
 already-locked: "§c末地已经被锁定！"
 already-unlocked: "§c末地已经被解锁！"
-usage: "§c用法：/endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
+usage: "§c用法：/endlock [status|lock|unlock|test|stats|unlockin|unlockat|lockin|lockat|schedule|evacuate|cancel|reason|pause|resume|reload|history|undo|validateconfig]"
 test-disabled: "§c测试命令已禁用。"
 scheduled-unlock-set-days: "§a已计划在 %days% 天后解锁。"
 scheduled-unlock-set-at: "§a已计划在 %datetime% 解锁。"
@@ -55,6 +55,9 @@ schedule-resume-not-paused: "§6[§c末地Lock§6] 无法恢复：没有时间�
 schedule-status-usage: "§c用法: /endlock schedule <status|clear>"
 schedule-status: "§6[§c末地Lock§6] 操作: §e%action% §6| 目标: §e%target% §6| 剩余: §e%remaining% §6| 暂停: §e%paused%"
 schedule-none: "无"
+# PlaceholderAPI %lockend_remaining% values (plain text, no color codes)
+remaining-unlocked: "已解锁"
+remaining-permanent: "永久"
 schedule-cleared: "§a已清除计划操作。"
 countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解锁。"
 
@@ -62,13 +65,13 @@ countdown-notification: "§6[§c末地Lock§6] 末地将在 §e%time%§6 后解�
 countdown-lock-notification: "§6[§cEndLock§6] 末地将在 §e%time%§6 后锁定。"
 
 # History command
-history.header: "§6[§c末地Lock§6] §e锁定历史（最近10条）:"
 history-header-page: "§6[§c末地Lock§6] §e锁定历史（第%page%页）:"
 history.empty: "§6[§c末地Lock§6] 无锁定历史记录。"
 history-page-empty: "§c[EndLock] 此历史页面为空。"
-history-usage: "§c用法: /endlock history [页码] [json|csv] [player|action <值>]"
+history-usage: "§c用法: /endlock history [status|页码] [json|csv] [player|action <值>]"
 history-exported: "§a历史已导出到 %file%。"
 history-export-failed: "§c历史导出失败。请查看控制台了解详情。"
+history-storage-status: "§6历史存储：§e%status%§6；内存中有§f%entries%§6条记录。这是有上限且会轮换的记录，并非不可篡改或完整的长期审计日志。"
 history-entry: "§7- %entry%"
 history.filter-player: "§7按玩家筛选历史: §b%player%"
 history.filter-action: "§7按动作筛选历史: §e%action%"
@@ -92,3 +95,13 @@ grace-period-active: "§e末地锁定宽限期已激活 - 访问即将被阻止�
 # Extended statistics
 stats-line-unlocks: "§7解锁次数： §f%unlockcount%"
 stats-line-evacuated: "§7已撤离玩家： §f%evacuated%"
+
+# 末地撤离管理
+evacuation-disabled: "§cEndLock 配置中已禁用手动撤离。"
+evacuation-not-locked: "§c请先锁定末地，再撤离玩家。"
+evacuation-target-unavailable: "§c没有可用的撤离目标世界，未移动任何玩家。"
+evacuation-preview: "§e末地撤离预览：§f%count%§e名玩家将前往§b%world%§e；§f%bypassed%§e名玩家因绕过规则被排除。请检查结果，并在30秒内执行§f/endlock evacuate execute§e。"
+evacuation-preview-required: "§c请先执行 /endlock evacuate preview。预览必须在30秒内生成。"
+evacuation-preview-expired: "§c撤离预览已过期。请重新执行 /endlock evacuate preview。"
+evacuation-preview-changed: "§e受影响玩家或目标世界已变化。更新后的预览：§f%count%§e名玩家将前往§b%world%§e；§f%bypassed%§e名玩家被排除。请检查后执行§f/endlock evacuate execute§e。"
+evacuation-execution-started: "§a已开始撤离末地玩家，最多%count%人。"

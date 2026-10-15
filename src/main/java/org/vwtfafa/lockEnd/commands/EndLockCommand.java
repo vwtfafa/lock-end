@@ -2,11 +2,13 @@ package org.vwtfafa.lockEnd.commands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.vwtfafa.lockEnd.LockEnd;
 
 import java.time.LocalDate;
@@ -17,9 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.UUID;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.getInteger;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -38,7 +44,7 @@ public final class EndLockCommand {
     private static final DateTimeFormatter DATE_HINT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)\\s*([mhd])", Pattern.CASE_INSENSITIVE);
     private static final List<String> PAGES = List.of("1", "2", "3");
-    private static final List<String> HISTORY_TOKENS = List.of("json", "csv", "player", "action");
+    private static final List<String> HISTORY_TOKENS = List.of("status", "json", "csv", "player", "action");
     private static final List<String> TIMES = List.of("00:00", "12:00", "23:59");
     private static final List<String> LOCK_DURATIONS = List.of("15", "30", "60", "30m", "2h");
     private static final List<String> UNLOCK_DURATIONS = List.of("1", "7", "30", "12h", "7d");
@@ -56,47 +62,87 @@ public final class EndLockCommand {
         return literal("endlock")
                 // Bare /endlock toggles the lock state; the permission is checked
                 // at runtime because a root requirement would hide public children.
-                .executes(this::toggle)
+                .executes(globalWithActor((context, actor) -> toggle(context, actor)))
 
-                .then(publicCommand("status").executes(this::status))
-                .then(publicCommand("stats").executes(this::stats))
-                .then(adminCommand("test").executes(this::test))
+                .then(publicCommand("status").executes(global(this::status)))
+                .then(publicCommand("stats").executes(global(this::stats)))
+                .then(adminCommand("test").executes(globalWithActor((context, actor) -> test(context, actor))))
 
                 .then(adminOrToggleCommand("lock")
-                        .executes(this::lock)
+                        .executes(globalWithActor((context, actor) -> lock(context, actor)))
                         .then(literal("in").requires(hasPermission("endlock.toggle"))
                                 .then(durationArgument("duration", LOCK_DURATIONS)
-                                        .executes(this::lockIn))))
+                                        .executes(global(this::lockIn)))))
                 .then(adminOrToggleCommand("unlock")
-                        .executes(this::unlock)
+                        .executes(globalWithActor((context, actor) -> unlock(context, actor)))
                         .then(literal("in").requires(hasPermission("endlock.toggle"))
                                 .then(durationArgument("duration", UNLOCK_DURATIONS)
-                                        .executes(this::unlockIn))))
+                                        .executes(global(this::unlockIn)))))
 
                 .then(togglePermissionCommand("unlockin")
-                        .then(durationArgument("days", UNLOCK_DURATIONS).executes(this::unlockIn)))
+                        .then(durationArgument("days", UNLOCK_DURATIONS).executes(global(this::unlockIn))))
                 .then(togglePermissionCommand("unlockat")
-                        .then(dateTimeArguments().executes(this::unlockAt)))
+                        .then(dateTimeArguments().executes(global(this::unlockAt))))
                 .then(togglePermissionCommand("lockin")
-                        .then(durationArgument("minutes", LOCK_DURATIONS).executes(this::lockIn)))
+                        .then(durationArgument("minutes", LOCK_DURATIONS).executes(global(this::lockIn))))
                 .then(togglePermissionCommand("lockat")
-                        .then(dateTimeArguments().executes(this::lockAt)))
+                        .then(dateTimeArguments().executes(global(this::lockAt))))
 
                 .then(adminCommand("schedule")
-                        .then(literal("status").executes(this::scheduleStatus))
-                        .then(literal("clear").executes(this::scheduleClear)))
-                .then(adminCommand("cancel").executes(this::cancelSchedule))
+                        .then(literal("status").executes(global(this::scheduleStatus)))
+                        .then(literal("clear").executes(global(this::scheduleClear))))
+                .then(adminCommand("evacuate")
+                        .then(literal("preview").executes(globalWithActor((context, actor) -> {
+                            plugin.getEvacuationService().preview(
+                                    context.getSource().getSender(), actor.name(), actor.uuid());
+                            return 1;
+                        })))
+                        .then(literal("execute").executes(globalWithActor((context, actor) -> {
+                            plugin.getEvacuationService().executePreview(
+                                    context.getSource().getSender(), actor.name(), actor.uuid());
+                            return 1;
+                        }))))
+                .then(adminCommand("cancel").executes(global(this::cancelSchedule)))
                 .then(adminCommand("reason")
-                        .then(argument("reason", greedyString()).executes(this::setReason)))
-                .then(adminCommand("pause").executes(this::pauseSchedule))
-                .then(adminCommand("resume").executes(this::resumeSchedule))
-                .then(commandWithPermission("reload", "endlock.reload").executes(this::reload))
+                        .then(argument("reason", greedyString()).executes(global(this::setReason))))
+                .then(adminCommand("pause").executes(global(this::pauseSchedule)))
+                .then(adminCommand("resume").executes(global(this::resumeSchedule)))
+                .then(commandWithPermission("reload", "endlock.reload").executes(global(this::reload)))
 
-                .then(commandWithPermission("undo", "endlock.undo").executes(this::undo))
-                .then(commandWithPermission("validateconfig", "endlock.validate").executes(this::validateConfig))
+                .then(commandWithPermission("undo", "endlock.undo")
+                        .executes(globalWithActor((context, actor) -> undo(context, actor))))
+                .then(commandWithPermission("validateconfig", "endlock.validate").executes(global(this::validateConfig)))
 
                 .then(historyCommand())
                 .build();
+    }
+
+    private Command<CommandSourceStack> global(ToIntFunction<CommandContext<CommandSourceStack>> action) {
+        return global((context, ignoredActor) -> action.applyAsInt(context));
+    }
+
+    private Command<CommandSourceStack> global(
+            BiFunction<CommandContext<CommandSourceStack>, String, Integer> action) {
+        return globalWithActor((context, actor) -> action.apply(context, actor.name()));
+    }
+
+    private Command<CommandSourceStack> globalWithActor(
+            BiFunction<CommandContext<CommandSourceStack>, CommandActor, Integer> action) {
+        return context -> {
+            CommandSender sender = context.getSource().getSender();
+            CommandActor actor = new CommandActor(sender.getName(), actorUuid(sender));
+            plugin.getPaperScheduler().executeGlobal(() -> {
+                try {
+                    action.apply(context, actor);
+                } catch (RuntimeException exception) {
+                    plugin.getLogger().log(Level.SEVERE, "Command execution failed.", exception);
+                    plugin.getPaperScheduler().sendMessage(context.getSource().getSender(),
+                            net.kyori.adventure.text.Component.text(
+                                    "[EndLock] Command failed. Check the server log for details."));
+                }
+            });
+            return 1;
+        };
     }
 
     // --- Tree helpers -------------------------------------------------
@@ -127,11 +173,15 @@ public final class EndLockCommand {
     }
 
     private void send(CommandSender sender, String key) {
-        sender.sendMessage(plugin.message(key, Map.of()));
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of()));
     }
 
     private void send(CommandSender sender, String key, String placeholder, String value) {
-        sender.sendMessage(plugin.message(key, Map.of(placeholder, value)));
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of(placeholder, value)));
+    }
+
+    private void send(CommandSender sender, String key, Map<String, String> placeholders) {
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, placeholders));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
@@ -162,7 +212,7 @@ public final class EndLockCommand {
 
     // --- Executors ----------------------------------------------------
 
-    private int toggle(CommandContext<CommandSourceStack> context) {
+    private int toggle(CommandContext<CommandSourceStack> context, CommandActor actor) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.toggle")) {
             send(sender, "permission");
@@ -171,7 +221,7 @@ public final class EndLockCommand {
         boolean newLocked = !plugin.isLocked();
         String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
         send(sender, "toggle", "%status%", status);
-        plugin.changeLockState(newLocked, sender.getName(), newLocked ? "LOCK" : "UNLOCK");
+        plugin.changeLockState(newLocked, actor.name(), newLocked ? "LOCK" : "UNLOCK", actor.uuid());
         return 1;
     }
 
@@ -184,13 +234,23 @@ public final class EndLockCommand {
 
     private int stats(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        send(sender, "stats-header", "%lockcount%", String.valueOf(plugin.getLockCount()));
+        send(sender, "stats-header", statsPlaceholders(plugin.getLockCount(), plugin.getBlockedCount()));
         send(sender, "stats-line-unlocks", "%unlockcount%", String.valueOf(plugin.getUnlockCount()));
         send(sender, "stats-line-evacuated", "%evacuated%", String.valueOf(plugin.getEvacuatedCount()));
         return 1;
     }
 
-    private int test(CommandContext<CommandSourceStack> context) {
+    /**
+     * Placeholders for the {@code stats-header} line. Package-private so tests can verify
+     * that every placeholder used by the message templates is supplied.
+     */
+    static Map<String, String> statsPlaceholders(int lockCount, int blockedCount) {
+        return Map.of(
+                "%lockcount%", String.valueOf(lockCount),
+                "%blockedcount%", String.valueOf(blockedCount));
+    }
+
+    private int test(CommandContext<CommandSourceStack> context, CommandActor actor) {
         CommandSender sender = context.getSource().getSender();
         if (!plugin.getConfig().getBoolean("test-command.enabled", true)) {
             send(sender, "test-disabled");
@@ -199,11 +259,11 @@ public final class EndLockCommand {
         String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
         send(sender, "test-success");
         send(sender, "test-info", "%status%", status);
-        plugin.logTestAction(sender.getName());
+        plugin.logTestAction(actor.name());
         return 1;
     }
 
-    private int lock(CommandContext<CommandSourceStack> context) {
+    private int lock(CommandContext<CommandSourceStack> context, CommandActor actor) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.admin")) {
             send(sender, "permission");
@@ -214,11 +274,11 @@ public final class EndLockCommand {
             return 1;
         }
         send(sender, "toggle", "%status%", plugin.msg("closed"));
-        plugin.changeLockState(true, sender.getName(), "LOCK");
+        plugin.changeLockState(true, actor.name(), "LOCK", actor.uuid());
         return 1;
     }
 
-    private int unlock(CommandContext<CommandSourceStack> context) {
+    private int unlock(CommandContext<CommandSourceStack> context, CommandActor actor) {
         CommandSender sender = context.getSource().getSender();
         if (!sender.hasPermission("endlock.admin")) {
             send(sender, "permission");
@@ -229,7 +289,7 @@ public final class EndLockCommand {
             return 1;
         }
         send(sender, "toggle", "%status%", plugin.msg("open"));
-        plugin.changeLockState(false, sender.getName(), "UNLOCK");
+        plugin.changeLockState(false, actor.name(), "UNLOCK", actor.uuid());
         return 1;
     }
 
@@ -256,7 +316,8 @@ public final class EndLockCommand {
     }
 
     private int scheduleStatus(CommandContext<CommandSourceStack> context) {
-        context.getSource().getSender().sendMessage(plugin.messageComponent(plugin.buildScheduleStatusMessage()));
+        plugin.getPaperScheduler().sendMessage(context.getSource().getSender(),
+                plugin.buildScheduleStatusMessage());
         return 1;
     }
 
@@ -302,8 +363,9 @@ public final class EndLockCommand {
         return 1;
     }
 
-    private int undo(CommandContext<CommandSourceStack> context) {
-        plugin.getUndoCommand().execute(context.getSource().getSender(), new String[0]);
+    private int undo(CommandContext<CommandSourceStack> context, CommandActor actor) {
+        CommandSender sender = context.getSource().getSender();
+        plugin.getUndoCommand().execute(sender, actor.name(), actor.uuid());
         return 1;
     }
 
@@ -318,16 +380,16 @@ public final class EndLockCommand {
      */
     private LiteralArgumentBuilder<CommandSourceStack> historyCommand() {
         return commandWithPermission("history", "endlock.history")
-                .executes(context -> {
+                .executes(global(context -> {
                     showHistory(context.getSource().getSender(), new String[0]);
                     return 1;
-                })
+                }))
                 .then(argument("page", integer(1))
                         .suggests(suggest(PAGES))
-                        .executes(context -> {
+                        .executes(global(context -> {
                             showHistory(context.getSource().getSender(), argsWith(pageArg(context)));
                             return 1;
-                        })
+                        }))
                         .then(historyTail()))
                 .then(historyTail());
     }
@@ -340,26 +402,26 @@ public final class EndLockCommand {
     private RequiredArgumentBuilder<CommandSourceStack, String> historyTail() {
         return argument("token", word())
                 .suggests(suggest(HISTORY_TOKENS))
-                .executes(context -> {
+                .executes(global(context -> {
                     showHistory(context.getSource().getSender(),
                             argsWith(pageArg(context), getString(context, "token")));
                     return 1;
-                })
+                }))
                 .then(argument("value", word())
-                        .executes(context -> {
+                        .executes(global(context -> {
                             showHistory(context.getSource().getSender(),
                                     argsWith(pageArg(context), getString(context, "token"),
                                             getString(context, "value")));
                             return 1;
-                        })
+                        }))
                         .then(argument("filterValue", word())
-                                .executes(context -> {
+                                .executes(global(context -> {
                                     showHistory(context.getSource().getSender(),
                                             argsWith(pageArg(context), getString(context, "token"),
                                                     getString(context, "value"),
                                                     getString(context, "filterValue")));
                                     return 1;
-                                })));
+                                }))));
     }
 
     private static String[] argsWith(String... parts) {
@@ -371,6 +433,12 @@ public final class EndLockCommand {
         }
         return args.toArray(String[]::new);
     }
+
+    private static UUID actorUuid(CommandSender sender) {
+        return sender instanceof Entity entity ? entity.getUniqueId() : null;
+    }
+
+    private record CommandActor(String name, UUID uuid) {}
 
     /**
      * Reads an integer argument only when its node actually participated in

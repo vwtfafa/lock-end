@@ -2,7 +2,8 @@ package org.vwtfafa.lockEnd.commands;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,16 +15,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class HistoryRotationTest {
 
-    private static HistoryEntry entryAt(LocalDateTime timestamp) {
+    private static HistoryEntry entryAt(Instant timestamp) {
         return new HistoryEntry(timestamp, "Admin", "LOCK", "COMMAND", true);
     }
 
     @Test
     void entriesInsideRetentionWindowAreKept() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<HistoryEntry> entries = List.of(
-                entryAt(now.minusDays(29)),
-                entryAt(now.minusHours(1)),
+                entryAt(now.minus(29, ChronoUnit.DAYS)),
+                entryAt(now.minus(1, ChronoUnit.HOURS)),
                 entryAt(now));
 
         List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 1000, 30);
@@ -33,23 +34,23 @@ class HistoryRotationTest {
 
     @Test
     void oldEntriesBeyondTheRetentionWindowAreDropped() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<HistoryEntry> entries = List.of(
-                entryAt(now.minusDays(40)),
-                entryAt(now.minusDays(31)),
-                entryAt(now.minusDays(5)));
+                entryAt(now.minus(40, ChronoUnit.DAYS)),
+                entryAt(now.minus(31, ChronoUnit.DAYS)),
+                entryAt(now.minus(5, ChronoUnit.DAYS)));
 
         List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 1000, 30);
 
         assertEquals(1, rotated.size());
-        assertTrue(rotated.get(0).timestamp().isAfter(now.minusDays(6)));
+        assertTrue(rotated.get(0).timestamp().isAfter(now.minus(6, ChronoUnit.DAYS)));
     }
 
     @Test
     void nonPositiveRetentionKeepsAllAges() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         List<HistoryEntry> entries = List.of(
-                entryAt(now.minusYears(2)),
+                entryAt(now.minus(730, ChronoUnit.DAYS)),
                 entryAt(now));
 
         assertEquals(2, LockHistoryCommand.applyRotation(entries, 1000, 0).size());
@@ -60,7 +61,7 @@ class HistoryRotationTest {
     void oversizedHistoriesKeepOnlyTheNewestEntries() {
         List<HistoryEntry> entries = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
-            entries.add(entryAt(LocalDateTime.now().minusMinutes(50 - i)));
+            entries.add(entryAt(Instant.now().minus(50 - i, ChronoUnit.MINUTES)));
         }
 
         List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 10, 0);

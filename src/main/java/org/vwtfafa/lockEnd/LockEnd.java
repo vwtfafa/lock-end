@@ -23,6 +23,7 @@ import org.vwtfafa.lockEnd.commands.EndLockCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
+import org.vwtfafa.lockEnd.util.PaperScheduler;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +36,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -49,18 +53,24 @@ public final class LockEnd extends JavaPlugin implements Listener {
     public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
             .ofPattern("uuuu-MM-dd HH:mm")
             .withResolverStyle(java.time.format.ResolverStyle.STRICT);
+    private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // Volatile because bStats chart suppliers read them from an async thread.
     private volatile boolean locked = false;
-    private MessageService messages;
-    private ScheduleManager schedules;
-    private EvacuationService evacuation;
+    private volatile MessageService messages;
+    private volatile ScheduleManager schedules;
+    private volatile EvacuationService evacuation;
     private UpdateChecker updateChecker;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
-    private volatile int lockCount = 0;
-    private volatile int unlockCount = 0;
-    private volatile int blockedCount = 0;
-    private volatile int evacuatedCount = 0;
+    private final AtomicInteger lockCount = new AtomicInteger();
+    private final AtomicInteger unlockCount = new AtomicInteger();
+    private final AtomicInteger blockedCount = new AtomicInteger();
+    private final AtomicInteger evacuatedCount = new AtomicInteger();
+    private final AtomicLong statsRevision = new AtomicLong();
+    private final AtomicBoolean statsFlushQueued = new AtomicBoolean();
+    private volatile boolean shuttingDown;
+    private PaperScheduler paperScheduler;
 
     // Cached chart/report settings so async consumers never touch the config.
     private volatile String languageTag = "en";
@@ -68,9 +78,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private volatile boolean joinNotificationsEnabled = false;
 
     // v1.6 new features
-    private LockReasonManager lockReasonManager;
+    private volatile LockReasonManager lockReasonManager;
     private GracePeriodTask gracePeriodTask;
-    private WhitelistChecker whitelistChecker;
+    private volatile WhitelistChecker whitelistChecker;
     private SoundEffectPlayer soundPlayer;
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
@@ -79,24 +89,25 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     // Logging & Analytics
     private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
-    private int rateLimitSeconds = 5;
+    private volatile int rateLimitSeconds = 5;
 
     // Cached hot-path config values (refreshed on enable/reload)
-    private boolean blockEntities;
-    private boolean blockEndGateway;
-    private List<String> endWorlds = List.of();
+    private volatile boolean blockEntities;
+    private volatile boolean blockEndGateway;
+    private volatile List<String> endWorlds = List.of();
     private volatile boolean logAttempts;
     private volatile boolean statsEnabled;
 
     @Override
     public void onEnable() {
+        paperScheduler = new PaperScheduler(this);
         saveDefaultConfig();
         migrateConfig();
         locked = getConfig().getBoolean("locked", false);
-        lockCount = getConfig().getInt("stats.lock-count", 0);
-        unlockCount = getConfig().getInt("stats.unlock-count", 0);
-        blockedCount = getConfig().getInt("stats.blocked-count", 0);
-        evacuatedCount = getConfig().getInt("stats.evacuated-count", 0);
+        lockCount.set(getConfig().getInt("stats.lock-count", 0));
+        unlockCount.set(getConfig().getInt("stats.unlock-count", 0));
+        blockedCount.set(getConfig().getInt("stats.blocked-count", 0));
+        evacuatedCount.set(getConfig().getInt("stats.evacuated-count", 0));
 
         messages = new MessageService(this);
         messages.loadFromConfig();
@@ -131,7 +142,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             schedules.arm();
         }
 
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null && getConfig().getBoolean("hooks.placeholderapi", true)) {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
         }
@@ -150,8 +161,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        shuttingDown = true;
+        persistStatsToConfig();
         getConfig().set("locked", locked);
         saveConfig();
+        if (paperScheduler != null) {
+            paperScheduler.cancelAsyncTasks();
+        }
         if (schedules != null) {
             schedules.cancelAll();
         }
@@ -171,6 +187,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action) {
+        return changeLockState(newLocked, actor, action, null);
+    }
+
+    public boolean changeLockState(boolean newLocked, String actor, String action, UUID actorUuid) {
         if (locked == newLocked) {
             return false;
         }
@@ -179,6 +199,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         locked = newLocked;
         historyCommand.recordPreviousState(previousState);
         recordStateChange(locked);
+        persistStatsToConfig();
         getConfig().set("locked", locked);
         saveConfig();
 
@@ -189,7 +210,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
         logAction(actor, action);
-        historyCommand.addEntry(actor, action, previousState, action);
+        historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
         if (locked) {
             startGracePeriodIfEnabled();
             evacuation.schedule();
@@ -198,11 +219,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean undoLastAction(String actor) {
+        return undoLastAction(actor, null);
+    }
+
+    public boolean undoLastAction(String actor, UUID actorUuid) {
         if (historyCommand.getLastPreviousState() == null) {
             return false;
         }
         boolean restored = historyCommand.getLastPreviousState();
-        boolean changed = changeLockState(restored, actor, "UNDO");
+        boolean changed = changeLockState(restored, actor, "UNDO", actorUuid);
         if (changed) {
             historyCommand.clearLastPreviousState();
         }
@@ -266,20 +291,19 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
         if (lockedNow) {
-            lockCount++;
-            getConfig().set("stats.lock-count", lockCount);
+            lockCount.incrementAndGet();
         } else {
-            unlockCount++;
-            getConfig().set("stats.unlock-count", unlockCount);
+            unlockCount.incrementAndGet();
         }
+        statsRevision.incrementAndGet();
     }
 
     private void recordBlockedAttempt() {
         if (!statsEnabled) {
             return;
         }
-        blockedCount++;
-        getConfig().set("stats.blocked-count", blockedCount);
+        blockedCount.incrementAndGet();
+        queueStatsPersistence();
     }
 
     /**
@@ -289,24 +313,61 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!statsEnabled) {
             return;
         }
-        evacuatedCount++;
-        getConfig().set("stats.evacuated-count", evacuatedCount);
+        evacuatedCount.incrementAndGet();
+        queueStatsPersistence();
     }
 
     public int getLockCount() {
-        return lockCount;
+        return lockCount.get();
     }
 
     public int getUnlockCount() {
-        return unlockCount;
+        return unlockCount.get();
     }
 
     public int getBlockedCount() {
-        return blockedCount;
+        return blockedCount.get();
     }
 
     public int getEvacuatedCount() {
-        return evacuatedCount;
+        return evacuatedCount.get();
+    }
+
+    public PaperScheduler getPaperScheduler() {
+        return paperScheduler;
+    }
+
+    private void queueStatsPersistence() {
+        if (shuttingDown || !isEnabled() || !statsFlushQueued.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            paperScheduler.executeGlobal(() -> {
+                while (true) {
+                    long persistedRevision = statsRevision.get();
+                    persistStatsToConfig();
+                    if (statsRevision.get() == persistedRevision) {
+                        statsFlushQueued.set(false);
+                        if (statsRevision.get() == persistedRevision
+                                || !statsFlushQueued.compareAndSet(false, true)) {
+                            return;
+                        }
+                    }
+                }
+            });
+        } catch (org.bukkit.plugin.IllegalPluginAccessException exception) {
+            statsFlushQueued.set(false);
+            if (!shuttingDown) {
+                getLogger().warning("Could not schedule stats persistence: " + exception.getMessage());
+            }
+        }
+    }
+
+    private void persistStatsToConfig() {
+        getConfig().set("stats.lock-count", lockCount.get());
+        getConfig().set("stats.unlock-count", unlockCount.get());
+        getConfig().set("stats.blocked-count", blockedCount.get());
+        getConfig().set("stats.evacuated-count", evacuatedCount.get());
     }
 
     public String getLanguageTag() {
@@ -405,6 +466,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (gracePeriodTask != null) {
             gracePeriodTask.cancel();
         }
+        persistStatsToConfig();
+        saveConfig();
         Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
         reloadConfig();
         migrateConfig();
@@ -421,7 +484,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         soundPlayer.loadConfig();
         schedules.reload();
 
-        boolean placeholderEnabled = getServer().getPluginManager().getPlugin("PlaceholderAPI") != null
+        boolean placeholderEnabled = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
                 && getConfig().getBoolean("hooks.placeholderapi", true);
         if (placeholderEnabled && placeholderExpansion == null) {
             placeholderExpansion = new LockEndExpansion(this);
@@ -450,6 +513,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     public WhitelistChecker getWhitelistChecker() {
         return whitelistChecker;
+    }
+
+    public EvacuationService getEvacuationService() {
+        return evacuation;
     }
 
     // --- Schedule delegates ---
@@ -486,7 +553,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         schedules.clear();
     }
 
-    public String buildScheduleStatusMessage() {
+    public Component buildScheduleStatusMessage() {
         return schedules.buildStatusMessage();
     }
 
@@ -517,11 +584,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     public String getRemainingText() {
         if (!locked) {
-            return "Unlocked";
+            return messages.msg("remaining-unlocked");
         }
         return schedules.hasAction()
                 ? schedules.getTime().format(SCHEDULE_FORMAT)
-                : "Permanent";
+                : messages.msg("remaining-permanent");
     }
 
     /**
@@ -569,7 +636,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         lastAttemptTimes.put(playerId, now);
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String timestamp = LocalDateTime.now().format(ATTEMPT_LOG_FORMAT);
         String logMessage = String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
                 timestamp, player.getName(), sourceWorld.getName(), method);
 

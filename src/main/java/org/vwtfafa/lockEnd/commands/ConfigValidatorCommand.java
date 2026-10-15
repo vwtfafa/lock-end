@@ -19,15 +19,19 @@ public class ConfigValidatorCommand {
             "locked", "locked-reason", "toggle", "status", "permission", "open", "closed",
             "already-locked", "already-unlocked", "broadcast-locked", "broadcast-unlocked",
             "actionbar-locked", "actionbar-unlocked", "test-success", "test-info", "countdown-notification",
-            "history.header", "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
+            "history.empty", "undo.success", "undo.empty", "config.valid", "config.issues",
             "scheduled-lock-set", "scheduled-lock-invalid", "countdown-lock-notification",
             "schedule-cancelled", "schedule-status-usage", "schedule-status", "schedule-none", "schedule-cleared",
+            "remaining-unlocked", "remaining-permanent",
             "reason-usage", "reason-set", "join-notification", "evacuation-warning", "evacuation-complete",
             "reload-success", "preview-lock", "preview-unlock", "schedule-paused", "schedule-resumed",
             "history-header-page", "history-page-empty", "history-usage", "history-exported",
-            "history-export-failed",
+            "history-export-failed", "history-storage-status",
             "usage", "test-disabled", "scheduled-unlock-set-days", "scheduled-unlock-set-at",
-            "grace-period-active", "stats-line-unlocks", "stats-line-evacuated"
+            "grace-period-active", "stats-line-unlocks", "stats-line-evacuated",
+            "evacuation-disabled", "evacuation-not-locked", "evacuation-target-unavailable",
+            "evacuation-preview", "evacuation-preview-required", "evacuation-preview-expired",
+            "evacuation-preview-changed", "evacuation-execution-started"
     );
 
     private final LockEnd plugin;
@@ -44,7 +48,7 @@ public class ConfigValidatorCommand {
      */
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("endlock.validate")) {
-            sender.sendMessage(plugin.message("permission", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("permission", Map.of()));
             return true;
         }
 
@@ -116,11 +120,12 @@ public class ConfigValidatorCommand {
 
         // Output results
         if (issues.isEmpty()) {
-            sender.sendMessage(plugin.message("config.valid", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("config.valid", Map.of()));
         } else {
-            sender.sendMessage(plugin.message("config.issues", Map.of()));
+            plugin.getPaperScheduler().sendMessage(sender, plugin.message("config.issues", Map.of()));
             for (String issue : issues) {
-                sender.sendMessage(plugin.message("config-issue", Map.of("%issue%", issue)));
+                plugin.getPaperScheduler().sendMessage(sender,
+                        plugin.message("config-issue", Map.of("%issue%", issue)));
             }
         }
 

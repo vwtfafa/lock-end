@@ -14,10 +14,10 @@ public class SoundEffectPlayer {
     private static final Key DEFAULT_SOUND = Key.key(Key.MINECRAFT_NAMESPACE, "block.anvil.land");
 
     private final LockEnd plugin;
-    private Key denialSound = DEFAULT_SOUND;
-    private float volume;
-    private float pitch;
-    private boolean enabled;
+    private volatile Key denialSound = DEFAULT_SOUND;
+    private volatile float volume;
+    private volatile float pitch;
+    private volatile boolean enabled;
     private boolean warnedInvalidSound;
 
     public SoundEffectPlayer(LockEnd plugin) {

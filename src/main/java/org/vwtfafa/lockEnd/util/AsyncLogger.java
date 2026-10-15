@@ -1,9 +1,10 @@
 package org.vwtfafa.lockEnd.util;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.BlockingQueue;
@@ -17,6 +18,8 @@ import java.util.logging.Logger;
  * Asynchronous logger to prevent main thread lag from file I/O.
  */
 public class AsyncLogger {
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final BlockingQueue<LogEntry> logQueue = new LinkedBlockingQueue<>();
     private final Logger logger;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
@@ -80,7 +83,7 @@ public class AsyncLogger {
                 try {
                     LogEntry entry = logQueue.poll(200, TimeUnit.MILLISECONDS);
                     if (entry != null) {
-                        writeToFile(entry.message);
+                        writeToFile(entry.message());
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -97,24 +100,13 @@ public class AsyncLogger {
             return;
         }
         try {
-            LocalDateTime now = LocalDateTime.now();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String timestamp = now.format(formatter);
-            String logMessage = String.format("[%s] %s\n", timestamp, message);
-
-            try (PrintWriter writer = new PrintWriter(new FileWriter(logFile, true))) {
-                writer.print(logMessage);
-            }
+            String logMessage = String.format("[%s] %s\n", TIMESTAMP_FORMAT.format(LocalDateTime.now()), message);
+            Files.writeString(logFile.toPath(), logMessage, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             logger.severe("Error writing to log file: " + e.getMessage());
         }
     }
 
-    private static class LogEntry {
-        final String message;
-
-        LogEntry(String message) {
-            this.message = message;
-        }
-    }
+    private record LogEntry(String message) {}
 }

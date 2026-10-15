@@ -5,11 +5,10 @@ import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,9 +16,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Loads language files and converts raw message strings into Adventure components.
@@ -31,13 +33,14 @@ public class MessageService {
     private static final String LANG_FOLDER = "lang";
     private static final String FILE_PREFIX = "messages_";
 
-    private final JavaPlugin plugin;
-    private FileConfiguration langConfig;
-    private MiniMessage miniMessage;
-    private boolean miniMessageEnabled;
-    private final Map<String, Component> templateCache = new HashMap<>();
+    private final LockEnd plugin;
+    private volatile FileConfiguration langConfig;
+    private volatile Map<String, String> messageStrings = Map.of();
+    private volatile MiniMessage miniMessage;
+    private volatile boolean miniMessageEnabled;
+    private final Map<String, Component> templateCache = new ConcurrentHashMap<>();
 
-    public MessageService(JavaPlugin plugin) {
+    public MessageService(LockEnd plugin) {
         this.plugin = plugin;
     }
 
@@ -106,6 +109,7 @@ public class MessageService {
             if (defaults != null) {
                 langConfig.setDefaults(defaults);
             }
+            publishMessageStrings();
             return;
         }
 
@@ -116,14 +120,42 @@ public class MessageService {
                 if (defaults != null) {
                     langConfig.setDefaults(defaults);
                 }
+                publishMessageStrings();
                 return;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not load bundled language file " + fileName, exception);
+        }
         try (InputStream in = plugin.getResource(LANG_FOLDER + "/" + FILE_PREFIX + "en.yml")) {
             if (in != null) {
                 langConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+                publishMessageStrings();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.WARNING, "Could not load bundled English language file", exception);
+        }
+    }
+
+    private void publishMessageStrings() {
+        Map<String, String> loadedMessages = new HashMap<>();
+        if (langConfig != null) {
+            Configuration defaults = langConfig.getDefaults();
+            if (defaults != null) {
+                for (String key : defaults.getKeys(true)) {
+                    String value = langConfig.getString(key);
+                    if (value != null) {
+                        loadedMessages.put(key, value);
+                    }
+                }
+            }
+            for (String key : langConfig.getKeys(true)) {
+                String value = langConfig.getString(key);
+                if (value != null) {
+                    loadedMessages.put(key, value);
+                }
+            }
+        }
+        messageStrings = Collections.unmodifiableMap(loadedMessages);
     }
 
     /**
@@ -141,17 +173,12 @@ public class MessageService {
         }
     }
 
-    public @NotNull String msg(@NotNull String key) {
-        if (langConfig == null) {
-            return key;
-        }
-        String value = langConfig.getString(key, key);
-        return value != null ? value : key;
+    public String msg(String key) {
+        return messageStrings.getOrDefault(key, key);
     }
 
     public boolean hasMessage(String key) {
-        // Consults defaults as well, matching the lookup in msg().
-        return langConfig != null && langConfig.getString(key, null) != null;
+        return messageStrings.containsKey(key);
     }
 
     public Component miniMsg(String key) {
@@ -196,7 +223,7 @@ public class MessageService {
      * @param placeholders placeholder tokens (including %) mapped to values
      * @return the rendered component; safe to reuse across players
      */
-    public Component message(@NotNull String key, @NotNull Map<String, String> placeholders) {
+    public Component message(String key, Map<String, String> placeholders) {
         Component template = templateCache.computeIfAbsent(key, this::miniMsg);
         return applyPlaceholders(template, placeholders);
     }
@@ -250,16 +277,16 @@ public class MessageService {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player == null) {
-                continue;
-            }
-            if (notifyAll || player.isOp() || player.hasPermission("endlock.admin")) {
-                if (useActionbar) {
-                    player.sendActionBar(component);
-                } else {
-                    player.sendMessage(component);
+            plugin.getPaperScheduler().executeEntity(player, () -> {
+                if (notifyAll || player.hasPermission("endlock.admin")) {
+                    if (useActionbar) {
+                        player.sendActionBar(component);
+                    } else {
+                        player.sendMessage(component);
+                    }
                 }
-            }
+            }, () -> {});
         }
     }
+
 }
