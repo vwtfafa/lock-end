@@ -159,7 +159,7 @@ public class LockHistoryCommand {
         }
         send(sender, plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
         for (int i = end - 1; i >= start; i--) {
-            send(sender, plugin.messageComponent("  " + displayedHistory.get(i).display()));
+            send(sender, plugin.messageComponent("  " + displayedHistory.get(i).display(plugin.getMessageService())));
         }
         return true;
     }

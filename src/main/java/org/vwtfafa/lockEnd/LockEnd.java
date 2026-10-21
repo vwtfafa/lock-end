@@ -272,6 +272,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return messages.msg(key);
     }
 
+    public MessageService getMessageService() {
+        return messages;
+    }
+
     public boolean hasMessage(String key) {
         return messages.hasMessage(key);
     }

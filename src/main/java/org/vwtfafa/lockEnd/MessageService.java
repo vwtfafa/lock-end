@@ -177,6 +177,26 @@ public class MessageService {
         return messageStrings.getOrDefault(key, key);
     }
 
+    /**
+     * Replaces literal tokens in a raw message string. Used for composing
+     * multi-part audit lines where every segment must remain translatable.
+     *
+     * @param key          language key of the template
+     * @param placeholders placeholder tokens (including %) mapped to values
+     * @return the formatted raw string
+     */
+    public String msg(String key, Map<String, String> placeholders) {
+        return replacePlaceholders(msg(key), placeholders);
+    }
+
+    static String replacePlaceholders(String template, Map<String, String> placeholders) {
+        String result = template;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            result = result.replace(entry.getKey(), entry.getValue() != null ? entry.getValue() : "");
+        }
+        return result;
+    }
+
     public boolean hasMessage(String key) {
         return messageStrings.containsKey(key);
     }
