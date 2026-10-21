@@ -36,8 +36,7 @@
 
 ### 🔌 Integrations
 
-- **PlaceholderAPI** — `%endlock_status%`, `%endlock_remaining%`, `%endlock_remaining_seconds%`, `%endlock_unlock_at%`, `%endlock_target_time%`, `%endlock_lock_reason%`, `%endlock_reason%`, `%endlock_blocked_count%`, `%endlock_schedule_action%`, `%endlock_schedule_active%`
-- **LuckPerms** — Context `lockend:locked=true|false`
+- **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
 - **MiniMessage** — Full RGB & gradient message support
 
 ### 🔧 Configuration
@@ -51,7 +50,7 @@
 - Join notifications
 - Update checker with clickable chat link
 - bStats metrics
-- Integration toggles (PAPI, LuckPerms, MiniMessage)
+- Integration toggles (PAPI, MiniMessage)
 
 ### 🧱 Compatibility
 
