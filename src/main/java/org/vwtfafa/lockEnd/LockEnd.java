@@ -782,16 +782,16 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
-     * Picks a non-guarded world spawn for a blocked respawn, preferring the
+     * Picks a non-End world spawn for a blocked respawn, preferring the
      * configured evacuation target.
      */
     private Location findSafeRespawnLocation(World blockedWorld) {
         World target = evacuation != null ? evacuation.getTargetWorld() : null;
-        if (target != null && !isGuardedEndWorld(target)) {
+        if (target != null && target.getEnvironment() != World.Environment.THE_END) {
             return target.getSpawnLocation();
         }
         return getServer().getWorlds().stream()
-                .filter(world -> !isGuardedEndWorld(world))
+                .filter(world -> world.getEnvironment() != World.Environment.THE_END)
                 .findFirst()
                 .map(World::getSpawnLocation)
                 .orElseGet(blockedWorld::getSpawnLocation);
