@@ -94,6 +94,11 @@ tasks.processResources {
     inputs.properties(props)
     filteringCharset = "UTF-8"
 
+    // Ship third-party license notices with the distribution jar.
+    from("THIRD-PARTY-NOTICES.md") {
+        into("META-INF")
+    }
+
     filesMatching("plugin.yml") {
         expand(props)
     }

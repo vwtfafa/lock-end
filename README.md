@@ -327,7 +327,8 @@ Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, worki
 
 ## License
 
-This project is licensed under the **All Rights Reserved** license. See the `LICENSE` file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+Third-party components bundled into the plugin jar are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Author
 
