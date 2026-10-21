@@ -3,7 +3,6 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -25,13 +24,15 @@ import java.util.logging.Level;
 
 /**
  * Loads language files and converts raw message strings into Adventure components.
- * Bundled files live under lang/; customized files are read from
- * plugins/EndLock/lang/ and legacy files from the plugin root are migrated there.
- * Parsed templates are cached and reused until the next reload.
+ * Bundled files live under lang/ and use MiniMessage formatting; customized files
+ * are read from plugins/EndLock/lang/ and legacy files from the plugin root are
+ * migrated there. Legacy section codes in custom files are still accepted for
+ * compatibility. Parsed templates are cached and reused until the next reload.
  */
 public class MessageService {
     private static final String LANG_FOLDER = "lang";
     private static final String FILE_PREFIX = "messages_";
+    private static final MiniMessage TAG_STRIPPER = MiniMessage.miniMessage();
 
     private final LockEnd plugin;
     private volatile FileConfiguration langConfig;
@@ -210,27 +211,90 @@ public class MessageService {
     }
 
     /**
-     * Parses a raw message string into a component, supporting both formats.
-     * Strings with legacy section codes ({@code §}) are parsed as legacy text:
-     * MiniMessage 5.x strict mode rejects those codes, and legacy usage hints
-     * like {@code <days>} must stay literal instead of being read as tags.
-     * Strings without legacy codes are parsed as MiniMessage (gradients etc.),
-     * falling back to legacy so a malformed tag can never break a command.
+     * Parses a raw message string into a component. Bundled files use
+     * MiniMessage; legacy section codes ({@code §}) in custom files are
+     * translated to MiniMessage tags for backwards compatibility. When the
+     * MiniMessage hook is disabled, tags are stripped so text never leaks raw
+     * markup.
      */
     static Component render(String raw, MiniMessage miniMessage, boolean miniMessageEnabled) {
         if (raw == null) {
             return Component.empty();
         }
+        String miniMessageInput = legacyToMiniMessage(raw);
         if (!miniMessageEnabled || miniMessage == null) {
-            return LegacyComponentSerializer.legacySection().deserialize(raw);
-        }
-        if (raw.indexOf('§') >= 0) {
-            return LegacyComponentSerializer.legacySection().deserialize(raw);
+            // Remove MiniMessage markup but keep classic color codes working
+            // for custom files written for older versions.
+            String withoutMiniMessage = stripMiniMessageTags(raw);
+            try {
+                return TAG_STRIPPER.deserialize(legacyToMiniMessage(withoutMiniMessage));
+            } catch (RuntimeException exception) {
+                return Component.text(withoutMiniMessage);
+            }
         }
         try {
-            return miniMessage.deserialize(raw);
+            return miniMessage.deserialize(miniMessageInput);
         } catch (RuntimeException exception) {
-            return LegacyComponentSerializer.legacySection().deserialize(raw);
+            // Never let a malformed custom message break a command.
+            return Component.text(stripMiniMessageTags(miniMessageInput));
+        }
+    }
+
+    /**
+     * Translates the classic section-code palette into MiniMessage tags so
+     * custom language files written for older versions keep working without a
+     * second parser.
+     */
+    static String legacyToMiniMessage(String raw) {
+        StringBuilder result = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char current = raw.charAt(i);
+            if (current == '§' && i + 1 < raw.length()) {
+                String tag = legacyTag(raw.charAt(i + 1));
+                if (tag != null) {
+                    result.append(tag);
+                    i++;
+                    continue;
+                }
+            }
+            result.append(current);
+        }
+        return result.toString();
+    }
+
+    private static String legacyTag(char code) {
+        return switch (Character.toLowerCase(code)) {
+            case '0' -> "<black>";
+            case '1' -> "<dark_blue>";
+            case '2' -> "<dark_green>";
+            case '3' -> "<dark_aqua>";
+            case '4' -> "<dark_red>";
+            case '5' -> "<dark_purple>";
+            case '6' -> "<gold>";
+            case '7' -> "<gray>";
+            case '8' -> "<dark_gray>";
+            case '9' -> "<blue>";
+            case 'a' -> "<green>";
+            case 'b' -> "<aqua>";
+            case 'c' -> "<red>";
+            case 'd' -> "<light_purple>";
+            case 'e' -> "<yellow>";
+            case 'f' -> "<white>";
+            case 'k' -> "<obfuscated>";
+            case 'l' -> "<bold>";
+            case 'm' -> "<strikethrough>";
+            case 'n' -> "<underlined>";
+            case 'o' -> "<italic>";
+            case 'r' -> "<reset>";
+            default -> null;
+        };
+    }
+
+    private static String stripMiniMessageTags(String raw) {
+        try {
+            return TAG_STRIPPER.stripTags(raw);
+        } catch (RuntimeException exception) {
+            return raw;
         }
     }
 
@@ -251,7 +315,7 @@ public class MessageService {
     /**
      * Renders a cached template with text placeholders and pre-parsed components.
      * Component placeholders are used for trusted, styled values such as the
-     * localized open/closed status where legacy color codes must be applied.
+     * localized open/closed status where MiniMessage styling must be preserved.
      *
      * @param key                   language key of the template
      * @param placeholders          placeholder tokens mapped to literal text
@@ -297,17 +361,6 @@ public class MessageService {
     }
 
     /**
-     * Escapes MiniMessage tags in user-provided input so it renders literally
-     * instead of being interpreted as formatting when embedded in a message.
-     */
-    public String sanitize(String input) {
-        if (input == null || !miniMessageEnabled || miniMessage == null) {
-            return input;
-        }
-        return miniMessage.escapeTags(input);
-    }
-
-    /**
      * Broadcasts a lock state change to all relevant online players.
      * @param locked The new lock state (selects the action bar variant)
      * @param broadcastKey Language key of the chat broadcast
@@ -326,7 +379,7 @@ public class MessageService {
         if (useActionbar) {
             component = message(locked ? "actionbar-locked" : "actionbar-unlocked", Map.of());
         } else {
-            component = message(broadcastKey, Map.of("%player%", sanitize(playerName)));
+            component = message(broadcastKey, Map.of("%player%", playerName));
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {

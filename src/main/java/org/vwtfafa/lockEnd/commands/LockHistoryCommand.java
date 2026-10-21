@@ -1,6 +1,7 @@
 package org.vwtfafa.lockEnd.commands;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 
@@ -142,15 +143,15 @@ public class LockHistoryCommand {
                     .toList();
             if (filter.type().equals("player")) {
                 send(sender, plugin.message("history.filter-player",
-                        Map.of("%player%", plugin.sanitize(filter.value()))));
+                        Map.of("%player%", filter.value())));
             } else if (filter.type().equals("action")) {
                 send(sender, plugin.message("history.filter-action",
-                        Map.of("%action%", plugin.sanitize(filter.value()))));
+                        Map.of("%action%", filter.value())));
             }
             if (displayedHistory.isEmpty()) {
                 send(sender, plugin.message("history.filter-no-results", Map.of(
                         "%type%", filter.type(),
-                        "%value%", plugin.sanitize(filter.value()))));
+                        "%value%", filter.value())));
                 return true;
             }
         }
@@ -164,12 +165,14 @@ public class LockHistoryCommand {
         }
         send(sender, plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
         for (int i = end - 1; i >= start; i--) {
-            send(sender, plugin.messageComponent("  " + displayedHistory.get(i).display(plugin.getMessageService())));
+            Component line = Component.text("  ")
+                    .append(displayedHistory.get(i).display(plugin.getMessageService()));
+            send(sender, line);
         }
         return true;
     }
 
-    private void send(CommandSender sender, net.kyori.adventure.text.Component message) {
+    private void send(CommandSender sender, Component message) {
         plugin.getPaperScheduler().sendMessage(sender, message);
     }
 

@@ -6,8 +6,9 @@
 
 Version 3.0.1 is a bug-fix release targeting Paper 26.3 Build #209. It hardens
 End access checks for respawns and internal End travel, keeps grace periods and
-evacuations alive across reloads, and fixes scheduling, history persistence,
-placeholders, sounds, and configuration validation.
+evacuations alive across reloads, modernizes message rendering to MiniMessage,
+and fixes scheduling, history persistence, placeholders, sounds, and
+configuration validation.
 
 ## What's new in 3.0
 
@@ -263,6 +264,8 @@ hooks:
 ### Custom messages
 
 Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock/lang/` and edit it. If the file exists on disk, it overrides the built-in version.
+
+Bundled language files use **MiniMessage** formatting (colors, gradients, and other tags). Custom files may still use legacy section codes such as `§a` or `§c`; they are translated automatically for compatibility. Set `hooks.mini-message: false` to strip MiniMessage tags and keep classic section-code colors.
 
 Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`. `remaining-unlocked` and `remaining-permanent` provide the plain-text `%lockend_remaining%` PlaceholderAPI value.
 

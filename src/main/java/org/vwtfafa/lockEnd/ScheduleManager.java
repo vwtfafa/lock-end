@@ -283,15 +283,17 @@ public class ScheduleManager {
     public Component buildStatusMessage() {
         LocalDateTime target = scheduledUnlockTime;
         String action = scheduledAction;
-        String targetText = target == null ? plugin.msg("schedule-none") : target.format(LockEnd.SCHEDULE_FORMAT);
+        Component targetText = target == null
+                ? plugin.message("schedule-none", Map.of())
+                : Component.text(target.format(LockEnd.SCHEDULE_FORMAT));
         String remaining = target == null
                 ? "-"
                 : formatDuration(remainingSeconds(target, ZonedDateTime.now(ZoneId.systemDefault())));
         return plugin.message("schedule-status", Map.of(
                 "%action%", target == null ? "-" : action,
-                "%target%", targetText,
                 "%remaining%", remaining,
-                "%paused%", String.valueOf(schedulePaused)));
+                "%paused%", String.valueOf(schedulePaused)),
+                Map.of("%target%", targetText));
     }
 
     private void setPending(LocalDateTime time, String action) {

@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - Bumped the project version to 3.0.1, the Paper API compile/test target to Paper 26.3 Build #209 (STABLE), and the SpotBugs Gradle plugin to 6.5.13; the CI smoke test is pinned to the same Paper build.
 - Relicensed the project under the MIT License and bundled the third-party notices (including bStats) into the plugin jar.
 - Updated the README and Modrinth documentation for version 3.0.1 and Paper 26.3 Build #209.
+- Bundled language files now use MiniMessage instead of legacy section codes. Custom files may still use classic `§` codes, which are translated automatically for compatibility.
+- History rows are composed as Adventure components instead of raw strings that were reparsed, so stored values cannot inject formatting.
+- Update notifications now use the localized `update-available` and `update-download` messages with click and hover events instead of hard-coded English text.
+- Removed the legacy `sanitize` escaping path. User-provided reasons and history filters are inserted as literal component placeholders, so MiniMessage tags are displayed as typed instead of gaining backslashes.
 
 ### Fixed
 - Respawns are now evaluated by the End access gate. Blocked respawns are redirected to a safe non-End world, using the recorded death world as the source when available.

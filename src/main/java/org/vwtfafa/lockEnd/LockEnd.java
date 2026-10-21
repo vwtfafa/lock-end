@@ -628,13 +628,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 : messages.msg("remaining-permanent");
     }
 
-    /**
-     * Escapes MiniMessage tags in user-provided input so it renders literally.
-     */
-    public String sanitize(String input) {
-        return messages.sanitize(input);
-    }
-
     private void sendJoinNotification(Player player) {
         player.sendMessage(messages.message("join-notification", Map.of()));
     }

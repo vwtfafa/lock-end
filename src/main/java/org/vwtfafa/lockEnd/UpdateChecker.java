@@ -15,11 +15,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpdateChecker implements AutoCloseable {
     private static final URI LATEST_RELEASE_URI =
             URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
+    private static final String RELEASE_URL = "https://github.com/vwtfafa/lock-end/releases";
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
 
     private final LockEnd plugin;
@@ -73,7 +75,7 @@ public class UpdateChecker implements AutoCloseable {
                         plugin.getLogger().info("EndLock update available!");
                         plugin.getLogger().info("Current version: " + currentVersion);
                         plugin.getLogger().info("New version: " + latestVersion);
-                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
+                        plugin.getLogger().info("Release page: " + RELEASE_URL);
                         plugin.getLogger().info("========================================");
                     }
 
@@ -106,11 +108,9 @@ public class UpdateChecker implements AutoCloseable {
     private void notifyOnlineAdmins() {
         try {
             plugin.getPaperScheduler().executeGlobal(() -> {
-                String releaseUrl = "https://github.com/vwtfafa/lock-end/releases";
-                Component message = Component.text("[EndLock] Update available: " + latestVersion + " - Open release page")
-                    .color(net.kyori.adventure.text.format.NamedTextColor.GOLD)
-                    .clickEvent(ClickEvent.openUrl(releaseUrl))
-                    .hoverEvent(HoverEvent.showText(Component.text("Open the latest release page")));
+                Component message = plugin.message("update-available", Map.of("%version%", latestVersion))
+                        .clickEvent(ClickEvent.openUrl(RELEASE_URL))
+                        .hoverEvent(HoverEvent.showText(plugin.message("update-download", Map.of())));
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     plugin.getPaperScheduler().executeEntity(player, () -> {
                         if (player.hasPermission("endlock.admin")) {

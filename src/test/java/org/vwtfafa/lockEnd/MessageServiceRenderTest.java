@@ -2,7 +2,6 @@ package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
@@ -67,6 +66,8 @@ class MessageServiceRenderTest {
         Component rendered = MessageService.applyComponentPlaceholders(template, Map.of("%status%", status));
 
         assertEquals("The End is open.", plain(rendered));
-        assertTrue(LegacyComponentSerializer.legacySection().serialize(rendered).contains("§aopen"));
+        assertTrue(rendered.children().stream()
+                        .anyMatch(child -> NamedTextColor.GREEN.equals(child.color())),
+                "status component should keep its green color");
     }
 }

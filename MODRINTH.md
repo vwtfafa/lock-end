@@ -18,7 +18,7 @@
 **Lock-End** is a lightweight Minecraft plugin that allows server admins to globally lock or unlock access to the **End dimension** with a simple command.
 Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
-Version 3.0.1 is a bug-fix release for Paper 26.3 Build #209: it tightens End access checks for respawns and internal travel, preserves grace periods and evacuations across reloads, and fixes scheduling, history persistence, placeholders, sounds, and validation.
+Version 3.0.1 is a bug-fix release for Paper 26.3 Build #209: it tightens End access checks for respawns and internal travel, preserves grace periods and evacuations across reloads, modernizes message rendering to MiniMessage, and fixes scheduling, history persistence, placeholders, sounds, and validation.
 
 ---
 
@@ -226,7 +226,7 @@ hooks:
 | `zh` | Chinese |
 | `ja` | Japanese |
 
-Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR or plugin folder after first run). The `remaining-unlocked` and `remaining-permanent` keys control the `%lockend_remaining%` PlaceholderAPI value.
+Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR or plugin folder after first run). Bundled files use MiniMessage formatting; legacy section codes in custom files are translated automatically for compatibility. The `remaining-unlocked` and `remaining-permanent` keys control the `%lockend_remaining%` PlaceholderAPI value.
 
 ---
 

@@ -108,5 +108,5 @@ scheduled-unlock:
 
 # Optional integrations and formatting
 hooks:
-  mini-message: true
+  mini-message: true  # Parse MiniMessage in language files; false strips tags but keeps classic color codes
   placeholderapi: true

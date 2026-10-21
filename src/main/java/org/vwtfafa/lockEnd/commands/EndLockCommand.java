@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.vwtfafa.lockEnd.LockEnd;
@@ -137,8 +138,7 @@ public final class EndLockCommand {
                 } catch (RuntimeException exception) {
                     plugin.getLogger().log(Level.SEVERE, "Command execution failed.", exception);
                     plugin.getPaperScheduler().sendMessage(context.getSource().getSender(),
-                            net.kyori.adventure.text.Component.text(
-                                    "[EndLock] Command failed. Check the server log for details."));
+                            Component.text("[EndLock] Command failed. Check the server log for details."));
                 }
             });
             return 1;
@@ -181,7 +181,7 @@ public final class EndLockCommand {
 
     private void sendStatus(CommandSender sender, String key, boolean locked) {
         plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of(),
-                Map.of("%status%", plugin.messageComponent(plugin.msg(locked ? "closed" : "open")))));
+                Map.of("%status%", plugin.message(locked ? "closed" : "open", Map.of()))));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
@@ -338,7 +338,7 @@ public final class EndLockCommand {
             return 1;
         }
         plugin.setLockReason(reason);
-        send(sender, "reason-set", "%reason%", plugin.sanitize(reason));
+        send(sender, "reason-set", "%reason%", reason);
         return 1;
     }
 
