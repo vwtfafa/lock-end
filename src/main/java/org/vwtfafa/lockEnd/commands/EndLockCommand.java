@@ -184,6 +184,11 @@ public final class EndLockCommand {
         plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, placeholders));
     }
 
+    private void sendStatus(CommandSender sender, String key, boolean locked) {
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of(),
+                Map.of("%status%", plugin.messageComponent(plugin.msg(locked ? "closed" : "open")))));
+    }
+
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
         return argument(name, word())
                 .suggests(suggest(suggestions));
@@ -219,16 +224,14 @@ public final class EndLockCommand {
             return 1;
         }
         boolean newLocked = !plugin.isLocked();
-        String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
-        send(sender, "toggle", "%status%", status);
+        sendStatus(sender, "toggle", newLocked);
         plugin.changeLockState(newLocked, actor.name(), newLocked ? "LOCK" : "UNLOCK", actor.uuid());
         return 1;
     }
 
     private int status(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
-        send(sender, "status", "%status%", status);
+        sendStatus(sender, "status", plugin.isLocked());
         return 1;
     }
 
@@ -256,9 +259,8 @@ public final class EndLockCommand {
             send(sender, "test-disabled");
             return 1;
         }
-        String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
         send(sender, "test-success");
-        send(sender, "test-info", "%status%", status);
+        sendStatus(sender, "test-info", plugin.isLocked());
         plugin.logTestAction(actor.name());
         return 1;
     }
@@ -273,7 +275,7 @@ public final class EndLockCommand {
             send(sender, "already-locked");
             return 1;
         }
-        send(sender, "toggle", "%status%", plugin.msg("closed"));
+        sendStatus(sender, "toggle", true);
         plugin.changeLockState(true, actor.name(), "LOCK", actor.uuid());
         return 1;
     }
@@ -288,7 +290,7 @@ public final class EndLockCommand {
             send(sender, "already-unlocked");
             return 1;
         }
-        send(sender, "toggle", "%status%", plugin.msg("open"));
+        sendStatus(sender, "toggle", false);
         plugin.changeLockState(false, actor.name(), "UNLOCK", actor.uuid());
         return 1;
     }

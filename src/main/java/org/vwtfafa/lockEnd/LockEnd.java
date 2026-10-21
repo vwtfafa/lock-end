@@ -282,6 +282,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * Renders a message template with literal text and pre-parsed component placeholders.
+     */
+    public Component message(String key, Map<String, String> placeholders,
+                             Map<String, Component> componentPlaceholders) {
+        return messages.message(key, placeholders, componentPlaceholders);
+    }
+
+    /**
      * Updates the in-memory stat counters. Values are only written back to
      * disk when the plugin disables (or on the next explicit config save) to
      * avoid file I/O on every blocked access or state change.

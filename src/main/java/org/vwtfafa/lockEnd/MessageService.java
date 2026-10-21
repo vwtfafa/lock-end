@@ -229,6 +229,22 @@ public class MessageService {
     }
 
     /**
+     * Renders a cached template with text placeholders and pre-parsed components.
+     * Component placeholders are used for trusted, styled values such as the
+     * localized open/closed status where legacy color codes must be applied.
+     *
+     * @param key                   language key of the template
+     * @param placeholders          placeholder tokens mapped to literal text
+     * @param componentPlaceholders placeholder tokens mapped to parsed components
+     * @return the rendered component; safe to reuse across players
+     */
+    public Component message(String key, Map<String, String> placeholders,
+                             Map<String, Component> componentPlaceholders) {
+        Component template = templateCache.computeIfAbsent(key, this::miniMsg);
+        return applyComponentPlaceholders(applyPlaceholders(template, placeholders), componentPlaceholders);
+    }
+
+    /**
      * Inserts %token% placeholder values into an already parsed component.
      */
     static Component applyPlaceholders(Component template, Map<String, String> placeholders) {
@@ -238,6 +254,23 @@ public class MessageService {
             result = result.replaceText(TextReplacementConfig.builder()
                     .matchLiteral(entry.getKey())
                     .replacement(value != null ? value : "")
+                    .build());
+        }
+        return result;
+    }
+
+    /**
+     * Inserts pre-parsed components for trusted placeholders, preserving their
+     * styling. Unlike text placeholders, values are components and therefore
+     * cannot be influenced by user input.
+     */
+    static Component applyComponentPlaceholders(Component template, Map<String, Component> placeholders) {
+        Component result = template;
+        for (Map.Entry<String, Component> entry : placeholders.entrySet()) {
+            Component value = entry.getValue();
+            result = result.replaceText(TextReplacementConfig.builder()
+                    .matchLiteral(entry.getKey())
+                    .replacement(value != null ? value : Component.empty())
                     .build());
         }
         return result;
