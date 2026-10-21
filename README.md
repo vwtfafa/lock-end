@@ -8,7 +8,8 @@ Version 3.0.1 is a bug-fix release targeting Paper 26.3 Build #209. It hardens
 End access checks for respawns and internal End travel, keeps grace periods and
 evacuations alive across reloads, modernizes message rendering to MiniMessage,
 and fixes scheduling, history persistence, placeholders, sounds, and
-configuration validation.
+configuration validation. The Gradle wrapper is now 9.8.2, and the Folia smoke
+test targets 26.3 Build 5 (ALPHA).
 
 ## What's new in 3.0
 
@@ -22,13 +23,13 @@ migrate and write.
 | Requirement | Version |
 |-------------|---------|
 | Server | [Paper](https://papermc.io/) **26.3 Build #209 (STABLE)** or newer |
-| Folia | **26.3** (alpha builds; console-verified, see the note below) |
+| Folia | **26.3 Build 5** (ALPHA; console-verified, see the note below) |
 | Minecraft | **26.3** |
 | Java | **25** |
 
 > Spigot and older Minecraft versions are **not** supported. Purpur 26.3+ is supported because it is Paper-based. The plugin uses `api-version: 26.3`.
 
-> **Folia is supported as of 3.0.0** (`folia-supported: true`). Timed work runs through the global/async schedulers and player-specific work through entity schedulers. Compatibility was verified with a console smoke test on Folia 26.3 alpha build 3: the server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, and `/endlock stats` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA; player-driven paths were not exercised with a live player.
+> **Folia is supported as of 3.0.0** (`folia-supported: true`). Timed work runs through the global/async schedulers and player-specific work through entity schedulers. Compatibility was verified with a console smoke test on Folia 26.3 Build 5 (ALPHA): the server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, and `/endlock stats` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA; player-driven paths were not exercised with a live player.
 
 ## Installation
 
@@ -293,6 +294,8 @@ compliance records are required.
 
 ## Build from source
 
+The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation is required.
+
 ```bash
 ./gradlew shadowJar
 ```
@@ -322,7 +325,7 @@ Run a local test server (downloads the latest Paper 26.3 build; currently Build 
 ./gradlew runServer
 ```
 
-Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, working directory `run/folia/`):
+Run a local Folia test server instead (pinned to Folia 26.3 Build 5 (ALPHA), working directory `run/folia/`):
 
 ```bash
 ./gradlew runFolia
@@ -335,7 +338,7 @@ Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, worki
 - Respawn points inside a locked End are redirected to a safe world spawn; whitelisted players are exempt.
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
-- Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on the Folia 26.3 alpha build 3; in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
+- Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on Folia 26.3 Build 5 (ALPHA); in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
 
 ## License
 

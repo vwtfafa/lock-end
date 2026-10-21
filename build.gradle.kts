@@ -63,9 +63,9 @@ tasks {
     }
 }
 
-// Local Folia test server, pinned to the first Folia 26.3 build (ALPHA) for compatibility testing.
+// Local Folia test server, pinned to Folia 26.3 Build 5 (ALPHA) for compatibility testing.
 runPaper.folia.registerTask {
-    build(3)
+    build(5)
     runDirectory(file("run/folia"))
 }
 

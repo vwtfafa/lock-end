@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Bumped the project version to 3.0.1, the Paper API compile/test target to Paper 26.3 Build #209 (STABLE), and the SpotBugs Gradle plugin to 6.5.13; the CI smoke test is pinned to the same Paper build.
+- Updated the Gradle wrapper to 9.8.2.
+- Moved the pinned Folia smoke-test target to Folia 26.3 Build 5 (ALPHA); the local `runFolia` task and CI use the same build.
 - Relicensed the project under the MIT License and bundled the third-party notices (including bStats) into the plugin jar.
 - Updated the README and Modrinth documentation for version 3.0.1 and Paper 26.3 Build #209.
 - Bundled language files now use MiniMessage instead of legacy section codes. Custom files may still use classic `§` codes, which are translated automatically for compatibility.
@@ -31,7 +33,7 @@ All notable changes to this project will be documented in this file.
 - Release notes use the correct `%lockend_*%` placeholders, no longer claim a LuckPerms integration, and escape `&` and `\` in changelog substitutions.
 
 ### Compatibility status
-- Folia remains supported as of 3.0.0: the plugin declares `folia-supported: true` and was verified on Folia 26.3 alpha build 3 with a console smoke test. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
+- Folia remains supported as of 3.0.0: the plugin declares `folia-supported: true` and was re-verified on Folia 26.3 Build 5 (ALPHA) with a console smoke test. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
 
 ## [3.0.0] - 2026-10-15
 

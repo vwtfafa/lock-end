@@ -19,9 +19,9 @@ are partially outdated (some still mention Paper 26.2). This file takes preceden
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
 | Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.209-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
-| Build | Gradle 9.8.1 wrapper, Java toolchain 25 |
+| Build | Gradle 9.8.2 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
-| Platforms | Paper 26.3 and Folia 26.3 (`folia-supported: true`) |
+| Platforms | Paper 26.3 and Folia 26.3 Build 5 (ALPHA; `folia-supported: true`) |
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
@@ -185,7 +185,7 @@ Rules:
 
 ```powershell
 .\gradlew.bat runServer --no-daemon   # Paper 26.3, run/
-.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 3 (ALPHA), run/folia/
+.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 5 (ALPHA), run/folia/
 ```
 
 Place the built jar in the server's `plugins/` folder, start the server, and verify
@@ -196,7 +196,7 @@ at minimum:
 - locking and unlocking the End still blocks/permits travel,
 - reload and shutdown complete without exceptions.
 
-CI pins Paper 26.3 Build 209 and Folia 26.3 Build 3 and runs the same smoke checks.
+CI pins Paper 26.3 Build 209 and Folia 26.3 Build 5 and runs the same smoke checks.
 Keep both green; Folia support is not theoretical.
 
 ---
