@@ -145,6 +145,14 @@ public class EvacuationService {
         }
     }
 
+    /**
+     * Whether an automatic evacuation is currently waiting for its warning
+     * period to elapse.
+     */
+    public boolean isPending() {
+        return task != null;
+    }
+
     public void shutdown() {
         shuttingDown = true;
         cancel();

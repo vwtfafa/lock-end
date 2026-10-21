@@ -143,6 +143,12 @@ public final class LockEnd extends JavaPlugin implements Listener {
             schedules.arm();
         }
 
+        // A server may restart while the End is locked. Re-run the configured
+        // evacuation instead of leaving players stranded in the End.
+        if (locked && getConfig().getBoolean("evacuation.enabled", false)) {
+            evacuation.schedule();
+        }
+
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
@@ -469,12 +475,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
-        if (evacuation != null) {
-            evacuation.cancel();
-        }
-        if (gracePeriodTask != null) {
-            gracePeriodTask.cancel();
-        }
         persistStatsToConfig();
         saveConfig();
         Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
@@ -492,6 +492,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         configureAsyncLogger();
         soundPlayer.loadConfig();
         schedules.reload();
+
+        // A pending evacuation re-reads the config when it runs, so keep it
+        // alive across reloads. Restart one if evacuation is enabled but no
+        // task survived (for example after a restart while locked).
+        if (locked && getConfig().getBoolean("evacuation.enabled", false) && !evacuation.isPending()) {
+            evacuation.schedule();
+        }
 
         boolean placeholderEnabled = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
                 && getConfig().getBoolean("hooks.placeholderapi", true);
@@ -697,10 +704,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!locked || !joinNotificationsEnabled) {
-            return;
+        Player player = event.getPlayer();
+        if (locked && getConfig().getBoolean("evacuation.enabled", false)
+                && isGuardedEndWorld(player.getWorld()) && !evacuation.isPending()) {
+            evacuation.schedule();
         }
-        sendJoinNotification(event.getPlayer());
+        if (locked && joinNotificationsEnabled) {
+            sendJoinNotification(player);
+        }
     }
 
     /**
