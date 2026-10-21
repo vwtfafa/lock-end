@@ -58,13 +58,14 @@ public final class EndAccessGate {
         if (!inScopedWorld(request.toWorldName())) {
             return Verdict.ALLOWED;
         }
-        // Travel between guarded End worlds is not an entry attempt. The old
-        // block-return option only covered leaving the End, so this case was
-        // previously cancelled together with gateway and plugin teleports.
-        if (travelsWithinScopedEnd(request)) {
+        boolean endGateway = cause == PlayerTeleportEvent.TeleportCause.END_GATEWAY;
+        // Gateway travel keeps its own opt-out. Without that exception,
+        // non-gateway travel between guarded End worlds is not an entry
+        // attempt and must not be cancelled by the lock.
+        if (endGateway && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
-        if (cause == PlayerTeleportEvent.TeleportCause.END_GATEWAY && !blockEndGateway) {
+        if (!endGateway && travelsWithinScopedEnd(request)) {
             return Verdict.ALLOWED;
         }
         // During the grace period the lock is not yet fully enforced.
@@ -89,10 +90,10 @@ public final class EndAccessGate {
         if (!inScopedWorld(request.toWorldName())) {
             return Verdict.ALLOWED;
         }
-        if (travelsWithinScopedEnd(request)) {
+        if (endGateway && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
-        if (endGateway && !blockEndGateway) {
+        if (!endGateway && travelsWithinScopedEnd(request)) {
             return Verdict.ALLOWED;
         }
         if (gracePeriodActive) {

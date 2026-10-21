@@ -61,14 +61,25 @@ class EndAccessGateTest {
     }
 
     @Test
-    void travelWithinTheEndIsNotAnEntryAttempt() {
+    void nonGatewayTravelWithinTheEndIsNotAnEntryAttempt() {
         assertEquals(EndAccessGate.Verdict.ALLOWED,
                 gate(true, false, true, List.of()).checkPlayer(WITHIN_THE_END, cause(), () -> false));
         assertEquals(EndAccessGate.Verdict.ALLOWED,
                 gate(true, false, true, List.of()).checkEntity(WITHIN_THE_END, false));
+    }
+
+    @Test
+    void internalEndGatewaysStillHonorTheBlockFlag() {
+        assertEquals(EndAccessGate.Verdict.BLOCKED,
+                gate(true, false, true, List.of()).checkPlayer(WITHIN_THE_END,
+                        PlayerTeleportEvent.TeleportCause.END_GATEWAY, () -> false));
         assertEquals(EndAccessGate.Verdict.ALLOWED,
-                gate(true, false, true, List.of())
-                        .checkPlayer(WITHIN_THE_END, PlayerTeleportEvent.TeleportCause.END_GATEWAY, () -> false));
+                gate(true, false, false, List.of()).checkPlayer(WITHIN_THE_END,
+                        PlayerTeleportEvent.TeleportCause.END_GATEWAY, () -> false));
+        assertEquals(EndAccessGate.Verdict.BLOCKED,
+                gate(true, false, true, List.of()).checkEntity(WITHIN_THE_END, true));
+        assertEquals(EndAccessGate.Verdict.ALLOWED,
+                gate(true, false, false, List.of()).checkEntity(WITHIN_THE_END, true));
     }
 
     @Test
