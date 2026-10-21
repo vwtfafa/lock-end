@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd.commands;
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 
@@ -23,6 +24,7 @@ import java.util.Map;
 public class LockHistoryCommand {
     private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
     private static final int PAGE_SIZE = 10;
+    private static final long SAVE_DELAY_TICKS = 20L;
     private static final DateTimeFormatter EXPORT_TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS").withZone(ZoneOffset.UTC);
     private final LockEnd plugin;
@@ -30,6 +32,8 @@ public class LockHistoryCommand {
     private final HistoryStore historyStore;
     private final int maxEntries;
     private final int retentionDays;
+    private ScheduledTask pendingSave;
+    private boolean saveDirty;
     private Boolean lastPreviousState;
 
     public LockHistoryCommand(LockEnd plugin) {
@@ -66,14 +70,15 @@ public class LockHistoryCommand {
             return true;
         }
 
+        List<HistoryEntry> snapshot = snapshotHistory();
         if (args.length == 1 && args[0].equalsIgnoreCase("status")) {
             send(sender, plugin.message("history-storage-status", Map.of(
                     "%status%", historyStore.status(),
-                    "%entries%", String.valueOf(history.size()))));
+                    "%entries%", String.valueOf(snapshot.size()))));
             return true;
         }
 
-        if (history.isEmpty()) {
+        if (snapshot.isEmpty()) {
             send(sender, plugin.message("history.empty", Map.of()));
             return true;
         }
@@ -120,7 +125,7 @@ public class LockHistoryCommand {
 
         // Apply export if format specified
         if (format != null) {
-            File exportFile = export(format, filter);
+            File exportFile = export(format, filter, snapshot);
             if (exportFile == null) {
                 send(sender, plugin.message("history-export-failed", Map.of()));
                 return true;
@@ -130,9 +135,9 @@ public class LockHistoryCommand {
         }
 
         // Apply filtering
-        List<HistoryEntry> displayedHistory = history;
+        List<HistoryEntry> displayedHistory = snapshot;
         if (filter != null && filter.value() != null) {
-            displayedHistory = history.stream()
+            displayedHistory = snapshot.stream()
                     .filter(filter::matches)
                     .toList();
             if (filter.type().equals("player")) {
@@ -212,14 +217,69 @@ public class LockHistoryCommand {
         addEntry(actor, null, action, source, "RECORDED", null, previousState, null);
     }
 
-    public boolean addEntry(String actor, java.util.UUID actorUuid, String action, String source, String result,
-                            java.util.UUID subjectUuid, Boolean previousState, Boolean newState) {
+    public synchronized boolean addEntry(String actor, java.util.UUID actorUuid, String action, String source,
+                                         String result, java.util.UUID subjectUuid, Boolean previousState,
+                                         Boolean newState) {
         history.add(new HistoryEntry(Instant.now(), actor, actorUuid, action, source, subjectUuid, result,
                 previousState, newState));
         List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
         history.clear();
         history.addAll(rotated);
-        return historyStore.save(history);
+        return scheduleSave();
+    }
+
+    /**
+     * Persists all pending entries immediately. Called before shutdown and
+     * before a reload replaces this command instance.
+     *
+     * @return true when the history file is up to date or was saved
+     */
+    public synchronized boolean flush() {
+        if (pendingSave != null) {
+            pendingSave.cancel();
+            pendingSave = null;
+        }
+        if (!saveDirty) {
+            return true;
+        }
+        saveDirty = false;
+        boolean saved = historyStore.save(new ArrayList<>(history));
+        if (!saved) {
+            saveDirty = true;
+        }
+        return saved;
+    }
+
+    private boolean scheduleSave() {
+        if (!historyStore.isWritable()) {
+            return false;
+        }
+        saveDirty = true;
+        if (pendingSave != null) {
+            return true;
+        }
+        try {
+            pendingSave = plugin.getPaperScheduler().runGlobalLater(this::flushPendingSave, SAVE_DELAY_TICKS);
+        } catch (RuntimeException exception) {
+            // The scheduler may already be shutting down; write synchronously.
+            return flush();
+        }
+        return true;
+    }
+
+    private synchronized void flushPendingSave() {
+        pendingSave = null;
+        if (!saveDirty) {
+            return;
+        }
+        saveDirty = false;
+        if (!historyStore.save(new ArrayList<>(history))) {
+            saveDirty = true;
+        }
+    }
+
+    private synchronized List<HistoryEntry> snapshotHistory() {
+        return new ArrayList<>(history);
     }
 
     public boolean recordEvacuationResult(String actor, java.util.UUID actorUuid, java.util.UUID playerUuid,
@@ -255,11 +315,11 @@ public class LockHistoryCommand {
         }
     }
 
-    private File export(String format, HistoryFilter filter) {
+    private File export(String format, HistoryFilter filter, List<HistoryEntry> snapshot) {
         // Apply filter to export data
-        List<HistoryEntry> exportHistory = history;
+        List<HistoryEntry> exportHistory = snapshot;
         if (filter != null && filter.value() != null) {
-            exportHistory = history.stream()
+            exportHistory = snapshot.stream()
                     .filter(filter::matches)
                     .toList();
         }

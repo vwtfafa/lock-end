@@ -169,6 +169,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         shuttingDown = true;
+        if (historyCommand != null) {
+            historyCommand.flush();
+        }
         persistStatsToConfig();
         getConfig().set("locked", locked);
         saveConfig();
@@ -482,6 +485,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         persistStatsToConfig();
         saveConfig();
         Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
+        if (historyCommand != null) {
+            historyCommand.flush();
+        }
         reloadConfig();
         migrateConfig();
         messages.loadFromConfig();
