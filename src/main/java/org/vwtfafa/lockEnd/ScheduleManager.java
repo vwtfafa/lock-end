@@ -44,8 +44,12 @@ public class ScheduleManager {
             rawAction = "unlock";
         }
         scheduledAction = rawAction.toLowerCase(Locale.ROOT);
-        if (!scheduledAction.equals("lock") && !scheduledAction.equals("unlock")) {
+        if (!isSupportedAction(scheduledAction)) {
+            plugin.getLogger().warning("Invalid scheduled-unlock.action '" + rawAction
+                    + "'; must be 'lock' or 'unlock'. Disabling schedule.");
             scheduledAction = "unlock";
+            disableInvalidSchedule();
+            return;
         }
         if (!plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
             return;
@@ -294,6 +298,15 @@ public class ScheduleManager {
         config.set("scheduled-unlock.mode", "datetime");
         config.set("scheduled-unlock.datetime", target.format(LockEnd.SCHEDULE_FORMAT));
         config.set("scheduled-unlock.target-datetime", target.format(LockEnd.SCHEDULE_FORMAT));
+    }
+
+    /**
+     * Only explicit lock and unlock actions are supported. Unknown values must
+     * never be coerced to unlock, because a typo in the config would then open
+     * a locked End instead of keeping it closed.
+     */
+    public static boolean isSupportedAction(String action) {
+        return "lock".equalsIgnoreCase(action) || "unlock".equalsIgnoreCase(action);
     }
 
     static LocalDateTime parseScheduleTime(String value) {

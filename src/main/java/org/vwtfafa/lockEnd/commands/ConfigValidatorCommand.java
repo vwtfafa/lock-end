@@ -2,6 +2,7 @@ package org.vwtfafa.lockEnd.commands;
 
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
+import org.vwtfafa.lockEnd.ScheduleManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +62,10 @@ public class ConfigValidatorCommand {
 
         // Validate scheduled unlock settings
         if (plugin.getConfig().getBoolean("scheduled-unlock.enabled")) {
+            String action = plugin.getConfig().getString("scheduled-unlock.action", "unlock");
+            if (action == null || !ScheduleManager.isSupportedAction(action)) {
+                issues.add("Error: scheduled-unlock.action must be 'lock' or 'unlock'.");
+            }
             String mode = plugin.getConfig().getString("scheduled-unlock.mode", "days");
             if (mode == null) {
                 mode = "";
