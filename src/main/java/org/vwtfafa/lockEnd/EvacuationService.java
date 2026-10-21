@@ -398,12 +398,17 @@ public class EvacuationService {
 
     private World resolveConfiguredWorld(String configuredTarget) {
         if (configuredTarget.contains(":")) {
-            NamespacedKey key = NamespacedKey.fromString(configuredTarget);
-            if (key != null) {
-                World namespacedWorld = Bukkit.getWorld(key);
-                if (namespacedWorld != null) {
-                    return namespacedWorld;
+            try {
+                NamespacedKey key = NamespacedKey.fromString(configuredTarget);
+                if (key != null) {
+                    World namespacedWorld = Bukkit.getWorld(key);
+                    if (namespacedWorld != null) {
+                        return namespacedWorld;
+                    }
                 }
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().warning("Invalid evacuation.target-world '" + configuredTarget
+                        + "': " + exception.getMessage() + "; using a normal world instead.");
             }
         }
         return Bukkit.getWorld(configuredTarget);

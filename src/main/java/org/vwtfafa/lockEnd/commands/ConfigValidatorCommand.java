@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd.commands;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
 import org.vwtfafa.lockEnd.ScheduleManager;
@@ -121,6 +122,15 @@ public class ConfigValidatorCommand {
         if (plugin.getConfig().getBoolean("evacuation.enabled", false)
                 && (evacuationTarget == null || evacuationTarget.isBlank())) {
             issues.add("Error: evacuation.target-world must not be empty when evacuation is enabled.");
+        }
+        if (evacuationTarget != null && evacuationTarget.contains(":")) {
+            try {
+                if (NamespacedKey.fromString(evacuationTarget) == null) {
+                    issues.add("Error: evacuation.target-world must be a valid namespaced key.");
+                }
+            } catch (IllegalArgumentException exception) {
+                issues.add("Error: evacuation.target-world must be a valid namespaced key.");
+            }
         }
 
         // Output results
