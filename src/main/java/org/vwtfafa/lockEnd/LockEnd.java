@@ -622,8 +622,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!locked) {
             return messages.msg("remaining-unlocked");
         }
-        return schedules.hasAction()
-                ? schedules.getTime().format(SCHEDULE_FORMAT)
+        LocalDateTime target = schedules.getTime();
+        return target != null
+                ? target.format(SCHEDULE_FORMAT)
                 : messages.msg("remaining-permanent");
     }
 
