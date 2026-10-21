@@ -365,6 +365,14 @@ public class EvacuationService {
         return !shuttingDown && pluginEnabled && playerOnline;
     }
 
+    /**
+     * Returns the configured evacuation destination, falling back to the first
+     * normal world. Also used as the safe destination for blocked respawns.
+     */
+    public World getTargetWorld() {
+        return resolveTargetWorld();
+    }
+
     private World resolveTargetWorld() {
         String configuredTarget = plugin.getConfig().getString("evacuation.target-world", "world");
         World targetWorld = null;

@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
@@ -700,6 +701,63 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
         sendJoinNotification(event.getPlayer());
+    }
+
+    /**
+     * Respawns do not fire PlayerTeleportEvent, so a spawn point in a guarded
+     * End world would otherwise bypass the lock entirely.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        if (!locked) {
+            return;
+        }
+        Location to = event.getRespawnLocation();
+        if (to == null || to.getWorld() == null) {
+            return;
+        }
+        Player player = event.getPlayer();
+        World sourceWorld = player.getWorld();
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                sourceWorld.getEnvironment(),
+                sourceWorld.getName(),
+                to.getWorld().getEnvironment(),
+                to.getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkPlayer(request, PlayerTeleportEvent.TeleportCause.UNKNOWN,
+                        () -> whitelistChecker.canBypass(player, to.getWorld()));
+
+        switch (verdict) {
+            case ALLOWED -> {}
+            case GRACE_PERIOD -> player.sendMessage(messages.message("grace-period-active", Map.of()));
+            case BLOCKED -> {
+                event.setRespawnLocation(findSafeRespawnLocation(to.getWorld()));
+                player.sendMessage(messages.message("locked-reason",
+                        Map.of("%reason%", lockReasonManager.getReason("default"))));
+                soundPlayer.playDenialSound(player);
+                if (logAttempts) {
+                    logAttempt(player, sourceWorld, "RESPAWN");
+                }
+                recordBlockedAttempt();
+            }
+        }
+    }
+
+    /**
+     * Picks a non-guarded world spawn for a blocked respawn, preferring the
+     * configured evacuation target.
+     */
+    private Location findSafeRespawnLocation(World blockedWorld) {
+        World target = evacuation != null ? evacuation.getTargetWorld() : null;
+        if (target != null && !isGuardedEndWorld(target)) {
+            return target.getSpawnLocation();
+        }
+        return getServer().getWorlds().stream()
+                .filter(world -> !isGuardedEndWorld(world))
+                .findFirst()
+                .map(World::getSpawnLocation)
+                .orElseGet(blockedWorld::getSpawnLocation);
     }
 
     // EntityTeleportEvent also receives EntityPortalEvent and

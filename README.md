@@ -321,6 +321,7 @@ Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, worki
 
 - Only **player** movement is blocked by default; non-player entities can be blocked too via `end.block-entities`.
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
+- Respawn points inside a locked End are redirected to a safe world spawn; whitelisted players are exempt.
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
 - Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on the Folia 26.3 alpha build 3; in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
