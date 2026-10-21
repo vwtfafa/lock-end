@@ -749,7 +749,12 @@ public final class LockEnd extends JavaPlugin implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        World sourceWorld = player.getWorld();
+        // Prefer the recorded death location; the player's current world may
+        // already have been changed by the time the event is observed.
+        Location deathLocation = player.getLastDeathLocation();
+        World sourceWorld = deathLocation != null && deathLocation.getWorld() != null
+                ? deathLocation.getWorld()
+                : player.getWorld();
         EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
                 sourceWorld.getEnvironment(),
                 sourceWorld.getName(),
