@@ -48,7 +48,13 @@ public class ScheduleManager {
             plugin.getLogger().warning("Invalid scheduled-unlock.action '" + rawAction
                     + "'; must be 'lock' or 'unlock'. Disabling schedule.");
             scheduledAction = "unlock";
-            disableInvalidSchedule();
+            if (plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
+                disableInvalidSchedule();
+            } else {
+                // Keep the disabled schedule's other settings intact.
+                plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+                plugin.saveConfig();
+            }
             return;
         }
         if (!plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
