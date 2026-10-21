@@ -121,11 +121,14 @@ public class ScheduleManager {
      * Arms preview, countdown and due-check tasks for the pending action.
      */
     public void arm() {
+        // Drop tasks from the previous action before arming the new one;
+        // otherwise switching lock <-> unlock leaves a stale preview alive.
+        cancelCheck();
+        cancelCountdown();
+        previewManager.cancelAll();
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
-        cancelCheck();
-        cancelCountdown();
         if (scheduledAction.equals("lock")) {
             previewManager.schedulePreviewLock(scheduledUnlockTime);
         } else {
