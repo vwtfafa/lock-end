@@ -38,29 +38,81 @@ public class SoundEffectPlayer {
 
     /**
      * Resolves the configured sound name into a namespaced key. Enum style
-     * constants (BLOCK_ANVIL_LAND) are translated to minecraft:block.anvil.land;
-     * namespaced keys (mymod:epic_sound_blast) are kept as-is so custom
-     * resource pack sounds keep their underscores. Invalid values fall back
-     * to the default with a warning.
+     * constants (BLOCK_ANVIL_LAND, BLOCK_NOTE_BLOCK_PLING, MUSIC_DISC_CAT)
+     * are resolved through Bukkit's sound registry so underscores that are
+     * part of the vanilla key survive. Raw key paths and namespaced custom
+     * sounds are kept as-is. Invalid values return null.
      */
-    private Key parseSoundKey(String configured) {
+    static Key resolveSoundKey(String configured) {
         if (configured == null || configured.isBlank()) {
             return DEFAULT_SOUND;
         }
-        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        String trimmed = configured.trim();
+        if (!trimmed.contains(":")) {
+            Key enumKey = resolveEnumKey(trimmed);
+            if (enumKey != null) {
+                return enumKey;
+            }
+        }
+        String normalized = trimmed.toLowerCase(Locale.ROOT);
         if (!normalized.contains(":")) {
-            normalized = Key.MINECRAFT_NAMESPACE + ":" + normalized.replace('_', '.');
+            String path = trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
+                    ? enumNameToKeyPath(trimmed)
+                    : normalized;
+            normalized = Key.MINECRAFT_NAMESPACE + ":" + path;
         }
         try {
             return Key.key(normalized);
         } catch (InvalidKeyException exception) {
-            if (!warnedInvalidSound) {
-                warnedInvalidSound = true;
-                plugin.getLogger().warning("Invalid sound-effects.sound value '" + configured
-                        + "', using block.anvil.land instead.");
-            }
-            return DEFAULT_SOUND;
+            return null;
         }
+    }
+
+    /**
+     * Resolves a Bukkit enum-style name through the sound registry. The
+     * registry is unavailable in unit tests, so callers fall back to a
+     * deterministic name translation.
+     */
+    @SuppressWarnings("removal")
+    private static Key resolveEnumKey(String name) {
+        try {
+            org.bukkit.Sound bukkitSound = org.bukkit.Sound.valueOf(name.toUpperCase(Locale.ROOT));
+            if (bukkitSound != null) {
+                org.bukkit.NamespacedKey key = bukkitSound.getKey();
+                return Key.key(key.getNamespace(), key.getKey());
+            }
+        } catch (LinkageError | RuntimeException ignored) {
+            // No server registry (tests) or unknown enum constant.
+        }
+        return null;
+    }
+
+    /**
+     * Fallback translation for enum-style names. Most vanilla keys use dots,
+     * but note blocks, music discs and a few entity names keep underscores.
+     */
+    static String enumNameToKeyPath(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("music_disc_")) {
+            return "music_disc." + lower.substring("music_disc_".length());
+        }
+        if (lower.startsWith("block_note_block_")) {
+            return "block.note_block." + lower.substring("block_note_block_".length());
+        }
+        return lower.replace('_', '.');
+    }
+
+    private Key parseSoundKey(String configured) {
+        Key resolved = resolveSoundKey(configured);
+        if (resolved != null) {
+            return resolved;
+        }
+        if (!warnedInvalidSound) {
+            warnedInvalidSound = true;
+            plugin.getLogger().warning("Invalid sound-effects.sound value '" + configured
+                    + "', using block.anvil.land instead.");
+        }
+        return DEFAULT_SOUND;
     }
 
     /**
