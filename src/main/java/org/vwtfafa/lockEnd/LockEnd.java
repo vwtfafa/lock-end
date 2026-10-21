@@ -86,7 +86,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
     private ConfigValidatorCommand configValidatorCommand;
-    private AsyncLogger asyncLogger;
+    private volatile AsyncLogger asyncLogger;
 
     // Logging & Analytics
     private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
