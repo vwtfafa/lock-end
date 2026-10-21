@@ -68,14 +68,14 @@ public final class EndLockCommand {
                 .then(publicCommand("stats").executes(global(this::stats)))
                 .then(adminCommand("test").executes(globalWithActor((context, actor) -> test(context, actor))))
 
-                .then(adminOrToggleCommand("lock")
+                .then(adminCommand("lock")
                         .executes(globalWithActor((context, actor) -> lock(context, actor)))
-                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                        .then(literal("in")
                                 .then(durationArgument("duration", LOCK_DURATIONS)
                                         .executes(global(this::lockIn)))))
-                .then(adminOrToggleCommand("unlock")
+                .then(adminCommand("unlock")
                         .executes(globalWithActor((context, actor) -> unlock(context, actor)))
-                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                        .then(literal("in")
                                 .then(durationArgument("duration", UNLOCK_DURATIONS)
                                         .executes(global(this::unlockIn)))))
 
@@ -157,11 +157,6 @@ public final class EndLockCommand {
 
     private static LiteralArgumentBuilder<CommandSourceStack> adminCommand(String name) {
         return literal(name).requires(hasPermission("endlock.admin"));
-    }
-
-    private static LiteralArgumentBuilder<CommandSourceStack> adminOrToggleCommand(String name) {
-        return literal(name).requires(source -> source.getSender().hasPermission("endlock.admin")
-                || source.getSender().hasPermission("endlock.toggle"));
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> togglePermissionCommand(String name) {

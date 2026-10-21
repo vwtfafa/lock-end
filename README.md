@@ -57,7 +57,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
 | `lockin <duration>` | Schedule an automatic lock, e.g. `30m` or `2h` | `endlock.toggle` |
 | `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
-| `lock in <duration>` / `unlock in <duration>` | Natural alias for `lockin`/`unlockin`, e.g. `lock in 5m` | `endlock.toggle` |
+| `lock in <duration>` / `unlock in <duration>` | Admin alias for `lockin`/`unlockin`, e.g. `lock in 5m` | `endlock.admin` |
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
@@ -66,7 +66,8 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 
 - **Console** can toggle without a permission node.
-- **Players** need `endlock.toggle` to lock or unlock.
+- **Players** need `endlock.toggle` to toggle or schedule a lock/unlock.
+- Explicit `/endlock lock` and `/endlock unlock` require `endlock.admin`.
 - Manual evacuation requires the End to be locked and `evacuation.enabled: true`.
   Run a fresh preview before every execution. The preview is requester-bound,
   expires after 30 seconds, and must be repeated if the eligible players or
