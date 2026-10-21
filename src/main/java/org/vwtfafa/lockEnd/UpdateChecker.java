@@ -15,8 +15,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class UpdateChecker {
+public class UpdateChecker implements AutoCloseable {
     private static final URI LATEST_RELEASE_URI =
             URI.create("https://api.github.com/repos/vwtfafa/lock-end/releases/latest");
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
@@ -24,6 +25,7 @@ public class UpdateChecker {
     private final LockEnd plugin;
     private final String currentVersion;
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(HTTP_TIMEOUT).build();
+    private final AtomicBoolean checking = new AtomicBoolean();
     private volatile String latestVersion;
     private volatile boolean updateAvailable;
 
@@ -36,56 +38,66 @@ public class UpdateChecker {
      * Fetches the latest version from GitHub asynchronously and notifies admins
      */
     public void checkForUpdates() {
+        if (!checking.compareAndSet(false, true)) {
+            return;
+        }
         boolean notifyOps = plugin.getConfig().getBoolean("update-checker.notify-ops", true);
         boolean notifyChat = plugin.getConfig().getBoolean("update-checker.notify-chat", true);
-        plugin.getPaperScheduler().runAsync(() -> {
-            try {
-                // Fetch the latest release from the GitHub API
-                HttpRequest request = HttpRequest.newBuilder(LATEST_RELEASE_URI)
-                        .timeout(HTTP_TIMEOUT)
-                        .header("User-Agent", "EndLock/" + currentVersion)
-                        .header("Accept", "application/vnd.github+json")
-                        .GET()
-                        .build();
-                HttpResponse<String> response = httpClient.send(request,
-                        HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        try {
+            plugin.getPaperScheduler().runAsync(() -> {
+                try {
+                    // Fetch the latest release from the GitHub API
+                    HttpRequest request = HttpRequest.newBuilder(LATEST_RELEASE_URI)
+                            .timeout(HTTP_TIMEOUT)
+                            .header("User-Agent", "EndLock/" + currentVersion)
+                            .header("Accept", "application/vnd.github+json")
+                            .GET()
+                            .build();
+                    HttpResponse<String> response = httpClient.send(request,
+                            HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
-                // Parse the version from the JSON response
-                String tagName = parseLatestTag(response.statusCode(), response.body());
-                if (tagName == null) {
-                    if (response.statusCode() != 200) {
-                        plugin.getLogger().warning("Update check failed: HTTP " + response.statusCode());
+                    // Parse the version from the JSON response
+                    String tagName = parseLatestTag(response.statusCode(), response.body());
+                    if (tagName == null) {
+                        if (response.statusCode() != 200) {
+                            plugin.getLogger().warning("Update check failed: HTTP " + response.statusCode());
+                        }
+                        return;
                     }
-                    return;
-                }
 
-                latestVersion = tagName;
-                updateAvailable = isNewerVersion(latestVersion, currentVersion);
+                    latestVersion = tagName;
+                    updateAvailable = isNewerVersion(latestVersion, currentVersion);
 
-                if (updateAvailable && notifyOps) {
-                    plugin.getLogger().info("========================================");
-                    plugin.getLogger().info("EndLock update available!");
-                    plugin.getLogger().info("Current version: " + currentVersion);
-                    plugin.getLogger().info("New version: " + latestVersion);
-                    plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
-                    plugin.getLogger().info("========================================");
-                }
-
-                // Notify online operators via chat; the server may shut down
-                // before the follow-up task can be scheduled.
-                if (updateAvailable && notifyChat) {
-                    try {
-                        notifyOnlineAdmins();
-                    } catch (IllegalPluginAccessException exception) {
-                        plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
+                    if (updateAvailable && notifyOps) {
+                        plugin.getLogger().info("========================================");
+                        plugin.getLogger().info("EndLock update available!");
+                        plugin.getLogger().info("Current version: " + currentVersion);
+                        plugin.getLogger().info("New version: " + latestVersion);
+                        plugin.getLogger().info("Release page: https://github.com/vwtfafa/lock-end/releases");
+                        plugin.getLogger().info("========================================");
                     }
+
+                    // Notify online operators via chat; the server may shut down
+                    // before the follow-up task can be scheduled.
+                    if (updateAvailable && notifyChat) {
+                        try {
+                            notifyOnlineAdmins();
+                        } catch (IllegalPluginAccessException exception) {
+                            plugin.getLogger().fine("Skipped update chat notification: plugin is shutting down.");
+                        }
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Update check failed: " + e.getMessage());
+                } finally {
+                    checking.set(false);
                 }
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                plugin.getLogger().warning("Update check failed: " + e.getMessage());
-            }
-        });
+            });
+        } catch (RuntimeException exception) {
+            checking.set(false);
+            plugin.getLogger().fine("Skipped update check: plugin is shutting down.");
+        }
     }
 
     /**
@@ -178,5 +190,14 @@ public class UpdateChecker {
 
     public String getLatestVersion() {
         return latestVersion;
+    }
+
+    /**
+     * Stops the HTTP client and any in-flight request. Safe to call more than
+     * once.
+     */
+    @Override
+    public void close() {
+        httpClient.shutdownNow();
     }
 }

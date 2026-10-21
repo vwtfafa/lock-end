@@ -154,10 +154,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             placeholderExpansion.register();
         }
 
-        if (getConfig().getBoolean("update-checker.enabled", true)) {
-            updateChecker = new UpdateChecker(this);
-            updateChecker.checkForUpdates();
-        }
+        configureUpdateChecker();
 
         // Initialize bStats metrics. Opt-out is handled globally via the
         // bStats plugin config (plugins/bStats/config.json), not here.
@@ -192,6 +189,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
+        }
+        if (updateChecker != null) {
+            updateChecker.close();
+            updateChecker = null;
         }
         getLogger().info("EndLock disabled");
     }
@@ -242,6 +243,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
             historyCommand.clearLastPreviousState();
         }
         return changed;
+    }
+
+    private void configureUpdateChecker() {
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            if (updateChecker == null) {
+                updateChecker = new UpdateChecker(this);
+            }
+            updateChecker.checkForUpdates();
+        } else if (updateChecker != null) {
+            updateChecker.close();
+            updateChecker = null;
+        }
     }
 
     private void configureAsyncLogger() {
@@ -519,10 +532,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        if (getConfig().getBoolean("update-checker.enabled", true)) {
-            updateChecker = new UpdateChecker(this);
-            updateChecker.checkForUpdates();
-        }
+        configureUpdateChecker();
     }
 
     public LockHistoryCommand getHistoryCommand() {
