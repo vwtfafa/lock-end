@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-10-21
+
+### Changed
+- Bumped the project version to 3.0.1, the Paper API compile/test target to Paper 26.3 Build #209 (STABLE), and the SpotBugs Gradle plugin to 6.5.13; the CI smoke test is pinned to the same Paper build.
+- Relicensed the project under the MIT License and bundled the third-party notices (including bStats) into the plugin jar.
+- Updated the README and Modrinth documentation for version 3.0.1 and Paper 26.3 Build #209.
+
+### Fixed
+- Respawns are now evaluated by the End access gate. Blocked respawns are redirected to a safe non-End world, using the recorded death world as the source when available.
+- Teleports between worlds inside the guarded End are treated as internal travel instead of being cancelled, while `end.block-end-gateway` continues to block End gateways.
+- Reloading keeps active grace periods and pending evacuations alive, re-arms evacuation when the End is locked, and triggers it when a player joins inside the locked End.
+- Unknown `scheduled-unlock.action` values are rejected and fail closed instead of silently becoming an unlock; invalid actions no longer delete disabled schedule settings.
+- Re-arming a schedule cancels the previous action's preview task, so a stale unlock preview cannot announce the wrong action.
+- History writes are batched to one debounced write per second, with synchronous flushes on reload and shutdown. History reads use stable snapshots, and audit rows are composed from localized language keys instead of hard-coded English labels.
+- Status, toggle, test, lock, unlock, and undo feedback render styled components instead of leaking raw section-sign color codes.
+- Enum-style sound names are resolved through the sound registry, raw key paths stay intact, and a deterministic fallback is used when no registry is available.
+- Placeholder schedule lookups snapshot the target time once, avoiding NPEs and mismatched values when a schedule is cleared concurrently.
+- The config validator applies the real runtime defaults, rejects non-numeric and non-integral values, and only enforces ranges that the runtime enforces.
+- The `lock`/`unlock` command subtree now requires `endlock.admin` consistently with its executor checks; `lockin`/`unlockin`/`lockat`/`unlockat` remain available with `endlock.toggle`.
+- The update checker reuses and closes its HTTP client, avoids overlapping checks, and no longer leaks a client per reload.
+- The async logger field is volatile so command threads observe the current instance after a reload.
+- Malformed evacuation target world keys are logged and fall back to a normal world instead of throwing during planning; the validator reports them.
+- Release notes use the correct `%lockend_*%` placeholders, no longer claim a LuckPerms integration, and escape `&` and `\` in changelog substitutions.
+
+### Compatibility status
+- Folia remains supported as of 3.0.0: the plugin declares `folia-supported: true` and was verified on Folia 26.3 alpha build 3 with a console smoke test. PaperMC still marks the Folia 26.3 builds as ALPHA, and player-driven paths were not exercised with a live player.
+
 ## [3.0.0] - 2026-10-15
 
 ### Added

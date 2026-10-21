@@ -3,13 +3,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.6.1"
     checkstyle
-    id("com.github.spotbugs") version "6.5.12"
+    id("com.github.spotbugs") version "6.5.13"
 }
 
 group = "org.vwtfafa"
-version = "3.0.0"
+version = "3.0.1"
 
-val paperApiVersion = "26.3.build.190-stable"
+val paperApiVersion = "26.3.build.209-stable"
 
 repositories {
     mavenCentral()

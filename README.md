@@ -2,6 +2,13 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## What's new in 3.0.1
+
+Version 3.0.1 is a bug-fix release targeting Paper 26.3 Build #209. It hardens
+End access checks for respawns and internal End travel, keeps grace periods and
+evacuations alive across reloads, and fixes scheduling, history persistence,
+placeholders, sounds, and configuration validation.
+
 ## What's new in 3.0
 
 EndLock remains focused exclusively on access to the End. Version 3.0 adds a
@@ -13,7 +20,7 @@ migrate and write.
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #190 (STABLE)** or newer |
+| Server | [Paper](https://papermc.io/) **26.3 Build #209 (STABLE)** or newer |
 | Folia | **26.3** (alpha builds; console-verified, see the note below) |
 | Minecraft | **26.3** |
 | Java | **25** |
@@ -24,7 +31,7 @@ migrate and write.
 
 ## Installation
 
-1. Download the latest `lock-end-3.0.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-3.0.1.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -287,7 +294,7 @@ compliance records are required.
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-3.0.0.jar`
+Output: `build/libs/lock-end-3.0.1.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -306,7 +313,7 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #190, STABLE):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #209, STABLE):
 
 ```bash
 ./gradlew runServer
