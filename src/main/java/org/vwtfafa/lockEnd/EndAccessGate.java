@@ -27,7 +27,9 @@ public final class EndAccessGate {
     /**
      * Immutable snapshot of a movement attempt targeting a world.
      */
-    public record AccessRequest(World.Environment toEnvironment,
+    public record AccessRequest(World.Environment fromEnvironment,
+                                String fromWorldName,
+                                World.Environment toEnvironment,
                                 String toWorldName) {}
 
     private final boolean locked;
@@ -56,6 +58,12 @@ public final class EndAccessGate {
         if (!inScopedWorld(request.toWorldName())) {
             return Verdict.ALLOWED;
         }
+        // Travel between guarded End worlds is not an entry attempt. The old
+        // block-return option only covered leaving the End, so this case was
+        // previously cancelled together with gateway and plugin teleports.
+        if (travelsWithinScopedEnd(request)) {
+            return Verdict.ALLOWED;
+        }
         if (cause == PlayerTeleportEvent.TeleportCause.END_GATEWAY && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
@@ -81,6 +89,9 @@ public final class EndAccessGate {
         if (!inScopedWorld(request.toWorldName())) {
             return Verdict.ALLOWED;
         }
+        if (travelsWithinScopedEnd(request)) {
+            return Verdict.ALLOWED;
+        }
         if (endGateway && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
@@ -92,5 +103,10 @@ public final class EndAccessGate {
 
     private boolean inScopedWorld(String worldName) {
         return endWorlds.isEmpty() || endWorlds.stream().anyMatch(name -> name.equalsIgnoreCase(worldName));
+    }
+
+    private boolean travelsWithinScopedEnd(AccessRequest request) {
+        return request.fromEnvironment() == World.Environment.THE_END
+                && inScopedWorld(request.fromWorldName());
     }
 }

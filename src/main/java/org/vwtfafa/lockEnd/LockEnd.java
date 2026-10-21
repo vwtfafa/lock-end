@@ -665,16 +665,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (event.getTo() == null || event.getTo().getWorld() == null) {
             return;
         }
+        World sourceWorld = event.getFrom() == null || event.getFrom().getWorld() == null
+                ? player.getWorld()
+                : event.getFrom().getWorld();
         EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                sourceWorld.getEnvironment(),
+                sourceWorld.getName(),
                 event.getTo().getWorld().getEnvironment(),
                 event.getTo().getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(
                 locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkPlayer(request, event.getCause(),
                         () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
-        World sourceWorld = event.getFrom() == null || event.getFrom().getWorld() == null
-                ? player.getWorld()
-                : event.getFrom().getWorld();
 
         switch (verdict) {
             case ALLOWED -> {}
@@ -715,7 +717,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (to == null || to.getWorld() == null) {
             return;
         }
+        Location from = event.getFrom();
+        World fromWorld = from == null || from.getWorld() == null
+                ? event.getEntity().getWorld()
+                : from.getWorld();
         EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                fromWorld.getEnvironment(),
+                fromWorld.getName(),
                 to.getWorld().getEnvironment(),
                 to.getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(

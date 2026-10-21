@@ -13,11 +13,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class EndAccessGateTest {
     private static final EndAccessGate.AccessRequest INTO_THE_END =
-            new EndAccessGate.AccessRequest(World.Environment.THE_END, "world_the_end");
+            new EndAccessGate.AccessRequest(World.Environment.NORMAL, "world",
+                    World.Environment.THE_END, "world_the_end");
     private static final EndAccessGate.AccessRequest INTO_OVERWORLD =
-            new EndAccessGate.AccessRequest(World.Environment.NORMAL, "world");
+            new EndAccessGate.AccessRequest(World.Environment.THE_END, "world_the_end",
+                    World.Environment.NORMAL, "world");
     private static final EndAccessGate.AccessRequest INTO_SCOPED_WORLD =
-            new EndAccessGate.AccessRequest(World.Environment.THE_END, "resource_end");
+            new EndAccessGate.AccessRequest(World.Environment.NORMAL, "world",
+                    World.Environment.THE_END, "resource_end");
+    private static final EndAccessGate.AccessRequest WITHIN_THE_END =
+            new EndAccessGate.AccessRequest(World.Environment.THE_END, "world_the_end",
+                    World.Environment.THE_END, "world_the_end");
+    private static final EndAccessGate.AccessRequest FROM_UNSCOPED_END =
+            new EndAccessGate.AccessRequest(World.Environment.THE_END, "other_end",
+                    World.Environment.THE_END, "resource_end");
 
     private static EndAccessGate gate(boolean locked, boolean grace, boolean blockGateway, List<String> worlds) {
         return new EndAccessGate(locked, grace, blockGateway, worlds);
@@ -52,9 +61,31 @@ class EndAccessGateTest {
     }
 
     @Test
+    void travelWithinTheEndIsNotAnEntryAttempt() {
+        assertEquals(EndAccessGate.Verdict.ALLOWED,
+                gate(true, false, true, List.of()).checkPlayer(WITHIN_THE_END, cause(), () -> false));
+        assertEquals(EndAccessGate.Verdict.ALLOWED,
+                gate(true, false, true, List.of()).checkEntity(WITHIN_THE_END, false));
+        assertEquals(EndAccessGate.Verdict.ALLOWED,
+                gate(true, false, true, List.of())
+                        .checkPlayer(WITHIN_THE_END, PlayerTeleportEvent.TeleportCause.END_GATEWAY, () -> false));
+    }
+
+    @Test
+    void travelFromAnUnscopedEndWorldIsStillAnEntryAttempt() {
+        assertEquals(EndAccessGate.Verdict.BLOCKED,
+                gate(true, false, true, List.of("resource_end"))
+                        .checkPlayer(FROM_UNSCOPED_END, cause(), () -> false));
+        assertEquals(EndAccessGate.Verdict.BLOCKED,
+                gate(true, false, true, List.of("resource_end"))
+                        .checkEntity(FROM_UNSCOPED_END, false));
+    }
+
+    @Test
     void nonEndTargetsAreIgnored() {
         EndAccessGate.AccessRequest nether =
-                new EndAccessGate.AccessRequest(World.Environment.NETHER, "world_nether");
+                new EndAccessGate.AccessRequest(World.Environment.NORMAL, "world",
+                        World.Environment.NETHER, "world_nether");
         assertEquals(EndAccessGate.Verdict.ALLOWED,
                 gate(true, false, true, List.of()).checkPlayer(nether, cause(), () -> false));
     }
@@ -89,6 +120,7 @@ class EndAccessGateTest {
         // Case-insensitive scope matching.
         assertEquals(EndAccessGate.Verdict.BLOCKED,
                 scoped.checkPlayer(new EndAccessGate.AccessRequest(
+                        World.Environment.NORMAL, "world",
                         World.Environment.THE_END, "RESOURCE_END"), cause(), () -> false));
     }
 
