@@ -7,7 +7,7 @@ import dev.faststats.Metrics;
  * Starts FastStats metrics when a project token is available in the environment.
  */
 public final class FastStatsManager {
-    private static final String TOKEN_ENVIRONMENT_VARIABLE = "FASTSTATS_TOKEN";
+    private static final String TOKEN_ENVIRONMENT_VARIABLE = "71be256f6d91c1cc2e1cb18f506a3d44";
 
     private final BukkitContext context;
 
