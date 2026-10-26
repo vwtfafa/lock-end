@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.vwtfafa.lockEnd.LockEnd;
@@ -68,14 +69,14 @@ public final class EndLockCommand {
                 .then(publicCommand("stats").executes(global(this::stats)))
                 .then(adminCommand("test").executes(globalWithActor((context, actor) -> test(context, actor))))
 
-                .then(adminOrToggleCommand("lock")
+                .then(adminCommand("lock")
                         .executes(globalWithActor((context, actor) -> lock(context, actor)))
-                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                        .then(literal("in")
                                 .then(durationArgument("duration", LOCK_DURATIONS)
                                         .executes(global(this::lockIn)))))
-                .then(adminOrToggleCommand("unlock")
+                .then(adminCommand("unlock")
                         .executes(globalWithActor((context, actor) -> unlock(context, actor)))
-                        .then(literal("in").requires(hasPermission("endlock.toggle"))
+                        .then(literal("in")
                                 .then(durationArgument("duration", UNLOCK_DURATIONS)
                                         .executes(global(this::unlockIn)))))
 
@@ -137,8 +138,7 @@ public final class EndLockCommand {
                 } catch (RuntimeException exception) {
                     plugin.getLogger().log(Level.SEVERE, "Command execution failed.", exception);
                     plugin.getPaperScheduler().sendMessage(context.getSource().getSender(),
-                            net.kyori.adventure.text.Component.text(
-                                    "[EndLock] Command failed. Check the server log for details."));
+                            Component.text("[EndLock] Command failed. Check the server log for details."));
                 }
             });
             return 1;
@@ -159,11 +159,6 @@ public final class EndLockCommand {
         return literal(name).requires(hasPermission("endlock.admin"));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> adminOrToggleCommand(String name) {
-        return literal(name).requires(source -> source.getSender().hasPermission("endlock.admin")
-                || source.getSender().hasPermission("endlock.toggle"));
-    }
-
     private static LiteralArgumentBuilder<CommandSourceStack> togglePermissionCommand(String name) {
         return literal(name).requires(hasPermission("endlock.toggle"));
     }
@@ -182,6 +177,11 @@ public final class EndLockCommand {
 
     private void send(CommandSender sender, String key, Map<String, String> placeholders) {
         plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, placeholders));
+    }
+
+    private void sendStatus(CommandSender sender, String key, boolean locked) {
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message(key, Map.of(),
+                Map.of("%status%", plugin.message(locked ? "closed" : "open", Map.of()))));
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, String> durationArgument(String name, List<String> suggestions) {
@@ -219,16 +219,14 @@ public final class EndLockCommand {
             return 1;
         }
         boolean newLocked = !plugin.isLocked();
-        String status = newLocked ? plugin.msg("closed") : plugin.msg("open");
-        send(sender, "toggle", "%status%", status);
+        sendStatus(sender, "toggle", newLocked);
         plugin.changeLockState(newLocked, actor.name(), newLocked ? "LOCK" : "UNLOCK", actor.uuid());
         return 1;
     }
 
     private int status(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
-        send(sender, "status", "%status%", status);
+        sendStatus(sender, "status", plugin.isLocked());
         return 1;
     }
 
@@ -256,9 +254,8 @@ public final class EndLockCommand {
             send(sender, "test-disabled");
             return 1;
         }
-        String status = plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open");
         send(sender, "test-success");
-        send(sender, "test-info", "%status%", status);
+        sendStatus(sender, "test-info", plugin.isLocked());
         plugin.logTestAction(actor.name());
         return 1;
     }
@@ -273,7 +270,7 @@ public final class EndLockCommand {
             send(sender, "already-locked");
             return 1;
         }
-        send(sender, "toggle", "%status%", plugin.msg("closed"));
+        sendStatus(sender, "toggle", true);
         plugin.changeLockState(true, actor.name(), "LOCK", actor.uuid());
         return 1;
     }
@@ -288,7 +285,7 @@ public final class EndLockCommand {
             send(sender, "already-unlocked");
             return 1;
         }
-        send(sender, "toggle", "%status%", plugin.msg("open"));
+        sendStatus(sender, "toggle", false);
         plugin.changeLockState(false, actor.name(), "UNLOCK", actor.uuid());
         return 1;
     }
@@ -341,7 +338,7 @@ public final class EndLockCommand {
             return 1;
         }
         plugin.setLockReason(reason);
-        send(sender, "reason-set", "%reason%", plugin.sanitize(reason));
+        send(sender, "reason-set", "%reason%", reason);
         return 1;
     }
 

@@ -9,12 +9,13 @@ import java.lang.reflect.Proxy;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EndLockCommandPermissionTest {
 
     @Test
-    void naturalScheduleAliasesAreAvailableToTogglePermissionAlone() {
+    void explicitLockCommandsRequireTheAdminPermission() {
         LiteralCommandNode<CommandSourceStack> root = new EndLockCommand(null).buildNode();
         CommandSourceStack toggleSource = sourceWithPermissions(Set.of("endlock.toggle"));
         CommandSourceStack adminSource = sourceWithPermissions(Set.of("endlock.admin"));
@@ -22,13 +23,25 @@ class EndLockCommandPermissionTest {
 
         for (String name : new String[]{"lock", "unlock"}) {
             LiteralCommandNode<CommandSourceStack> parent = (LiteralCommandNode<CommandSourceStack>) root.getChild(name);
-            var schedule = parent.getChild("in");
 
-            assertTrue(parent.canUse(toggleSource));
-            assertTrue(schedule.canUse(toggleSource));
+            assertNotNull(parent.getChild("in"));
             assertTrue(parent.canUse(adminSource));
-            assertFalse(schedule.canUse(adminSource));
+            assertFalse(parent.canUse(toggleSource));
             assertFalse(parent.canUse(unprivilegedSource));
+        }
+    }
+
+    @Test
+    void toggleAliasesRemainAvailableToTogglePermissionAlone() {
+        LiteralCommandNode<CommandSourceStack> root = new EndLockCommand(null).buildNode();
+        CommandSourceStack toggleSource = sourceWithPermissions(Set.of("endlock.toggle"));
+        CommandSourceStack unprivilegedSource = sourceWithPermissions(Set.of());
+
+        for (String name : new String[]{"lockin", "unlockin", "lockat", "unlockat"}) {
+            LiteralCommandNode<CommandSourceStack> command =
+                    (LiteralCommandNode<CommandSourceStack>) root.getChild(name);
+            assertTrue(command.canUse(toggleSource));
+            assertFalse(command.canUse(unprivilegedSource));
         }
     }
 

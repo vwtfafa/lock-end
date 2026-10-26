@@ -44,8 +44,18 @@ public class ScheduleManager {
             rawAction = "unlock";
         }
         scheduledAction = rawAction.toLowerCase(Locale.ROOT);
-        if (!scheduledAction.equals("lock") && !scheduledAction.equals("unlock")) {
+        if (!isSupportedAction(scheduledAction)) {
+            plugin.getLogger().warning("Invalid scheduled-unlock.action '" + rawAction
+                    + "'; must be 'lock' or 'unlock'. Disabling schedule.");
             scheduledAction = "unlock";
+            if (plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
+                disableInvalidSchedule();
+            } else {
+                // Keep the disabled schedule's other settings intact.
+                plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+                plugin.saveConfig();
+            }
+            return;
         }
         if (!plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
             return;
@@ -117,11 +127,14 @@ public class ScheduleManager {
      * Arms preview, countdown and due-check tasks for the pending action.
      */
     public void arm() {
+        // Drop tasks from the previous action before arming the new one;
+        // otherwise switching lock <-> unlock leaves a stale preview alive.
+        cancelCheck();
+        cancelCountdown();
+        previewManager.cancelAll();
         if (scheduledUnlockTime == null || schedulePaused) {
             return;
         }
-        cancelCheck();
-        cancelCountdown();
         if (scheduledAction.equals("lock")) {
             previewManager.schedulePreviewLock(scheduledUnlockTime);
         } else {
@@ -210,19 +223,27 @@ public class ScheduleManager {
     }
 
     public long getRemainingSeconds() {
-        if (scheduledUnlockTime == null) {
+        return remainingSeconds(scheduledUnlockTime, ZonedDateTime.now(ZoneId.systemDefault()));
+    }
+
+    /**
+     * Remaining whole seconds for a captured target. Taking the target as a
+     * parameter avoids a second field read after a concurrent schedule clear.
+     */
+    static long remainingSeconds(LocalDateTime target, ZonedDateTime now) {
+        if (target == null) {
             return -1;
         }
-        return Math.max(0, remainingTime().getSeconds());
+        return Math.max(0, Duration.between(now, target.atZone(now.getZone())).getSeconds());
     }
 
     /**
      * Real time until the pending action, computed against the system zone so
      * DST transitions do not shift the effective duration.
      */
-    private Duration remainingTime() {
+    private static Duration remainingTime(LocalDateTime target) {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
-        return Duration.between(now, scheduledUnlockTime.atZone(ZoneId.systemDefault()));
+        return Duration.between(now, target.atZone(now.getZone()));
     }
 
     /**
@@ -260,13 +281,19 @@ public class ScheduleManager {
      * Builds the localized schedule status line for commands and placeholders.
      */
     public Component buildStatusMessage() {
-        String target = scheduledUnlockTime == null ? plugin.msg("schedule-none") : scheduledUnlockTime.format(LockEnd.SCHEDULE_FORMAT);
-        String remaining = scheduledUnlockTime == null ? "-" : formatDuration(getRemainingSeconds());
+        LocalDateTime target = scheduledUnlockTime;
+        String action = scheduledAction;
+        Component targetText = target == null
+                ? plugin.message("schedule-none", Map.of())
+                : Component.text(target.format(LockEnd.SCHEDULE_FORMAT));
+        String remaining = target == null
+                ? "-"
+                : formatDuration(remainingSeconds(target, ZonedDateTime.now(ZoneId.systemDefault())));
         return plugin.message("schedule-status", Map.of(
-                "%action%", scheduledUnlockTime == null ? "-" : scheduledAction,
-                "%target%", target,
+                "%action%", target == null ? "-" : action,
                 "%remaining%", remaining,
-                "%paused%", String.valueOf(schedulePaused)));
+                "%paused%", String.valueOf(schedulePaused)),
+                Map.of("%target%", targetText));
     }
 
     private void setPending(LocalDateTime time, String action) {
@@ -296,6 +323,15 @@ public class ScheduleManager {
         config.set("scheduled-unlock.target-datetime", target.format(LockEnd.SCHEDULE_FORMAT));
     }
 
+    /**
+     * Only explicit lock and unlock actions are supported. Unknown values must
+     * never be coerced to unlock, because a typo in the config would then open
+     * a locked End instead of keeping it closed.
+     */
+    public static boolean isSupportedAction(String action) {
+        return "lock".equalsIgnoreCase(action) || "unlock".equalsIgnoreCase(action);
+    }
+
     static LocalDateTime parseScheduleTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -320,10 +356,11 @@ public class ScheduleManager {
     }
 
     private void scheduleDueCheck() {
-        if (scheduledUnlockTime == null || schedulePaused) {
+        LocalDateTime target = scheduledUnlockTime;
+        if (target == null || schedulePaused) {
             return;
         }
-        long remainingMillis = remainingTime().toMillis();
+        long remainingMillis = remainingTime(target).toMillis();
         if (remainingMillis <= 0) {
             executeDueAction();
             return;
@@ -361,10 +398,11 @@ public class ScheduleManager {
         long startBefore = plugin.getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
         long interval = Math.max(1, plugin.getConfig().getLong("scheduled-unlock.countdown.interval", 10));
         countdownTask = plugin.getPaperScheduler().runGlobalRepeating(() -> {
-            if (scheduledUnlockTime == null || schedulePaused) {
+            LocalDateTime target = scheduledUnlockTime;
+            if (target == null || schedulePaused) {
                 return;
             }
-            long remaining = remainingTime().getSeconds();
+            long remaining = remainingTime(target).getSeconds();
             if (remaining < 0 || remaining > startBefore) {
                 return;
             }

@@ -19,7 +19,7 @@
 | `/endlock unlockat <date> <time>` | Schedule unlock (e.g. `2026-07-01 18:00`) | `endlock.toggle` |
 | `/endlock lockin <minutes>` | Schedule a future lock | `endlock.toggle` |
 | `/endlock lockat <date> <time>` | Schedule a future lock at specific time | `endlock.toggle` |
-| `/endlock lock in <duration>` / `unlock in <duration>` | Natural schedule aliases (e.g. `5m`, `7d`) | `endlock.toggle` |
+| `/endlock lock in <duration>` / `unlock in <duration>` | Admin schedule aliases (e.g. `5m`, `7d`) | `endlock.admin` |
 | `/endlock status` | Show current lock status | — |
 | `/endlock stats` | Show plugin statistics | — |
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
@@ -36,8 +36,7 @@
 
 ### 🔌 Integrations
 
-- **PlaceholderAPI** — `%endlock_status%`, `%endlock_remaining%`, `%endlock_remaining_seconds%`, `%endlock_unlock_at%`, `%endlock_target_time%`, `%endlock_lock_reason%`, `%endlock_reason%`, `%endlock_blocked_count%`, `%endlock_schedule_action%`, `%endlock_schedule_active%`
-- **LuckPerms** — Context `lockend:locked=true|false`
+- **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
 - **MiniMessage** — Full RGB & gradient message support
 
 ### 🔧 Configuration
@@ -51,7 +50,7 @@
 - Join notifications
 - Update checker with clickable chat link
 - bStats metrics
-- Integration toggles (PAPI, LuckPerms, MiniMessage)
+- Integration toggles (PAPI, MiniMessage)
 
 ### 🧱 Compatibility
 

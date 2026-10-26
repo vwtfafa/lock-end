@@ -3,6 +3,7 @@ package org.vwtfafa.lockEnd;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 public class LockEndExpansion extends PlaceholderExpansion {
@@ -42,16 +43,18 @@ public class LockEndExpansion extends PlaceholderExpansion {
             case "status" -> plugin.isLocked() ? "Locked" : "Unlocked";
             case "remaining" -> plugin.getRemainingText();
             case "remaining_seconds" -> String.valueOf(plugin.getScheduledRemainingSeconds());
-            case "unlock_at", "target_time" -> plugin.getScheduledTime() == null
-                    ? ""
-                    : plugin.getScheduledTime().format(LockEnd.SCHEDULE_FORMAT);
+            case "unlock_at", "target_time" -> formatScheduledTime(plugin.getScheduledTime());
             case "lock_reason", "reason" -> plugin.getLockReason();
             case "blocked_count" -> String.valueOf(plugin.getBlockedCount());
             case "unlock_count", "unlocks" -> String.valueOf(plugin.getUnlockCount());
             case "evacuated" -> String.valueOf(plugin.getEvacuatedCount());
-            case "schedule_action" -> plugin.hasScheduledAction() ? plugin.getScheduledAction() : "none";
-            case "schedule_active" -> String.valueOf(plugin.hasScheduledAction());
+            case "schedule_action" -> plugin.getScheduledTime() == null ? "none" : plugin.getScheduledAction();
+            case "schedule_active" -> String.valueOf(plugin.getScheduledTime() != null);
             default -> null;
         };
+    }
+
+    private static String formatScheduledTime(LocalDateTime time) {
+        return time == null ? "" : time.format(LockEnd.SCHEDULE_FORMAT);
     }
 }

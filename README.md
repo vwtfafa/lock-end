@@ -2,6 +2,15 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## What's new in 3.0.1
+
+Version 3.0.1 is a bug-fix release targeting Paper 26.3 Build #209. It hardens
+End access checks for respawns and internal End travel, keeps grace periods and
+evacuations alive across reloads, modernizes message rendering to MiniMessage,
+and fixes scheduling, history persistence, placeholders, sounds, and
+configuration validation. The Gradle wrapper is now 9.8.2, and the Folia smoke
+test targets 26.3 Build 5 (ALPHA).
+
 ## What's new in 3.0
 
 EndLock remains focused exclusively on access to the End. Version 3.0 adds a
@@ -13,21 +22,43 @@ migrate and write.
 
 | Requirement | Version |
 |-------------|---------|
-| Server | [Paper](https://papermc.io/) **26.3 Build #190 (STABLE)** or newer |
-| Folia | **26.3** (alpha builds; console-verified, see the note below) |
+| Server | [Paper](https://papermc.io/) **26.3 Build #209 (STABLE)** or newer |
+| Folia | **26.3 Build 5** (ALPHA; console-verified, see the note below) |
 | Minecraft | **26.3** |
 | Java | **25** |
 
 > Spigot and older Minecraft versions are **not** supported. Purpur 26.3+ is supported because it is Paper-based. The plugin uses `api-version: 26.3`.
 
-> **Folia is supported as of 3.0.0** (`folia-supported: true`). Timed work runs through the global/async schedulers and player-specific work through entity schedulers. Compatibility was verified with a console smoke test on Folia 26.3 alpha build 3: the server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, and `/endlock stats` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA; player-driven paths were not exercised with a live player.
+> **Folia is supported as of 3.0.0** (`folia-supported: true`). Timed work runs through the global/async schedulers and player-specific work through entity schedulers. Compatibility was verified with a console smoke test on Folia 26.3 Build 5 (ALPHA): the server boots, the plugin loads, and command paths such as `/endlock status`, `/endlock lock`, and `/endlock stats` respond without errors. PaperMC still marks the Folia 26.3 builds as ALPHA; player-driven paths were not exercised with a live player.
 
 ## Installation
 
-1. Download the latest `lock-end-3.0.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-3.0.1.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
+
+### FastStats
+
+FastStats metrics run alongside the existing bStats integration. To enable them,
+set `FASTSTATS_TOKEN` in the server process environment before starting Paper or
+Folia. For example, in PowerShell:
+
+```powershell
+$env:FASTSTATS_TOKEN = "<your FastStats project token>"
+java -jar paper.jar --nogui
+```
+
+On Linux, export the variable in the server's startup environment:
+
+```sh
+export FASTSTATS_TOKEN="<your FastStats project token>"
+java -jar paper.jar --nogui
+```
+
+If the variable is unset or empty, FastStats is skipped and bStats continues to
+run. The token is not stored in EndLock's config or logged. FastStats error
+tracking and custom EndLock metrics are not enabled.
 
 ## Commands
 
@@ -57,7 +88,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `lockin <minutes>` | Schedule an automatic lock | `endlock.toggle` |
 | `lockin <duration>` | Schedule an automatic lock, e.g. `30m` or `2h` | `endlock.toggle` |
 | `lockat <yyyy-MM-dd> <HH:mm>` | Schedule an automatic lock | `endlock.toggle` |
-| `lock in <duration>` / `unlock in <duration>` | Natural alias for `lockin`/`unlockin`, e.g. `lock in 5m` | `endlock.toggle` |
+| `lock in <duration>` / `unlock in <duration>` | Admin alias for `lockin`/`unlockin`, e.g. `lock in 5m` | `endlock.admin` |
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
@@ -66,7 +97,8 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 
 - **Console** can toggle without a permission node.
-- **Players** need `endlock.toggle` to lock or unlock.
+- **Players** need `endlock.toggle` to toggle or schedule a lock/unlock.
+- Explicit `/endlock lock` and `/endlock unlock` require `endlock.admin`.
 - Manual evacuation requires the End to be locked and `evacuation.enabled: true`.
   Run a fresh preview before every execution. The preview is requester-bound,
   expires after 30 seconds, and must be repeated if the eligible players or
@@ -115,6 +147,7 @@ permissions:
 - **Test Command**: Verify portal blocking works correctly
 - **Update Checker**: Automatically notifies Ops when updates are available (optional)
 - **bStats Integration**: Anonymous usage statistics to help developers improve the plugin (optional)
+- **FastStats Integration**: Optional metrics alongside bStats, enabled with a server environment token
 - **Lock Reasons**: Customizable reason displayed when blocking
 - **Grace Period**: Temporary unlock after locking for safe player exit
 - **Whitelists**: Player, UUID, and per-world whitelists to bypass the lock
@@ -130,7 +163,7 @@ permissions:
 - **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
 - **Mobile Alias**: `/el` short command for console/mobile
-- No dependencies (bStats is shaded), small JAR (~150 KB)
+- No server-side setup dependencies (bStats and FastStats are shaded)
 
 ## Configuration
 
@@ -256,6 +289,8 @@ hooks:
 
 Copy a language file from the JAR (e.g. `messages_en.yml`) into `plugins/EndLock/lang/` and edit it. If the file exists on disk, it overrides the built-in version.
 
+Bundled language files use **MiniMessage** formatting (colors, gradients, and other tags). Custom files may still use legacy section codes such as `§a` or `§c`; they are translated automatically for compatibility. Set `hooks.mini-message: false` to strip MiniMessage tags and keep classic section-code colors.
+
 Message keys: `locked`, `toggle`, `status`, `permission`, `open`, `closed` — use `%status%` in `toggle` and `status`. `remaining-unlocked` and `remaining-permanent` provide the plain-text `%lockend_remaining%` PlaceholderAPI value.
 
 ### Audit history
@@ -282,11 +317,13 @@ compliance records are required.
 
 ## Build from source
 
+The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation is required.
+
 ```bash
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-3.0.0.jar`
+Output: `build/libs/lock-end-3.0.1.jar`
 
 ## Automatic releases (GitHub Actions)
 
@@ -305,13 +342,13 @@ On every push to a release-configured branch, GitHub Actions will:
 
 **Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
-Run a local test server (downloads the latest Paper 26.3 build; currently Build #190, STABLE):
+Run a local test server (downloads the latest Paper 26.3 build; currently Build #209, STABLE):
 
 ```bash
 ./gradlew runServer
 ```
 
-Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, working directory `run/folia/`):
+Run a local Folia test server instead (pinned to Folia 26.3 Build 5 (ALPHA), working directory `run/folia/`):
 
 ```bash
 ./gradlew runFolia
@@ -321,13 +358,15 @@ Run a local Folia test server instead (pinned to Folia 26.3 alpha build 3, worki
 
 - Only **player** movement is blocked by default; non-player entities can be blocked too via `end.block-entities`.
 - Players **already in the End** when you lock it stay there unless `evacuation.enabled` is set (then they are warned and teleported out).
+- Respawn points inside a locked End are redirected to a safe world spawn; whitelisted players are exempt.
 - Language and configuration changes can be applied with `/endlock reload`.
 - The default lock blocks travel into the End; returning from the End is always allowed.
-- Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on the Folia 26.3 alpha build 3; in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
+- Folia is supported since 3.0.0 (`folia-supported: true`). Verification was a console smoke test on Folia 26.3 Build 5 (ALPHA); in-game player paths (region teleports, per-player messages) rely on the global/entity scheduler helpers but were not exercised live.
 
 ## License
 
-This project is licensed under the **All Rights Reserved** license. See the `LICENSE` file for details.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+Third-party components bundled into the plugin jar are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Author
 

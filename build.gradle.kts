@@ -3,13 +3,13 @@ plugins {
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.6.1"
     checkstyle
-    id("com.github.spotbugs") version "6.5.12"
+    id("com.github.spotbugs") version "6.5.13"
 }
 
 group = "org.vwtfafa"
-version = "3.0.0"
+version = "3.0.1"
 
-val paperApiVersion = "26.3.build.190-stable"
+val paperApiVersion = "26.3.build.209-stable"
 
 repositories {
     mavenCentral()
@@ -21,6 +21,7 @@ repositories {
         name = "placeholderapi"
         url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     }
+    maven("https://repo.faststats.dev/releases")
     gradlePluginPortal()
 }
 
@@ -28,6 +29,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
     compileOnly("me.clip:placeholderapi:2.12.3")
     implementation("org.bstats:bstats-bukkit:3.2.1")
+    implementation("dev.faststats.metrics:bukkit:0.31.0")
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
     testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
@@ -53,19 +55,19 @@ tasks {
         configurations = listOf(project.configurations.runtimeClasspath.get())
 
         dependencies {
-            // Only merge bStats into the final jar, no other dependencies
-            exclude { it.moduleGroup != "org.bstats" }
+            // Only merge bStats and FastStats into the final jar
+            exclude { it.moduleGroup !in setOf("org.bstats", "dev.faststats.metrics") }
         }
 
-        // Relocate bStats into the plugin's package to avoid conflicts with other
-        // plugins using bStats
+        // Relocate metrics libraries to avoid conflicts with other plugins.
         relocate("org.bstats", project.group.toString())
+        relocate("dev.faststats", "${project.group}.faststats")
     }
 }
 
-// Local Folia test server, pinned to the first Folia 26.3 build (ALPHA) for compatibility testing.
+// Local Folia test server, pinned to Folia 26.3 Build 5 (ALPHA) for compatibility testing.
 runPaper.folia.registerTask {
-    build(3)
+    build(5)
     runDirectory(file("run/folia"))
 }
 
@@ -93,6 +95,11 @@ tasks.processResources {
     val props = mapOf("version" to project.version)
     inputs.properties(props)
     filteringCharset = "UTF-8"
+
+    // Ship third-party license notices with the distribution jar.
+    from("THIRD-PARTY-NOTICES.md") {
+        into("META-INF")
+    }
 
     filesMatching("plugin.yml") {
         expand(props)

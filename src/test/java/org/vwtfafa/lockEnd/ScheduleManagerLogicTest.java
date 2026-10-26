@@ -4,9 +4,13 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests schedule time parsing and duration formatting.
@@ -61,6 +65,26 @@ class ScheduleManagerLogicTest {
         assertEquals("5m 30s", ScheduleManager.formatDuration(330));
         assertEquals("2h 5m", ScheduleManager.formatDuration(7500));
         assertEquals("3d 4h", ScheduleManager.formatDuration(273600));
+    }
+
+    @Test
+    void computesRemainingSecondsFromACapturedTarget() {
+        ZonedDateTime now = ZonedDateTime.of(2026, 8, 30, 12, 0, 0, 0, ZoneId.of("UTC"));
+
+        assertEquals(120, ScheduleManager.remainingSeconds(
+                LocalDateTime.of(2026, 8, 30, 12, 2), now));
+        assertEquals(0, ScheduleManager.remainingSeconds(
+                LocalDateTime.of(2026, 8, 30, 11, 59), now));
+        assertEquals(-1, ScheduleManager.remainingSeconds(null, now));
+    }
+
+    @Test
+    void onlyExplicitLockAndUnlockActionsAreSupported() {
+        assertTrue(ScheduleManager.isSupportedAction("lock"));
+        assertTrue(ScheduleManager.isSupportedAction("UNLOCK"));
+        assertFalse(ScheduleManager.isSupportedAction("lok"));
+        assertFalse(ScheduleManager.isSupportedAction(""));
+        assertFalse(ScheduleManager.isSupportedAction(null));
     }
 
     @Test

@@ -209,17 +209,22 @@ jobs:
             -v CHANGELOG="$CHANGELOG" \
             -v GITHUB_SHA="$GITHUB_SHA" \
             -v BUILD_DATE="$BUILD_DATE" \
-            '{
-              gsub(/@VERSION@/, VERSION);
-              gsub(/@TITLE@/, TITLE);
-              gsub(/@WARNING@/, WARNING);
-              gsub(/@PAPER@/, PAPER);
-              gsub(/@JAVA@/, JAVA);
-              gsub(/@BRANCH@/, BRANCH);
-              gsub(/@BASE_LABEL@/, BASE_LABEL);
-              gsub(/@CHANGELOG@/, CHANGELOG);
-              gsub(/@GITHUB_SHA@/, GITHUB_SHA);
-              gsub(/@BUILD_DATE@/, BUILD_DATE);
+            'function escape_replacement(value) {
+              gsub(/\\/, "\\\\", value);
+              gsub(/&/, "\\&", value);
+              return value;
+            }
+            {
+              gsub(/@VERSION@/, escape_replacement(VERSION));
+              gsub(/@TITLE@/, escape_replacement(TITLE));
+              gsub(/@WARNING@/, escape_replacement(WARNING));
+              gsub(/@PAPER@/, escape_replacement(PAPER));
+              gsub(/@JAVA@/, escape_replacement(JAVA));
+              gsub(/@BRANCH@/, escape_replacement(BRANCH));
+              gsub(/@BASE_LABEL@/, escape_replacement(BASE_LABEL));
+              gsub(/@CHANGELOG@/, escape_replacement(CHANGELOG));
+              gsub(/@GITHUB_SHA@/, escape_replacement(GITHUB_SHA));
+              gsub(/@BUILD_DATE@/, escape_replacement(BUILD_DATE));
               print
             }' .github/RELEASE_TEMPLATE.md > release-body.md
 

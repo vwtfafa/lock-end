@@ -145,6 +145,14 @@ public class EvacuationService {
         }
     }
 
+    /**
+     * Whether an automatic evacuation is currently waiting for its warning
+     * period to elapse.
+     */
+    public boolean isPending() {
+        return task != null;
+    }
+
     public void shutdown() {
         shuttingDown = true;
         cancel();
@@ -365,6 +373,14 @@ public class EvacuationService {
         return !shuttingDown && pluginEnabled && playerOnline;
     }
 
+    /**
+     * Returns the configured evacuation destination, falling back to the first
+     * normal world. Also used as the safe destination for blocked respawns.
+     */
+    public World getTargetWorld() {
+        return resolveTargetWorld();
+    }
+
     private World resolveTargetWorld() {
         String configuredTarget = plugin.getConfig().getString("evacuation.target-world", "world");
         World targetWorld = null;
@@ -382,12 +398,17 @@ public class EvacuationService {
 
     private World resolveConfiguredWorld(String configuredTarget) {
         if (configuredTarget.contains(":")) {
-            NamespacedKey key = NamespacedKey.fromString(configuredTarget);
-            if (key != null) {
-                World namespacedWorld = Bukkit.getWorld(key);
-                if (namespacedWorld != null) {
-                    return namespacedWorld;
+            try {
+                NamespacedKey key = NamespacedKey.fromString(configuredTarget);
+                if (key != null) {
+                    World namespacedWorld = Bukkit.getWorld(key);
+                    if (namespacedWorld != null) {
+                        return namespacedWorld;
+                    }
                 }
+            } catch (IllegalArgumentException exception) {
+                plugin.getLogger().warning("Invalid evacuation.target-world '" + configuredTarget
+                        + "': " + exception.getMessage() + "; using a normal world instead.");
             }
         }
         return Bukkit.getWorld(configuredTarget);

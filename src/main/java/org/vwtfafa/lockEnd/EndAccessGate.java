@@ -27,7 +27,9 @@ public final class EndAccessGate {
     /**
      * Immutable snapshot of a movement attempt targeting a world.
      */
-    public record AccessRequest(World.Environment toEnvironment,
+    public record AccessRequest(World.Environment fromEnvironment,
+                                String fromWorldName,
+                                World.Environment toEnvironment,
                                 String toWorldName) {}
 
     private final boolean locked;
@@ -56,7 +58,14 @@ public final class EndAccessGate {
         if (!inScopedWorld(request.toWorldName())) {
             return Verdict.ALLOWED;
         }
-        if (cause == PlayerTeleportEvent.TeleportCause.END_GATEWAY && !blockEndGateway) {
+        boolean endGateway = cause == PlayerTeleportEvent.TeleportCause.END_GATEWAY;
+        // Gateway travel keeps its own opt-out. Without that exception,
+        // non-gateway travel between guarded End worlds is not an entry
+        // attempt and must not be cancelled by the lock.
+        if (endGateway && !blockEndGateway) {
+            return Verdict.ALLOWED;
+        }
+        if (!endGateway && travelsWithinScopedEnd(request)) {
             return Verdict.ALLOWED;
         }
         // During the grace period the lock is not yet fully enforced.
@@ -84,6 +93,9 @@ public final class EndAccessGate {
         if (endGateway && !blockEndGateway) {
             return Verdict.ALLOWED;
         }
+        if (!endGateway && travelsWithinScopedEnd(request)) {
+            return Verdict.ALLOWED;
+        }
         if (gracePeriodActive) {
             return Verdict.GRACE_PERIOD;
         }
@@ -92,5 +104,10 @@ public final class EndAccessGate {
 
     private boolean inScopedWorld(String worldName) {
         return endWorlds.isEmpty() || endWorlds.stream().anyMatch(name -> name.equalsIgnoreCase(worldName));
+    }
+
+    private boolean travelsWithinScopedEnd(AccessRequest request) {
+        return request.fromEnvironment() == World.Environment.THE_END
+                && inScopedWorld(request.fromWorldName());
     }
 }

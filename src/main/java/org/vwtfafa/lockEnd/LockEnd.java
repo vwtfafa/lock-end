@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
@@ -61,6 +62,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private volatile ScheduleManager schedules;
     private volatile EvacuationService evacuation;
     private UpdateChecker updateChecker;
+    private FastStatsManager fastStatsManager;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
     private final AtomicInteger lockCount = new AtomicInteger();
@@ -85,7 +87,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private LockHistoryCommand historyCommand;
     private UndoCommand undoCommand;
     private ConfigValidatorCommand configValidatorCommand;
-    private AsyncLogger asyncLogger;
+    private volatile AsyncLogger asyncLogger;
 
     // Logging & Analytics
     private final Map<UUID, Long> lastAttemptTimes = new ConcurrentHashMap<>();
@@ -142,19 +144,23 @@ public final class LockEnd extends JavaPlugin implements Listener {
             schedules.arm();
         }
 
+        // A server may restart while the End is locked. Re-run the configured
+        // evacuation instead of leaving players stranded in the End.
+        if (locked && getConfig().getBoolean("evacuation.enabled", false)) {
+            evacuation.schedule();
+        }
+
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") && getConfig().getBoolean("hooks.placeholderapi", true)) {
             placeholderExpansion = new LockEndExpansion(this);
             placeholderExpansion.register();
         }
 
-        if (getConfig().getBoolean("update-checker.enabled", true)) {
-            updateChecker = new UpdateChecker(this);
-            updateChecker.checkForUpdates();
-        }
+        configureUpdateChecker();
 
         // Initialize bStats metrics. Opt-out is handled globally via the
         // bStats plugin config (plugins/bStats/config.json), not here.
         new MetricsManager(this);
+        fastStatsManager = new FastStatsManager(this);
 
         getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.3+)");
     }
@@ -162,6 +168,12 @@ public final class LockEnd extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         shuttingDown = true;
+        if (fastStatsManager != null) {
+            fastStatsManager.shutdown();
+        }
+        if (historyCommand != null) {
+            historyCommand.flush();
+        }
         persistStatsToConfig();
         getConfig().set("locked", locked);
         saveConfig();
@@ -182,6 +194,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
+        }
+        if (updateChecker != null) {
+            updateChecker.close();
+            updateChecker = null;
         }
         getLogger().info("EndLock disabled");
     }
@@ -234,6 +250,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return changed;
     }
 
+    private void configureUpdateChecker() {
+        if (getConfig().getBoolean("update-checker.enabled", true)) {
+            if (updateChecker == null) {
+                updateChecker = new UpdateChecker(this);
+            }
+            updateChecker.checkForUpdates();
+        } else if (updateChecker != null) {
+            updateChecker.close();
+            updateChecker = null;
+        }
+    }
+
     private void configureAsyncLogger() {
         if (asyncLogger != null) {
             asyncLogger.shutdown();
@@ -265,6 +293,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         return messages.msg(key);
     }
 
+    public MessageService getMessageService() {
+        return messages;
+    }
+
     public boolean hasMessage(String key) {
         return messages.hasMessage(key);
     }
@@ -279,6 +311,14 @@ public final class LockEnd extends JavaPlugin implements Listener {
      */
     public Component message(String key, Map<String, String> placeholders) {
         return messages.message(key, placeholders);
+    }
+
+    /**
+     * Renders a message template with literal text and pre-parsed component placeholders.
+     */
+    public Component message(String key, Map<String, String> placeholders,
+                             Map<String, Component> componentPlaceholders) {
+        return messages.message(key, placeholders, componentPlaceholders);
     }
 
     /**
@@ -460,15 +500,12 @@ public final class LockEnd extends JavaPlugin implements Listener {
      * Reloads configuration, language files and all dependent managers.
      */
     public void reloadPlugin() {
-        if (evacuation != null) {
-            evacuation.cancel();
-        }
-        if (gracePeriodTask != null) {
-            gracePeriodTask.cancel();
-        }
         persistStatsToConfig();
         saveConfig();
         Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
+        if (historyCommand != null) {
+            historyCommand.flush();
+        }
         reloadConfig();
         migrateConfig();
         messages.loadFromConfig();
@@ -484,6 +521,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         soundPlayer.loadConfig();
         schedules.reload();
 
+        // A pending evacuation re-reads the config when it runs, so keep it
+        // alive across reloads. Restart one if evacuation is enabled but no
+        // task survived (for example after a restart while locked).
+        if (locked && getConfig().getBoolean("evacuation.enabled", false) && !evacuation.isPending()) {
+            evacuation.schedule();
+        }
+
         boolean placeholderEnabled = getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")
                 && getConfig().getBoolean("hooks.placeholderapi", true);
         if (placeholderEnabled && placeholderExpansion == null) {
@@ -493,10 +537,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        if (getConfig().getBoolean("update-checker.enabled", true)) {
-            updateChecker = new UpdateChecker(this);
-            updateChecker.checkForUpdates();
-        }
+        configureUpdateChecker();
     }
 
     public LockHistoryCommand getHistoryCommand() {
@@ -586,16 +627,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (!locked) {
             return messages.msg("remaining-unlocked");
         }
-        return schedules.hasAction()
-                ? schedules.getTime().format(SCHEDULE_FORMAT)
+        LocalDateTime target = schedules.getTime();
+        return target != null
+                ? target.format(SCHEDULE_FORMAT)
                 : messages.msg("remaining-permanent");
-    }
-
-    /**
-     * Escapes MiniMessage tags in user-provided input so it renders literally.
-     */
-    public String sanitize(String input) {
-        return messages.sanitize(input);
     }
 
     private void sendJoinNotification(Player player) {
@@ -657,16 +692,18 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (event.getTo() == null || event.getTo().getWorld() == null) {
             return;
         }
+        World sourceWorld = event.getFrom() == null || event.getFrom().getWorld() == null
+                ? player.getWorld()
+                : event.getFrom().getWorld();
         EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                sourceWorld.getEnvironment(),
+                sourceWorld.getName(),
                 event.getTo().getWorld().getEnvironment(),
                 event.getTo().getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(
                 locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkPlayer(request, event.getCause(),
                         () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
-        World sourceWorld = event.getFrom() == null || event.getFrom().getWorld() == null
-                ? player.getWorld()
-                : event.getFrom().getWorld();
 
         switch (verdict) {
             case ALLOWED -> {}
@@ -686,10 +723,76 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!locked || !joinNotificationsEnabled) {
+        Player player = event.getPlayer();
+        if (locked && getConfig().getBoolean("evacuation.enabled", false)
+                && isGuardedEndWorld(player.getWorld()) && !evacuation.isPending()) {
+            evacuation.schedule();
+        }
+        if (locked && joinNotificationsEnabled) {
+            sendJoinNotification(player);
+        }
+    }
+
+    /**
+     * Respawns do not fire PlayerTeleportEvent, so a spawn point in a guarded
+     * End world would otherwise bypass the lock entirely.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        if (!locked) {
             return;
         }
-        sendJoinNotification(event.getPlayer());
+        Location to = event.getRespawnLocation();
+        if (to == null || to.getWorld() == null) {
+            return;
+        }
+        Player player = event.getPlayer();
+        // Prefer the recorded death location; the player's current world may
+        // already have been changed by the time the event is observed.
+        Location deathLocation = player.getLastDeathLocation();
+        World sourceWorld = deathLocation != null && deathLocation.getWorld() != null
+                ? deathLocation.getWorld()
+                : player.getWorld();
+        EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                sourceWorld.getEnvironment(),
+                sourceWorld.getName(),
+                to.getWorld().getEnvironment(),
+                to.getWorld().getName());
+        EndAccessGate.Verdict verdict = new EndAccessGate(
+                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                .checkPlayer(request, PlayerTeleportEvent.TeleportCause.UNKNOWN,
+                        () -> whitelistChecker.canBypass(player, to.getWorld()));
+
+        switch (verdict) {
+            case ALLOWED -> {}
+            case GRACE_PERIOD -> player.sendMessage(messages.message("grace-period-active", Map.of()));
+            case BLOCKED -> {
+                event.setRespawnLocation(findSafeRespawnLocation(to.getWorld()));
+                player.sendMessage(messages.message("locked-reason",
+                        Map.of("%reason%", lockReasonManager.getReason("default"))));
+                soundPlayer.playDenialSound(player);
+                if (logAttempts) {
+                    logAttempt(player, sourceWorld, "RESPAWN");
+                }
+                recordBlockedAttempt();
+            }
+        }
+    }
+
+    /**
+     * Picks a non-End world spawn for a blocked respawn, preferring the
+     * configured evacuation target.
+     */
+    private Location findSafeRespawnLocation(World blockedWorld) {
+        World target = evacuation != null ? evacuation.getTargetWorld() : null;
+        if (target != null && target.getEnvironment() != World.Environment.THE_END) {
+            return target.getSpawnLocation();
+        }
+        return getServer().getWorlds().stream()
+                .filter(world -> world.getEnvironment() != World.Environment.THE_END)
+                .findFirst()
+                .map(World::getSpawnLocation)
+                .orElseGet(blockedWorld::getSpawnLocation);
     }
 
     // EntityTeleportEvent also receives EntityPortalEvent and
@@ -707,7 +810,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (to == null || to.getWorld() == null) {
             return;
         }
+        Location from = event.getFrom();
+        World fromWorld = from == null || from.getWorld() == null
+                ? event.getEntity().getWorld()
+                : from.getWorld();
         EndAccessGate.AccessRequest request = new EndAccessGate.AccessRequest(
+                fromWorld.getEnvironment(),
+                fromWorld.getName(),
                 to.getWorld().getEnvironment(),
                 to.getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(

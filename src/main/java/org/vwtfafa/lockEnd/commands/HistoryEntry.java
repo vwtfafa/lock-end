@@ -1,8 +1,12 @@
 package org.vwtfafa.lockEnd.commands;
 
+import net.kyori.adventure.text.Component;
+import org.vwtfafa.lockEnd.MessageService;
+
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.UUID;
 
 public record HistoryEntry(Instant timestamp, String actor, UUID actorUuid, String action,
@@ -15,21 +19,44 @@ public record HistoryEntry(Instant timestamp, String actor, UUID actorUuid, Stri
         this(timestamp, actor, null, action, source, null, "RECORDED", previousState, null);
     }
 
-    public String display() {
-        StringBuilder details = new StringBuilder(String.format("[%s] %s by %s (source: %s, result: %s",
-                FORMAT.format(timestamp), action, actor, source, result));
+    /**
+     * Renders the entry through the language files. Optional details are
+     * composed as components so user-controlled values stay literal and never
+     * get reparsed as MiniMessage formatting.
+     */
+    public Component display(MessageService messages) {
+        Component details = buildDetails(messages);
+        return messages.message("history-entry", Map.of(
+                "%timestamp%", FORMAT.format(timestamp),
+                "%action%", action,
+                "%actor%", actor,
+                "%source%", source,
+                "%result%", result), Map.of("%details%", details));
+    }
+
+    private Component buildDetails(MessageService messages) {
+        Component details = Component.empty();
         if (actorUuid != null) {
-            details.append(", actor UUID: ").append(actorUuid);
+            details = details.append(messages.message("history-details-actor-uuid",
+                    Map.of("%uuid%", actorUuid.toString())));
         }
         if (subjectUuid != null) {
-            details.append(", player UUID: ").append(subjectUuid);
+            details = details.append(messages.message("history-details-subject-uuid",
+                    Map.of("%uuid%", subjectUuid.toString())));
         }
         if (previousState != null) {
-            details.append(", state: ").append(previousState ? "locked" : "unlocked");
+            Component state = messages.message(stateKey(previousState), Map.of());
             if (newState != null) {
-                details.append(" -> ").append(newState ? "locked" : "unlocked");
+                state = state.append(messages.message("history-details-state-transition", Map.of(),
+                        Map.of("%state%", messages.message(stateKey(newState), Map.of()))));
             }
+            details = details.append(messages.message("history-details-state", Map.of(),
+                    Map.of("%state%", state)));
         }
-        return details.append(')').toString();
+        return details;
+    }
+
+    private static String stateKey(boolean locked) {
+        return locked ? "history-state-locked" : "history-state-unlocked";
     }
 }

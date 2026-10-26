@@ -1,12 +1,14 @@
 package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the literal placeholder rendering used by cached message templates.
@@ -54,5 +56,18 @@ class MessageServiceRenderTest {
                 Component.text("x %missing% y"), Map.of());
 
         assertEquals("x %missing% y", plain(rendered));
+    }
+
+    @Test
+    void componentPlaceholdersKeepTheirStyling() {
+        Component template = Component.text("The End is %status%.");
+        Component status = Component.text("open", NamedTextColor.GREEN);
+
+        Component rendered = MessageService.applyComponentPlaceholders(template, Map.of("%status%", status));
+
+        assertEquals("The End is open.", plain(rendered));
+        assertTrue(rendered.children().stream()
+                        .anyMatch(child -> NamedTextColor.GREEN.equals(child.color())),
+                "status component should keep its green color");
     }
 }

@@ -1,5 +1,6 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -38,6 +40,24 @@ class LanguageKeyParityTest {
             assertNotNull(permanent, "messages_" + language + ".yml is missing remaining-permanent");
             assertFalse(unlocked.contains("§"), "remaining-unlocked should be plain text for PlaceholderAPI");
             assertFalse(permanent.contains("§"), "remaining-permanent should be plain text for PlaceholderAPI");
+        }
+    }
+
+    @Test
+    void bundledLanguageFilesUseMiniMessageInsteadOfLegacyCodes() {
+        MiniMessage miniMessage = MiniMessage.miniMessage();
+        for (String language : LANGUAGES) {
+            YamlConfiguration messages = load(language);
+            for (String key : messages.getKeys(true)) {
+                String value = messages.getString(key);
+                if (value == null) {
+                    continue;
+                }
+                assertFalse(value.contains("§"),
+                        "lang/messages_" + language + ".yml uses legacy color codes in " + key);
+                assertDoesNotThrow(() -> miniMessage.deserialize(value),
+                        "lang/messages_" + language + ".yml has invalid MiniMessage in " + key);
+            }
         }
     }
 

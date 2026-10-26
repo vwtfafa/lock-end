@@ -42,8 +42,8 @@ public class UndoCommand {
             return true;
         }
 
-        plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.success", Map.of(
-                "%action%", plugin.isLocked() ? plugin.msg("closed") : plugin.msg("open"))));
+        plugin.getPaperScheduler().sendMessage(sender, plugin.message("undo.success", Map.of(),
+                Map.of("%action%", plugin.message(plugin.isLocked() ? "closed" : "open", Map.of()))));
         return true;
     }
 }

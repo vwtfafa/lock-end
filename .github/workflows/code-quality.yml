@@ -29,13 +29,13 @@ jobs:
         run: |
           ./gradlew build --no-daemon --stacktrace
 
-      - name: Smoke test on pinned Paper 26.3 Build 190
+      - name: Smoke test on pinned Paper 26.3 Build 209
         run: |
           mkdir -p smoke-paper/plugins
           curl --fail --location --retry 3 \
-            https://fill-data.papermc.io/v1/objects/db0fd32588e732fd0de57cc95a2076624b0e73c1cb2dba87dc5f5f3340bcbb1b/paper-26.3-190.jar \
+            https://fill-data.papermc.io/v1/objects/0a056c7648cfa0ca8d9b8c833a2bd2e1313ed4f1393a5125dd3444a4ee257e22/paper-26.3-209.jar \
             --output smoke-paper/paper.jar
-          echo "db0fd32588e732fd0de57cc95a2076624b0e73c1cb2dba87dc5f5f3340bcbb1b  smoke-paper/paper.jar" \
+          echo "0a056c7648cfa0ca8d9b8c833a2bd2e1313ed4f1393a5125dd3444a4ee257e22  smoke-paper/paper.jar" \
             | sha256sum --check
           cp build/libs/lock-end-*.jar smoke-paper/plugins/EndLock.jar
           printf 'eula=true\n' > smoke-paper/eula.txt
@@ -77,7 +77,7 @@ jobs:
           done
           for attempt in $(seq 1 30); do
             if grep -Fq 'History storage:' server.log; then
-              echo "EndLock loaded and history status command responded on Paper 26.3 Build 190."
+              echo "EndLock loaded and history status command responded on Paper 26.3 Build 209."
               exit 0
             fi
             sleep 1
@@ -86,13 +86,13 @@ jobs:
           echo "Paper smoke test did not observe the history status response."
           exit 1
 
-      - name: Smoke test on pinned Folia 26.3 Build 3 (ALPHA)
+      - name: Smoke test on pinned Folia 26.3 Build 5 (ALPHA)
         run: |
           mkdir -p smoke-folia/plugins
           curl --fail --location --retry 3 \
-            https://fill-data.papermc.io/v1/objects/0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022/folia-26.3-3.jar \
+            https://fill-data.papermc.io/v1/objects/c105f6be9463b2da37568b620e81b9ab2f6a6ae771f8fff9caf7a1c0946b340a/folia-26.3-5.jar \
             --output smoke-folia/folia.jar
-          echo "0c4cc7dd82c40bd1effa8a9c4cacfad55d41b7dc38377900957c961c2952c022  smoke-folia/folia.jar" \
+          echo "c105f6be9463b2da37568b620e81b9ab2f6a6ae771f8fff9caf7a1c0946b340a  smoke-folia/folia.jar" \
             | sha256sum --check
           cp build/libs/lock-end-*.jar smoke-folia/plugins/EndLock.jar
           printf 'eula=true\n' > smoke-folia/eula.txt
@@ -146,7 +146,7 @@ jobs:
                 echo "Folia smoke test observed an unsubstituted placeholder."
                 exit 1
               fi
-              echo "EndLock loaded and command responses were healthy on Folia 26.3 Build 3 (ALPHA)."
+              echo "EndLock loaded and command responses were healthy on Folia 26.3 Build 5 (ALPHA)."
               exit 0
             fi
             sleep 1

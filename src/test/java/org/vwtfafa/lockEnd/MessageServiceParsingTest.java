@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The bundled language files mix legacy section codes with MiniMessage markup,
- * so parsing must accept both instead of throwing on legacy input.
+ * Bundled language files use MiniMessage; legacy section codes remain supported
+ * for custom files. Both paths must parse without throwing.
  */
 class MessageServiceParsingTest {
 
@@ -56,6 +56,22 @@ class MessageServiceParsingTest {
     }
 
     @Test
+    void miniMessageColorTagsParse() {
+        Component rendered = assertDoesNotThrow(() -> render("<red>End is locked"));
+
+        assertEquals("End is locked", plain(rendered));
+    }
+
+    @Test
+    void unknownTagsStayLiteralInUsageHints() {
+        Component rendered = assertDoesNotThrow(
+                () -> render("<red>Usage: /endlock unlockin <days> or /endlock unlockat <yyyy-MM-dd> <HH:mm>"));
+
+        assertEquals("Usage: /endlock unlockin <days> or /endlock unlockat <yyyy-MM-dd> <HH:mm>",
+                plain(rendered));
+    }
+
+    @Test
     void miniMessageGradientStillParses() {
         Component rendered = assertDoesNotThrow(
                 () -> render("<gradient:#ff0000:#ffff00>The End is locked!</gradient>"));
@@ -80,5 +96,12 @@ class MessageServiceParsingTest {
         Component rendered = MessageService.render("§cHi", MINI_MESSAGE, false);
 
         assertEquals("Hi", plain(rendered));
+    }
+
+    @Test
+    void disabledMiniMessageStripsMiniMessageTags() {
+        Component rendered = MessageService.render("<red>Hi §aThere", MINI_MESSAGE, false);
+
+        assertEquals("Hi There", plain(rendered));
     }
 }
