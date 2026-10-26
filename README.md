@@ -58,7 +58,12 @@ java -jar paper.jar --nogui
 
 If the variable is unset or empty, FastStats is skipped and bStats continues to
 run. The token is not stored in EndLock's config or logged. FastStats error
-tracking is not enabled.
+tracking is not enabled. EndLock also submits the cumulative lock, unlock, and
+blocked-attempt counters as `endlock_lock_count`, `endlock_unlock_count`, and
+`endlock_blocked_attempt_count`. Add matching numeric data sources with those
+IDs in your FastStats project settings to display them. These values follow
+EndLock's `stats.enabled` setting and are cumulative totals, not per-interval
+counts; no player names or UUIDs are included.
 
 ## Commands
 
