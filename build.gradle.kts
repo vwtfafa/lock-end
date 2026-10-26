@@ -9,7 +9,7 @@ plugins {
 group = "org.vwtfafa"
 version = "3.0.1"
 
-val paperApiVersion = "26.3.build.209-stable"
+val paperApiVersion = "26.3.build.214-stable"
 
 repositories {
     mavenCentral()
