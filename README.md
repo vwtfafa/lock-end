@@ -2,6 +2,11 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## What's new in 3.0.2
+
+Version 3.0.2 removes the optional FastStats integration. The existing bStats
+integration remains unchanged.
+
 ## What's new in 3.0.1
 
 Version 3.0.1 is a bug-fix release targeting Paper 26.3 Build #209. It hardens
@@ -33,32 +38,10 @@ migrate and write.
 
 ## Installation
 
-1. Download the latest `lock-end-3.0.1.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-3.0.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
-
-### FastStats
-
-FastStats metrics run alongside the existing bStats integration. To enable them,
-set `FASTSTATS_TOKEN` in the server process environment before starting Paper or
-Folia. For example, in PowerShell:
-
-```powershell
-$env:FASTSTATS_TOKEN = "<your FastStats project token>"
-java -jar paper.jar --nogui
-```
-
-On Linux, export the variable in the server's startup environment:
-
-```sh
-export FASTSTATS_TOKEN="<your FastStats project token>"
-java -jar paper.jar --nogui
-```
-
-If the variable is unset or empty, FastStats is skipped and bStats continues to
-run. The token is not stored in EndLock's config or logged. FastStats error
-tracking and custom EndLock metrics are not enabled.
 
 ## Commands
 
@@ -147,7 +130,6 @@ permissions:
 - **Test Command**: Verify portal blocking works correctly
 - **Update Checker**: Automatically notifies Ops when updates are available (optional)
 - **bStats Integration**: Anonymous usage statistics to help developers improve the plugin (optional)
-- **FastStats Integration**: Optional metrics alongside bStats, enabled with a server environment token
 - **Lock Reasons**: Customizable reason displayed when blocking
 - **Grace Period**: Temporary unlock after locking for safe player exit
 - **Whitelists**: Player, UUID, and per-world whitelists to bypass the lock
@@ -163,7 +145,7 @@ permissions:
 - **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
 - **Mobile Alias**: `/el` short command for console/mobile
-- No server-side setup dependencies (bStats and FastStats are shaded)
+- No dependencies (bStats is shaded), small JAR (~150 KB)
 
 ## Configuration
 
@@ -323,7 +305,7 @@ The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-3.0.1.jar`
+Output: `build/libs/lock-end-3.0.2.jar`
 
 ## Automatic releases (GitHub Actions)
 

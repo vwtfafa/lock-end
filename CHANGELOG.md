@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.2] - 2026-10-26
+
+### Changed
+- Bumped the project version to 3.0.2.
+
+### Removed
+- Removed the optional FastStats integration; the existing bStats integration remains unchanged.
+
 ## [3.0.1] - 2026-10-21
 
 ### Changed
