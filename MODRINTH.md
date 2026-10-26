@@ -18,7 +18,7 @@
 **Lock-End** is a lightweight Minecraft plugin that allows server admins to globally lock or unlock access to the **End dimension** with a simple command.
 Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
-Version 3.0.1 is a bug-fix release for Paper 26.3 Build #209: it tightens End access checks for respawns and internal travel, preserves grace periods and evacuations across reloads, modernizes message rendering to MiniMessage, and fixes scheduling, history persistence, placeholders, sounds, and validation. The Folia smoke test now targets 26.3 Build 5 (ALPHA).
+Version 3.0.2 removes the optional FastStats integration; the existing bStats integration remains unchanged.
 
 ---
 
@@ -279,7 +279,7 @@ Customize messages in `plugins/EndLock/lang/messages_xx.yml` (copy from the JAR 
 ## 📦 Installation
 
 1. Download the latest release from Modrinth or [GitHub Releases](https://github.com/vwtfafa/lock-end/releases)
-2. Put `lock-end-3.0.1.jar` into your `plugins` folder
+2. Put `lock-end-3.0.2.jar` into your `plugins` folder
 3. Restart your server (Paper or Folia 26.3+, Java 25)
 4. Edit `plugins/EndLock/config.yml` if you want to customize behavior
 
