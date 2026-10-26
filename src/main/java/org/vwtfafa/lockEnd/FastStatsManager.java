@@ -1,7 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import dev.faststats.bukkit.BukkitContext;
-import dev.faststats.data.Metric;
+import dev.faststats.Metrics;
 
 /**
  * Starts FastStats metrics when a project token is available in the environment.
@@ -20,14 +20,7 @@ public final class FastStatsManager {
         }
 
         context = new BukkitContext.Factory(plugin, token.trim())
-                .metrics(factory -> factory
-                        .addMetric(Metric.number("endlock_lock_count", () ->
-                                plugin.isStatsEnabled() ? plugin.getLockCount() : null))
-                        .addMetric(Metric.number("endlock_unlock_count", () ->
-                                plugin.isStatsEnabled() ? plugin.getUnlockCount() : null))
-                        .addMetric(Metric.number("endlock_blocked_attempt_count", () ->
-                                plugin.isStatsEnabled() ? plugin.getBlockedCount() : null))
-                        .create())
+                .metrics(Metrics.Factory::create)
                 .create();
         context.ready();
         plugin.getLogger().info("FastStats metrics enabled.");
