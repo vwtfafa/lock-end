@@ -21,6 +21,7 @@ repositories {
         name = "placeholderapi"
         url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     }
+    maven("https://repo.faststats.dev/releases")
     gradlePluginPortal()
 }
 
@@ -28,6 +29,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
     compileOnly("me.clip:placeholderapi:2.12.3")
     implementation("org.bstats:bstats-bukkit:3.2.1")
+    implementation("dev.faststats.metrics:bukkit:0.31.0")
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
     testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
@@ -53,13 +55,13 @@ tasks {
         configurations = listOf(project.configurations.runtimeClasspath.get())
 
         dependencies {
-            // Only merge bStats into the final jar, no other dependencies
-            exclude { it.moduleGroup != "org.bstats" }
+            // Only merge bStats and FastStats into the final jar
+            exclude { it.moduleGroup !in setOf("org.bstats", "dev.faststats.metrics") }
         }
 
-        // Relocate bStats into the plugin's package to avoid conflicts with other
-        // plugins using bStats
+        // Relocate metrics libraries to avoid conflicts with other plugins.
         relocate("org.bstats", project.group.toString())
+        relocate("dev.faststats", "${project.group}.faststats")
     }
 }
 

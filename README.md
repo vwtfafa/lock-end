@@ -38,6 +38,28 @@ migrate and write.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
 
+### FastStats
+
+FastStats metrics run alongside the existing bStats integration. To enable them,
+set `FASTSTATS_TOKEN` in the server process environment before starting Paper or
+Folia. For example, in PowerShell:
+
+```powershell
+$env:FASTSTATS_TOKEN = "<your FastStats project token>"
+java -jar paper.jar --nogui
+```
+
+On Linux, export the variable in the server's startup environment:
+
+```sh
+export FASTSTATS_TOKEN="<your FastStats project token>"
+java -jar paper.jar --nogui
+```
+
+If the variable is unset or empty, FastStats is skipped and bStats continues to
+run. The token is not stored in EndLock's config or logged. FastStats error
+tracking is not enabled.
+
 ## Commands
 
 All subcommands are available under the three base commands: `/endlock`, `/lock`, and `/el` (mobile‑friendly alias).  
@@ -125,6 +147,7 @@ permissions:
 - **Test Command**: Verify portal blocking works correctly
 - **Update Checker**: Automatically notifies Ops when updates are available (optional)
 - **bStats Integration**: Anonymous usage statistics to help developers improve the plugin (optional)
+- **FastStats Integration**: Optional metrics alongside bStats, enabled with a server environment token
 - **Lock Reasons**: Customizable reason displayed when blocking
 - **Grace Period**: Temporary unlock after locking for safe player exit
 - **Whitelists**: Player, UUID, and per-world whitelists to bypass the lock
@@ -140,7 +163,7 @@ permissions:
 - **Config Validator**: Check config for errors with `/endlock validateconfig`
 - **Async Logging**: File I/O off main thread to prevent lag
 - **Mobile Alias**: `/el` short command for console/mobile
-- No dependencies (bStats is shaded), small JAR (~150 KB)
+- No server-side setup dependencies (bStats and FastStats are shaded)
 
 ## Configuration
 

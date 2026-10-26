@@ -62,6 +62,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private volatile ScheduleManager schedules;
     private volatile EvacuationService evacuation;
     private UpdateChecker updateChecker;
+    private FastStatsManager fastStatsManager;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
     private final AtomicInteger lockCount = new AtomicInteger();
@@ -159,6 +160,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // Initialize bStats metrics. Opt-out is handled globally via the
         // bStats plugin config (plugins/bStats/config.json), not here.
         new MetricsManager(this);
+        fastStatsManager = new FastStatsManager(this);
 
         getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.3+)");
     }
@@ -166,6 +168,9 @@ public final class LockEnd extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         shuttingDown = true;
+        if (fastStatsManager != null) {
+            fastStatsManager.shutdown();
+        }
         if (historyCommand != null) {
             historyCommand.flush();
         }
