@@ -29,23 +29,27 @@ und auf tatsächliche Statusänderungen reagieren können. Beispiele:
 
 #### Erste API-Version: lesen und beobachten
 
-Die erste Version sollte nur stabile, bewusst ausgewählte Informationen
-freigeben:
+Die API sollte zunächst nur stabile, bewusst ausgewählte Informationen
+freigeben. Die folgenden Signaturen sind ein Gesprächs- und Designentwurf,
+keine fertige API-Spezifikation:
 
 ```java
 public interface EndLockApi {
     boolean isLocked();
 
     String getLockReason();
-
-    boolean isGuardedEndWorld(World world);
 }
 ```
 
-Die API sollte über den Bukkit/Paper-`ServicesManager` angeboten werden. Damit
-müssen Integrationen keine `LockEnd`-Interna oder Config-Dateien auslesen.
-EndLock bleibt zur Laufzeit eine optionale Abhängigkeit; integrierende Plugins
-prüfen, ob der Service verfügbar ist.
+Eine Abfrage, ob eine konkrete Welt vom Lock erfasst wird, kommt nur dazu, wenn
+ein tatsächlicher Verbraucherfall und eine eindeutige Semantik dafür vorliegen.
+Die API sollte über einen von Paper 26.3 verifizierten Integrationsmechanismus
+angeboten werden. Der `ServicesManager` ist ein Kandidat, dessen Verfügbarkeit,
+Registrierung und Lebenszyklus vor der Implementierung anhand der offiziellen
+Dokumentation geprüft werden müssen. Damit müssen Integrationen keine
+`LockEnd`-Interna oder Config-Dateien auslesen. EndLock bleibt zur Laufzeit eine
+optionale Abhängigkeit; integrierende Plugins prüfen, ob der Service verfügbar
+ist.
 
 #### Statusänderungs-Event
 
@@ -61,10 +65,20 @@ Das Event wird nicht ausgelöst, wenn der gewünschte Zustand bereits aktiv ist
 oder eine Änderung fehlschlägt. Es informiert über eine bereits ausgeführte
 Änderung und kann diese nicht nachträglich verhindern.
 
+Vor der Umsetzung ist festzulegen, in welchem Ausführungskontext dieses Event
+auf Paper und Folia ausgelöst wird. Listener dürfen daraus keine implizite
+Berechtigung ableiten, beliebige Welt- oder Spielerdaten synchron zu ändern.
+Wenn die Threadgarantien nicht plattformübergreifend klar und testbar sind,
+muss das API-Design diese Einschränkung explizit dokumentieren oder den
+Event-Vertrag entsprechend vereinfachen.
+
 #### API-Grenzen und Kompatibilität
 
 - Die erste API-Version ist **read-only**. Eine API-Methode zum Sperren oder
   Freigeben wird zunächst bewusst nicht angeboten.
+- Die erste Version bleibt absichtlich klein: Statusabfrage und
+  Statusänderungs-Event. Weltregeln, Konfiguration, Zeitpläne und Statistiken
+  werden nur bei einem belegten Integrationsbedarf Teil der API.
 - Änderungen laufen weiterhin über EndLocks vorhandene Befehls- und
   Zustandslogik. So bleiben Verlauf, Benachrichtigungen, Zeitpläne,
   Grace-Period und Evakuierung konsistent.
@@ -89,7 +103,29 @@ passenden Entity-Scheduler ausführen. Ein vollständiges, versionsgeprüftes
 Beispiel gehört in die spätere API-Dokumentation, sobald die konkreten Klassen
 implementiert sind.
 
-### 2. Folia-Spielerpfade live verifizieren
+### 2. Machbarkeit vor Implementierung
+
+Bevor die API Teil eines Releases wird:
+
+1. Die offiziellen Paper-26.3-Dokumente für Service-Registrierung, Event-
+   Dispatch und Scheduler-Verhalten prüfen; dieselben Annahmen für Folia
+   verifizieren.
+2. Entscheiden, wie Verbraucher die API beim Kompilieren beziehen. Für den
+   ersten Schritt keine Maven-Veröffentlichung oder neue Laufzeitabhängigkeit
+   voraussetzen; Distribution und optionale Abhängigkeit müssen klar
+   dokumentiert sein.
+3. Einen kleinen End-to-End-Prototyp mit einem Verbraucher-Plugin bauen und
+   prüfen, ob der Status beim Start abfragbar ist und erfolgreiche Änderungen
+   genau ein Event auslösen.
+4. Erst danach den Vertrag stabilisieren und Tests, Beispiel und
+   Kompatibilitätsregeln festlegen.
+
+Wenn Service-Lebenszyklus oder Event-Threading nicht sauber mit Paper und
+Folia vereinbar sind, sollte der Releaseumfang zunächst auf eine dokumentierte
+Statusabfrage begrenzt werden, statt eine unsichere Event-Garantie zu
+versprechen.
+
+### 3. Folia-Spielerpfade live verifizieren
 
 Die bisher dokumentierte Prüfung deckt vor allem Serverstart und Konsolenbefehle
 ab. Für 3.1 sollte ein Testserver mit Spielern mindestens folgende Abläufe
@@ -106,7 +142,7 @@ Kompatibilitätsaussage erweitert wird. Wenn kein echter Folia-Spielertest
 möglich ist, bleibt die Dokumentation ausdrücklich auf den tatsächlich
 verifizierten Umfang beschränkt.
 
-### 3. API- und Integrationsdokumentation
+### 4. API- und Integrationsdokumentation
 
 Mit der API sollten eine kompakte Integrationsanleitung und ein Beispiel-Plugin
 oder ein minimales Beispielprojekt veröffentlicht werden. Die Anleitung sollte
@@ -156,9 +192,13 @@ Fehlerbehandlung und Tests vorab eindeutig festgelegt werden.
 
 ## Empfohlene Reihenfolge
 
-1. API-Vertrag und Event-Semantik final festlegen.
-2. Service und Event implementieren und mit fokussierten Tests absichern.
-3. Ein kleines Verbraucherbeispiel und die Integrationsdokumentation ergänzen.
-4. Folia-Spielerpfade testen und nötige Korrekturen umsetzen.
-5. Releaseumfang, Changelog und Versionsnummer erst nach erfolgreicher
+1. API-Machbarkeit und Threading auf Paper 26.3 und Folia verifizieren.
+2. Verbraucherfall und Abhängigkeits-/Verteilungsweg entscheiden; API-Signaturen
+   und Event-Semantik finalisieren.
+3. Kleinen Prototyp mit einem Verbraucher-Plugin erstellen und die
+   Zustandsänderungswege prüfen.
+4. Nur bei erfolgreichem Prototyp Service/Event, fokussierte Tests und
+   Integrationsbeispiel implementieren.
+5. Folia-Spielerpfade testen und nötige Korrekturen umsetzen.
+6. Releaseumfang, Changelog und Versionsnummer erst nach erfolgreicher
    Verifikation festlegen.
