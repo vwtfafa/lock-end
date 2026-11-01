@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.vwtfafa.lockend.core.ScheduleSupport;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -227,14 +228,11 @@ public class ScheduleManager {
     }
 
     /**
-     * Remaining whole seconds for a captured target. Taking the target as a
-     * parameter avoids a second field read after a concurrent schedule clear.
+     * Remaining whole seconds for the pending action; delegates to the shared
+     * core so every platform computes identically.
      */
     static long remainingSeconds(LocalDateTime target, ZonedDateTime now) {
-        if (target == null) {
-            return -1;
-        }
-        return Math.max(0, Duration.between(now, target.atZone(now.getZone())).getSeconds());
+        return ScheduleSupport.remainingSeconds(target, now);
     }
 
     /**
@@ -326,21 +324,19 @@ public class ScheduleManager {
     /**
      * Only explicit lock and unlock actions are supported. Unknown values must
      * never be coerced to unlock, because a typo in the config would then open
-     * a locked End instead of keeping it closed.
+     * a locked End instead of keeping it closed. Shared decision rule from the
+     * core so every platform keeps the same behavior.
      */
     public static boolean isSupportedAction(String action) {
-        return "lock".equalsIgnoreCase(action) || "unlock".equalsIgnoreCase(action);
+        return ScheduleSupport.isSupportedAction(action);
     }
 
+    /**
+     * Parses a schedule time in the shared strict schedule format; delegates
+     * to the core.
+     */
     static LocalDateTime parseScheduleTime(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(value, LockEnd.SCHEDULE_FORMAT);
-        } catch (Exception exception) {
-            return null;
-        }
+        return ScheduleSupport.parseScheduleTime(value);
     }
 
     private void persistScheduledUnlockTime() {
@@ -433,16 +429,10 @@ public class ScheduleManager {
     }
 
     /**
-     * Formats a duration as a compact human readable string.
+     * Formats a duration as a compact human readable string; delegates to
+     * the core so every platform formats identically.
      */
     public static String formatDuration(long seconds) {
-        long days = seconds / 86400;
-        long hours = (seconds % 86400) / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long remainingSeconds = seconds % 60;
-        if (days > 0) return days + "d " + hours + "h";
-        if (hours > 0) return hours + "h " + minutes + "m";
-        if (minutes > 0) return minutes + "m " + remainingSeconds + "s";
-        return remainingSeconds + "s";
+        return ScheduleSupport.formatDuration(seconds);
     }
 }

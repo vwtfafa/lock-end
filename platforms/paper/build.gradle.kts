@@ -22,6 +22,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
     compileOnly("me.clip:placeholderapi:2.12.3")
     implementation("org.bstats:bstats-bukkit:3.2.1")
+    implementation(project(":lock-end-core"))
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
     testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
 }
@@ -44,8 +45,11 @@ tasks {
         configurations = listOf(project.configurations.runtimeClasspath.get())
 
         dependencies {
-            // Only merge bStats into the final jar
-            exclude { it.moduleGroup != "org.bstats" }
+            // Only merge bStats and the shared Lock-End modules into the final
+            // jar; everything else stays a (compileOnly) platform dependency
+            exclude {
+                it.moduleGroup != "org.bstats" && !it.moduleGroup.startsWith("org.vwtfafa")
+            }
         }
 
         // Relocate bStats into the plugin's package to avoid conflicts with other

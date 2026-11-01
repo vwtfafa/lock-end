@@ -28,6 +28,7 @@ import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 import org.vwtfafa.lockEnd.util.PaperScheduler;
+import org.vwtfafa.lockend.core.ScheduleSupport;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,11 +53,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class LockEnd extends JavaPlugin implements Listener {
     /**
      * Strict schedule format: impossible dates like 2026-02-30 are rejected
-     * instead of being silently rounded to the end of the month.
+     * instead of being silently rounded to the end of the month. Delegates to
+     * the shared core so every platform uses the same wire format.
      */
-    public static final DateTimeFormatter SCHEDULE_FORMAT = DateTimeFormatter
-            .ofPattern("uuuu-MM-dd HH:mm")
-            .withResolverStyle(java.time.format.ResolverStyle.STRICT);
+    public static final DateTimeFormatter SCHEDULE_FORMAT = ScheduleSupport.SCHEDULE_FORMAT;
     private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // Volatile because bStats chart suppliers read them from an async thread.
