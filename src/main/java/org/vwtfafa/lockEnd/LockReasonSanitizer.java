@@ -1,14 +1,15 @@
 package org.vwtfafa.lockEnd;
 
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.jspecify.annotations.Nullable;
 
 import java.util.regex.Pattern;
 
 /**
  * Pure helper that reduces configured lock reasons to plain text for the
- * 3.1 API ({@code EndLockApi#getLockReason()}): MiniMessage tags and legacy
- * section codes are removed, Unicode text and surrounding whitespace are
- * preserved (trimmed).
+ * 3.1 API ({@code EndLockApi#getLockReason()}): supported MiniMessage tags
+ * and valid legacy section codes are removed, Unicode and non-markup
+ * angle-bracket text are preserved, and surrounding whitespace is trimmed.
  *
  * <p>Deliberately separate from {@link MessageService}: the message renderer
  * turns section codes into formatting and renders components, while the API
@@ -17,8 +18,8 @@ import java.util.regex.Pattern;
  */
 final class LockReasonSanitizer {
 
-    private static final Pattern MINI_MESSAGE_TAGS = Pattern.compile("<[^>]*>");
-    private static final Pattern SECTION_CODES = Pattern.compile("§.");
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+    private static final Pattern SECTION_CODES = Pattern.compile("(?i)§[0-9A-FK-ORX]");
 
     private LockReasonSanitizer() {
     }
@@ -33,7 +34,7 @@ final class LockReasonSanitizer {
         if (raw == null) {
             return "";
         }
-        String withoutTags = MINI_MESSAGE_TAGS.matcher(raw).replaceAll("");
+        String withoutTags = MINI_MESSAGE.stripTags(raw);
         String withoutSectionCodes = SECTION_CODES.matcher(withoutTags).replaceAll("");
         return withoutSectionCodes.trim();
     }

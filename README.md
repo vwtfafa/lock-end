@@ -7,7 +7,8 @@
 Version 3.1 adds a small, read-only public plugin API in
 `org.vwtfafa.lockEnd.api`: other plugins can query the lock status
 (`EndLockApi` service via the Bukkit `ServicesManager`) and observe every
-successful lock state change via the non-cancellable `EndLockStateChangeEvent`.
+actual runtime state transition via the non-cancellable
+`EndLockStateChangeEvent`, even if a later side effect fails.
 Plugin developers find a consumer example under
 [`examples/api-consumer`](examples/api-consumer) and the full integration
 guide in [`docs/3.1-integration-guide.md`](docs/3.1-integration-guide.md).

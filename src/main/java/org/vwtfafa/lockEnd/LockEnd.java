@@ -234,32 +234,43 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         boolean previousState = locked;
         locked = newLocked;
-        historyCommand.recordPreviousState(previousState);
-        recordStateChange(locked);
-        persistStatsToConfig();
-        getConfig().set("locked", locked);
-        saveConfig();
+        try {
+            historyCommand.recordPreviousState(previousState);
+            recordStateChange(locked);
+            persistStatsToConfig();
+            getConfig().set("locked", locked);
+            saveConfig();
 
-        if (!locked) {
-            schedules.handleUnlocked();
-            evacuation.cancel();
-            gracePeriodTask.cancel();
+            if (!locked) {
+                schedules.handleUnlocked();
+                evacuation.cancel();
+                gracePeriodTask.cancel();
+            }
+            messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+            logAction(actor, action);
+            historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
+            if (locked) {
+                startGracePeriodIfEnabled();
+                evacuation.schedule();
+            }
+        } catch (RuntimeException | Error failure) {
+            try {
+                fireStateChangeEvent(previousState, newLocked, action, actor, actorUuid);
+            } catch (RuntimeException | Error eventFailure) {
+                if (eventFailure != failure) {
+                    failure.addSuppressed(eventFailure);
+                }
+            }
+            throw failure;
         }
-        messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
-        logAction(actor, action);
-        historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
-        if (locked) {
-            startGracePeriodIfEnabled();
-            evacuation.schedule();
-        }
-        // Fire exactly once per successful state change, after all side
-        // effects (stats, persistence, broadcast, history, grace period,
-        // evacuation) completed. Must stay on the synchronous tick context of
-        // the triggering action (contract docs/3.1-api-contract.md, sections
-        // 4.4 and 5) - same guard discipline: no event when locked == newLocked.
-        getServer().getPluginManager().callEvent(new EndLockStateChangeEvent(
-                previousState, locked, action, actor, actorUuid));
+        fireStateChangeEvent(previousState, newLocked, action, actor, actorUuid);
         return true;
+    }
+
+    private void fireStateChangeEvent(
+            boolean previousState, boolean newState, String action, String actor, UUID actorUuid) {
+        getServer().getPluginManager().callEvent(
+                new EndLockStateChangeEvent(previousState, newState, action, actor, actorUuid));
     }
 
     public boolean undoLastAction(String actor) {

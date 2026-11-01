@@ -29,8 +29,9 @@ authoritative project instruction document.
 The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
 "remember" a version from documentation or old notes; read the build file.
 
-The proposed 3.1 direction is documented in [ROADMAP-3.1.md](ROADMAP-3.1.md).
-It is a proposal, not a committed release scope.
+The EndLock 3.1 API and release scope are documented in
+[ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
+paths remain subject to the verification limits documented there.
 
 ---
 
@@ -140,12 +141,11 @@ document why the deprecated API is the only option.
   (`EndLockCommand#buildNode`). Do not add commands to `plugin.yml`.
 - **Events:** use Paper events where they exist (`io.papermc.paper.event.*`). Keep
   handlers small and delegate to the existing services.
-- **Public integrations:** keep any future EndLock API small and documented.
-  Expose stable contracts, not `LockEnd` implementation classes, config objects,
-  or mutable internal state. Verify service registration, event dispatch, and
-  thread behavior against Paper 26.3 and Folia before implementation. The 3.1
-  proposal is in [ROADMAP-3.1.md](ROADMAP-3.1.md); it does not authorize scope
-  expansion by itself.
+- **Public integrations:** keep the EndLock API small and documented. Expose
+  stable contracts, not `LockEnd` implementation classes, config objects, or
+  mutable internal state. Verify any API changes against Paper 26.3 and Folia.
+  The implemented 3.1 surface and its limits are in
+  [ROADMAP-3.1.md](ROADMAP-3.1.md); do not expand it without a concrete need.
 - **Config:** every new option needs a default in `config.yml`, a read path in the
   owning service, and validation in the config validator. Preserve backwards
   compatibility and migration behavior (`ConfigMigrator`).
@@ -294,22 +294,20 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
 6. Run `gradlew build`.
 7. Commit.
 
-### Evaluating 3.1 / public API proposals
+### Working on the 3.1 API
 
-1. Treat [ROADMAP-3.1.md](ROADMAP-3.1.md) as a proposal until the user approves
-   a concrete implementation scope.
-2. For a public API, first verify Paper 26.3 service/event behavior and Folia
-   threading. Do not publish a speculative contract or assume the proposed
-   signatures are final.
-3. Prefer a small read-only status query and a successful-state-change event as
-   the first slice. Keep mutation methods, broad settings access, metrics
-   integrations, and unrelated features out unless a concrete consumer need
-   justifies them.
-4. Preserve all existing state-change paths and side effects (history,
-   persistence, schedules, messages, grace periods, and evacuation).
-5. Add a focused API consumer example and tests only after the contract and
-   runtime behavior are verified. Test relevant player paths on Paper and Folia;
-   keep compatibility claims limited to what was actually tested.
+1. Treat [ROADMAP-3.1.md](ROADMAP-3.1.md) and
+   [docs/3.1-api-contract.md](docs/3.1-api-contract.md) as the current
+   implemented contract, not as approval for additional API scope.
+2. Before changing the API, verify Paper 26.3 service/event behavior and Folia
+   threading against the configured API. Do not add speculative signatures.
+3. Keep the surface read-only unless a concrete consumer need justifies a
+   separately reviewed change. Do not expose broad settings or internals.
+4. Preserve existing state-change side effects (history, persistence,
+   schedules, messages, grace periods, and evacuation).
+5. Keep compatibility claims limited to verified paths. The current open
+   player-path tests and optional-dependency smoke test are listed in the
+   roadmap and prototype report.
 
 ### Changing versions or dependencies
 

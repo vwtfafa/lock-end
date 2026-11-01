@@ -1,85 +1,83 @@
-# EndLockApiConsumer – 3.1 API-Verbraucher-Prototyp
+# EndLockApiConsumer – 3.1 API Consumer Prototype
 
-> **Verify-Hinweis:** Dieses Projekt ist die **live verifizierte**
-> Referenzimplementierung für den 3.1-Verbraucherpfad: Service-Abfrage,
-> Event-Dispatch und die Konsol-/Undo-/Zeitplanwege wurden auf Paper 26.3 und
-> Folia 26.3 Build 5 (ALPHA) getestet; siehe
-> [docs/3.1-prototype-verification.md](../../docs/3.1-prototype-verification.md).
-> Spieler-triggered Pfade auf Folia erfordern weiterhin eine manuelle
-> Verifikation mit echten Spielersitzungen.
+> **Verification:** This project is the live-tested reference consumer for the
+> 3.1 API. Service lookup, event dispatch, and console/undo/scheduled paths
+> were tested on Paper 26.3 and Folia 26.3 Build 5 ALPHA. Player-driven Folia
+> paths still require testing with live players. See the
+> [prototype report](../../docs/3.1-prototype-verification.md).
+>
+> **Integration guide:** For dependency setup, service lookup, event
+> observation, Paper/Folia threading, and a complete example, see the
+> [integration guide](../../docs/3.1-integration-guide.md).
 
-> **Ausführliche Anleitung:** Für die Integration in ein eigenes Plugin
-> (Dependency-Setup, Service-Lookup, Event-Beobachtung, Paper/Folia-
-> Threadregeln, vollständiges Beispiel) siehe
-> [docs/3.1-integration-guide.md](../../docs/3.1-integration-guide.md).
+This standalone mini-project builds the `EndLockApiConsumer` 0.1.0 plugin. It
+is not part of the main EndLock build. It demonstrates the consumer pattern
+defined in the [API contract](../../docs/3.1-api-contract.md) and tests the
+prototype scenarios described in the
+[feasibility notes](../../docs/3.1-api-feasibility.md).
 
-Eigenständiges Mini-Projekt (Plugin `EndLockApiConsumer` v0.1.0), **nicht Teil
-des Haupt-EndLock-Builds**. Es simuliert den Verbraucherfall aus
-[docs/3.1-api-contract.md](../../docs/3.1-api-contract.md) §7/§8 und
-verifiziert die Prototyp-Ziele aus
-[docs/3.1-api-feasibility.md §9](../../docs/3.1-api-feasibility.md):
+## What it verifies
 
-- **Status-Query beim Start:** `getRegistration(EndLockApi.class)` in
-  `onEnable` (mit `softdepend: [EndLock]` ist EndLock davor geladen). Fehlt
-  der Service (EndLock fehlt/deaktiviert), läuft der Prototyp trotzdem weiter
-  – „EndLock API not available - running without integration" – und
-  `onEnable` registriert trotzdem Listener und Tasks.
-- **Genau ein Event je Änderung:** ein `@EventHandler` für
-  `EndLockStateChangeEvent` loggt jedes Feuer; das Hauptprojekt wirft laut
-  Vertrag genau ein Event pro erfolgreichem `changeLockState` (Guard
-  verhindert Doppel-Events bei bereits aktivem Zielzustand).
-- **Kontext-Log der Threads:** der Event-Log enthält
-  `primaryThread=` (`server.isPrimaryThread()`) und `threadName=`
-  (`Thread.currentThread().getName()`) – das belegt den synchronen
-  Dispatch-Kontext (Paper: Main-Thread; Folia: Region-/Global-Region-Thread).
+- **Startup lookup:** The API-dependent `EndLockApiIntegration` class is
+  loaded only if EndLock is enabled. It calls
+  `getRegistration(EndLockApi.class)`. If EndLock is absent, the main
+  consumer class has no API type references and continues without the
+  integration. Hot-enabling or hot-reloading EndLock while the consumer
+  remains enabled is not supported; restart the server.
+- **State-change events:** An `@EventHandler` logs each event. There is one
+  event per actual runtime state transition, including when a later side
+  effect fails. No event is fired when the requested state is already active.
+- **Dispatch context:** The event log includes `primaryThread=` and
+  `threadName=` to observe the synchronous dispatch context. Expected
+  contexts are Paper's main thread and Folia's global-region tick thread.
 
-Wie im Vertrag vorgeschrieben: Der Provider wird **nie gecacht**; jeder
-Status-Tick holt `getRegistration(...)` frisch. Kein Code außerhalb von
-paper-api + dem EndLock-Release-Jar, keine Welt-/Spieler-Operationen,
-keine Scheduler-Aufrufe im Event-Handler.
+The service provider is never cached; each status check performs a fresh
+lookup. The integration uses no API beyond Paper and the EndLock release JAR.
+It performs no world/player operations and schedules no tasks from the event
+handler. API references are confined to the integration class so the
+optional runtime dependency does not prevent the consumer from loading.
 
-Zusätzlich fürs Prototyping:
+The prototype also:
 
-- **Status-Tick alle 60 s** (`status tick: locked=..., reason=...`) über
-  `getServer().getGlobalRegionScheduler().runAtFixedRate(this, task -> ..., 1200, 1200)`
-  – identisch auf Paper und Folia.
-- **Selbst-Shutdown nach 4 Minuten** über
-  `getServer().getGlobalRegionScheduler().runDelayed(this, task -> getServer().shutdown(), 4000)`,
-  damit der Prototyp-Server ohne Eingriff endet.
+- Checks status every 60 seconds through
+  `GlobalRegionScheduler.runAtFixedRate(...)`.
+- Shuts down the test server after four minutes through
+  `GlobalRegionScheduler.runDelayed(...)`.
 
-## Voraussetzung
+## Prerequisites
 
-Das Hauptprojekt muss ein Release-Jar erzeugt haben (steht für die „3.1
-Verteilung"; der aktuelle Stand `lock-end-3.0.2` enthält das API-Paket):
+Build the main project first so its 3.1 release JAR is present:
 
 ```powershell
-.\gradlew.bat jar --no-daemon    # aus dem Repo-Wurzelverzeichnis
-# -> build\libs\lock-end-3.0.2.jar
+.\gradlew.bat jar --no-daemon
+# -> build\libs\lock-end-3.1.0.jar
 ```
 
-Der Consumer-Build bindet `..\..\build\libs\lock-end-*.jar` per
-`compileOnly fileTree` ein – genau wie künftig das veröffentlichte 3.1-Jar.
+The consumer uses `..\..\build\libs\lock-end-*.jar` as a `compileOnly`
+dependency. It is not shaded into the consumer.
 
-## Kompilieren (aus dem Repo-Wurzelverzeichnis)
+## Build
+
+Run from the repository root:
 
 ```powershell
-# nur Kompilierprüfung gegen jar + paper-api
 .\gradlew.bat compileJava -p examples\api-consumer --no-daemon
-
-# Klassik-Version, falls der -p-Wrapper-Aufruf zickt:
-powershell -c "Set-Location examples\api-consumer; ..\..\gradlew.bat build --no-daemon"
+.\gradlew.bat -p examples\api-consumer build --no-daemon
 ```
 
-## Laufen lassen
+The standalone JAR is written to
+`examples\api-consumer\build\libs\EndLockApiConsumer-0.1.0.jar`.
 
-1. Baue das Jar: `.\gradlew.bat -p examples\api-consumer build --no-daemon`
-   → `examples\api-consumer\build\libs\EndLockApiConsumer-0.1.0.jar`.
-2. Jar zusammen mit dem EndLock-Jar in den `plugins/`-Ordner eines
-   Paper-26.3- bzw. Folia-26.3-Build-5-Servers legen (EULA akzeptiert,
-   `eula=true`).
-3. Server starten und Log betrachten. Erwartet:
-   - `startup status: locked=..., reason=...` (oder „not available"),
-   - bei `/endlock lock` bzw. `/endlock unlock` (Konsole oder Spieler)
-     genau ein `state-change: previousLocked=..., newLocked=..., ...`-Log,
-   - `status tick: locked=..., reason=...` alle 60 s,
-   - Selbst-Shutdown nach 4 Minuten.
+## Run
+
+1. Put the consumer JAR and EndLock JAR in the `plugins/` directory of a
+   Paper 26.3 or Folia 26.3 Build 5 server.
+2. Start the server and inspect the log for startup status, status ticks,
+   and event entries after console commands such as `/endlock lock` and
+   `/endlock unlock`.
+3. Confirm that repeating a lock command while already locked does not
+   produce another event.
+4. The prototype shuts down the server after four minutes.
+
+For the scenarios actually run and their limits, see the
+[live verification report](../../docs/3.1-prototype-verification.md).

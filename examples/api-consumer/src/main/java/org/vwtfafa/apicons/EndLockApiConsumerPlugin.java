@@ -1,8 +1,6 @@
 package org.vwtfafa.apicons;
 
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.vwtfafa.lockEnd.api.EndLockApi;
 
 /**
  * Read-only EndLock 3.1 API consumer prototype.
@@ -35,24 +33,19 @@ public final class EndLockApiConsumerPlugin extends JavaPlugin {
 
     private static final String NOT_AVAILABLE = "EndLock API not available - running without integration";
 
+    private EndLockApiIntegration integration;
+
     @Override
     public void onEnable() {
-        // Startup lookup only as a status probe; every later use resolves the
-        // provider again (§6: registration is removed and re-registered on
-        // every EndLock disable/enable cycle).
-        RegisteredServiceProvider<EndLockApi> registration =
-                getServer().getServicesManager().getRegistration(EndLockApi.class);
-        if (registration == null) {
-            getSLF4JLogger().info(NOT_AVAILABLE);
+        if (getServer().getPluginManager().isPluginEnabled("EndLock")) {
+            // This class is isolated because it references EndLock API types.
+            // Do not load it when EndLock is absent: compileOnly types are not
+            // available to the runtime class loader in that case.
+            integration = new EndLockApiIntegration(this);
+            integration.enable();
         } else {
-            EndLockApi api = registration.getProvider();
-            getSLF4JLogger().info("startup status: locked={}, reason={}",
-                    api.isLocked(), api.getLockReason());
+            getSLF4JLogger().info(NOT_AVAILABLE);
         }
-
-        // The listener is registered even without the service: it proves that
-        // it is also robust against an EndLock that appears later (re-enable).
-        getServer().getPluginManager().registerEvents(new EndLockStateChangeLogger(this), this);
 
         // Same path on Paper and Folia: global region scheduler, never
         // Bukkit.getScheduler().
@@ -77,14 +70,10 @@ public final class EndLockApiConsumerPlugin extends JavaPlugin {
     }
 
     private void logStatusTick() {
-        RegisteredServiceProvider<EndLockApi> registration =
-                getServer().getServicesManager().getRegistration(EndLockApi.class);
-        EndLockApi api = registration == null ? null : registration.getProvider();
-        if (api == null) {
+        if (integration == null) {
             getSLF4JLogger().info("status tick: " + NOT_AVAILABLE);
             return;
         }
-        getSLF4JLogger().info("status tick: locked={}, reason={}",
-                api.isLocked(), api.getLockReason());
+        integration.logStatusTick();
     }
 }

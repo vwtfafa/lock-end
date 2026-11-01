@@ -7,28 +7,29 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 /**
- * Fired exactly once for every <strong>successful</strong> lock state change.
+ * Fired exactly once whenever the runtime lock state changes.
  *
- * <p>Synchronous event ({@link #isAsynchronous()} is {@code false}) in the
- * tick context of the triggering action: on Paper the main thread; on Folia
- * the tick context that owns the triggering actor (player/entity region for
- * commands, global region for console and scheduled due actions). There is no
- * asynchronous internal change path, so the event is never dispatched from an
- * asynchronous thread.</p>
+ * <p>Synchronous event ({@link #isAsynchronous()} is {@code false}) on the
+ * global tick context: on Paper the main thread; on Folia the global region
+ * thread. EndLock routes its state-changing commands through the global
+ * scheduler, and scheduled actions already run there. There is no asynchronous
+ * internal change path, so the event is never dispatched from an asynchronous
+ * thread.</p>
  *
- * <p>Not cancellable: this event reports a change that already happened; it
- * cannot prevent or revert it.</p>
- *
- * <p>Not fired: when the target state is already active (the change is
- * rejected before side effects), for the persisted state restored on server
- * start, for pending schedule registrations (lockat/unlockat/lockin/unlockin)
- * that do not change state immediately, for undo without a recorded previous
- * state, and for read-only paths (blocked attempts, test logging).</p>
+ * <p>The event is published after the runtime state has changed, even if a
+ * later side effect throws; that failure still propagates to the caller.
+ * It is not cancellable and cannot prevent or revert the change. It is not
+ * fired when the target state is already active (the change is rejected before
+ * side effects), for the persisted state restored on server start, for pending
+ * schedule registrations (lockat/unlockat/lockin/unlockin) that do not change
+ * state immediately, for undo without a recorded previous state, and for
+ * read-only paths (blocked attempts, test logging).</p>
  *
  * <p>This event is part of the read-only EndLock API (version 3.1);
  * see {@link EndLockApi} for service lookup and lifecycle rules. Event
  * listeners registered by a plugin that is disabled at dispatch time are
- * skipped; re-register listeners after EndLock reloads.</p>
+ * skipped. Hot-reloading EndLock while consumers remain enabled is not
+ * supported; restart the server after replacing or reloading EndLock.</p>
  */
 public final class EndLockStateChangeEvent extends Event {
 
@@ -41,8 +42,8 @@ public final class EndLockStateChangeEvent extends Event {
     private final @Nullable UUID actorUuid;
 
     /**
-     * Creates the event for a completed lock state change. Callers must fire
-     * it via the plugin manager in the same tick context that performed the
+     * Creates the event for a runtime lock state change. Callers must fire it
+     * via the plugin manager in the global tick context that performed the
      * change.
      *
      * @param previousLocked lock state immediately before the change

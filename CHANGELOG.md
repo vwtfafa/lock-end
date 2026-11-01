@@ -7,9 +7,17 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Read-only public plugin API in `org.vwtfafa.lockEnd.api`, distributed with the release jar:
   - `EndLockApi` service registered via the Bukkit `ServicesManager`: `isLocked()` (current runtime lock state) and `getLockReason()` (effective lock reason as plain text, MiniMessage tags and legacy `§` codes stripped, built-in "Maintenance" fallback, never `null`).
-  - `EndLockStateChangeEvent`: non-cancellable, synchronous event fired exactly once per successful lock state change (never when the target state is already active or the change fails), with `previousLocked`, `newLocked`, `action` (`LOCK`, `UNLOCK`, `UNDO`, `SCHEDULED_LOCK`, `SCHEDULED_UNLOCK`; open set), `actorName`, and `actorUuid`.
+  - `EndLockStateChangeEvent`: non-cancellable, synchronous event fired exactly once per actual runtime state transition (including when a later side effect fails; never when the target state is already active), with `previousLocked`, `newLocked`, `action` (`LOCK`, `UNLOCK`, `UNDO`, `SCHEDULED_LOCK`, `SCHEDULED_UNLOCK`; open set), `actorName`, and `actorUuid`. If both a side effect and event dispatch fail, the side-effect exception propagates and the event exception is suppressed.
 - Consumer example plugin under `examples/api-consumer` (standalone build, compiles against the released jar as `compileOnly`).
 - Integration guide for plugin developers: `docs/3.1-integration-guide.md` (dependency setup, service lookup, event observing, Paper/Folia thread rules, worked example).
+
+### Fixed
+- Made the API lock-reason sanitizer remove recognized MiniMessage and valid legacy formatting codes without deleting ordinary angle-bracket text.
+- Ensured the state-change event is dispatched after every runtime state transition, including when a subsequent side effect throws.
+- Isolated optional API references in the consumer example so it can load without EndLock installed.
+
+### Docs
+- Clarified global Folia event dispatch, the partial-failure event contract, optional dependency classloading, and the unsupported EndLock hot-reload case.
 
 ### Verified
 - Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype; see `docs/3.1-prototype-verification.md`.

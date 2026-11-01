@@ -34,6 +34,17 @@ class LockReasonSanitizerTest {
     }
 
     @Test
+    void preservesAngleBracketTextThatIsNotMiniMessage() {
+        assertEquals("Portal <The End>", LockReasonSanitizer.sanitize("Portal <The End>"));
+    }
+
+    @Test
+    void preservesUnknownSectionSequences() {
+        assertEquals("§z is not a legacy formatting code", LockReasonSanitizer.sanitize(
+                "§z is not a legacy formatting code"));
+    }
+
+    @Test
     void emptyInputStaysEmpty() {
         assertEquals("", LockReasonSanitizer.sanitize(""));
         assertEquals("", LockReasonSanitizer.sanitize("   "));
