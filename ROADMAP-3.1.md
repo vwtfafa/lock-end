@@ -2,7 +2,14 @@
 
 > **Status:** Vorschlag, kein bereits zugesagter Releaseumfang.  
 > **Ausgangspunkt:** EndLock 3.0.2, Paper 26.3 / Java 25. Die Versionen bleiben
-> unverändert, solange ein konkreter Grund für ein Upgrade fehlt.
+> unverändert, solange ein konkreter Grund für ein Upgrade fehlt.  
+> **Aktualisierter Stand (31.10.2026/01.11.2026):** Empfohlene Reihenfolge
+> Schritt 1-4 durchgeführt und verifiziert: feasibility, contract, live
+> Prototyp auf Paper+Folia
+> ([docs/3.1-prototype-verification.md](docs/3.1-prototype-verification.md)),
+> API unter `org.vwtfafa.lockEnd.api` implementiert. Offen: Folia
+> Spielerpfade live (Schritt 5, braucht echte Spieler); Release-Scope 3.1.0
+> beschlossen.
 
 ## Ziel für 3.1
 

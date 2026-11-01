@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-11-01
+
+### Added
+- Read-only public plugin API in `org.vwtfafa.lockEnd.api`, distributed with the release jar:
+  - `EndLockApi` service registered via the Bukkit `ServicesManager`: `isLocked()` (current runtime lock state) and `getLockReason()` (effective lock reason as plain text, MiniMessage tags and legacy `§` codes stripped, built-in "Maintenance" fallback, never `null`).
+  - `EndLockStateChangeEvent`: non-cancellable, synchronous event fired exactly once per successful lock state change (never when the target state is already active or the change fails), with `previousLocked`, `newLocked`, `action` (`LOCK`, `UNLOCK`, `UNDO`, `SCHEDULED_LOCK`, `SCHEDULED_UNLOCK`; open set), `actorName`, and `actorUuid`.
+- Consumer example plugin under `examples/api-consumer` (standalone build, compiles against the released jar as `compileOnly`).
+- Integration guide for plugin developers: `docs/3.1-integration-guide.md` (dependency setup, service lookup, event observing, Paper/Folia thread rules, worked example).
+
+### Verified
+- Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype; see `docs/3.1-prototype-verification.md`.
+- Documented limitation: player-driven paths on Folia still need manual verification with a live player (`docs/3.1-prototype-verification.md` §4).
+
 ## [3.0.2] - 2026-10-26
 
 ### Changed

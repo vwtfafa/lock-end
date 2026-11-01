@@ -1,5 +1,18 @@
 # EndLockApiConsumer – 3.1 API-Verbraucher-Prototyp
 
+> **Verify-Hinweis:** Dieses Projekt ist die **live verifizierte**
+> Referenzimplementierung für den 3.1-Verbraucherpfad: Service-Abfrage,
+> Event-Dispatch und die Konsol-/Undo-/Zeitplanwege wurden auf Paper 26.3 und
+> Folia 26.3 Build 5 (ALPHA) getestet; siehe
+> [docs/3.1-prototype-verification.md](../../docs/3.1-prototype-verification.md).
+> Spieler-triggered Pfade auf Folia erfordern weiterhin eine manuelle
+> Verifikation mit echten Spielersitzungen.
+
+> **Ausführliche Anleitung:** Für die Integration in ein eigenes Plugin
+> (Dependency-Setup, Service-Lookup, Event-Beobachtung, Paper/Folia-
+> Threadregeln, vollständiges Beispiel) siehe
+> [docs/3.1-integration-guide.md](../../docs/3.1-integration-guide.md).
+
 Eigenständiges Mini-Projekt (Plugin `EndLockApiConsumer` v0.1.0), **nicht Teil
 des Haupt-EndLock-Builds**. Es simuliert den Verbraucherfall aus
 [docs/3.1-api-contract.md](../../docs/3.1-api-contract.md) §7/§8 und

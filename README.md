@@ -2,6 +2,20 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## What's new in 3.1
+
+Version 3.1 adds a small, read-only public plugin API in
+`org.vwtfafa.lockEnd.api`: other plugins can query the lock status
+(`EndLockApi` service via the Bukkit `ServicesManager`) and observe every
+successful lock state change via the non-cancellable `EndLockStateChangeEvent`.
+Plugin developers find a consumer example under
+[`examples/api-consumer`](examples/api-consumer) and the full integration
+guide in [`docs/3.1-integration-guide.md`](docs/3.1-integration-guide.md).
+The service lifecycle, event dispatch, and console/undo/scheduled change
+paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA);
+player-driven paths on Folia still need manual verification
+(see [`docs/3.1-prototype-verification.md`](docs/3.1-prototype-verification.md)).
+
 ## What's new in 3.0.2
 
 Version 3.0.2 removes the optional FastStats integration. The existing bStats
@@ -38,7 +52,7 @@ migrate and write.
 
 ## Installation
 
-1. Download the latest `lock-end-3.0.2.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-3.1.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -305,7 +319,7 @@ The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-3.0.2.jar`
+Output: `build/libs/lock-end-3.1.0.jar`
 
 ## Automatic releases (GitHub Actions)
 

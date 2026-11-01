@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.vwtfafa"
-version = "3.0.2"
+version = "3.1.0"
 
 val paperApiVersion = "26.3.build.209-stable"
 
