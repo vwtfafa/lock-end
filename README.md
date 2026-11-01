@@ -320,7 +320,7 @@ The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/lock-end-3.1.0.jar`
+Output: `platforms/paper/build/libs/lock-end-3.1.0.jar`
 
 ## Automatic releases (GitHub Actions)
 

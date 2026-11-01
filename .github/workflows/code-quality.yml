@@ -37,7 +37,7 @@ jobs:
             --output smoke-paper/paper.jar
           echo "0a056c7648cfa0ca8d9b8c833a2bd2e1313ed4f1393a5125dd3444a4ee257e22  smoke-paper/paper.jar" \
             | sha256sum --check
-          cp build/libs/lock-end-*.jar smoke-paper/plugins/EndLock.jar
+          cp platforms/paper/build/libs/lock-end-*.jar smoke-paper/plugins/EndLock.jar
           printf 'eula=true\n' > smoke-paper/eula.txt
           cat > smoke-paper/server.properties <<'EOF'
           online-mode=false
@@ -94,7 +94,7 @@ jobs:
             --output smoke-folia/folia.jar
           echo "c105f6be9463b2da37568b620e81b9ab2f6a6ae771f8fff9caf7a1c0946b340a  smoke-folia/folia.jar" \
             | sha256sum --check
-          cp build/libs/lock-end-*.jar smoke-folia/plugins/EndLock.jar
+          cp platforms/paper/build/libs/lock-end-*.jar smoke-folia/plugins/EndLock.jar
           printf 'eula=true\n' > smoke-folia/eula.txt
           cat > smoke-folia/server.properties <<'EOF'
           online-mode=false
@@ -160,11 +160,11 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: checkstyle-report
-          path: build/reports/checkstyle/main/*.xml
+          path: platforms/paper/build/reports/checkstyle/main/*.xml
 
       - name: Archive SpotBugs report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: spotbugs-report
-          path: build/reports/spotbugs/main/*.xml
+          path: platforms/paper/build/reports/spotbugs/main/*.xml

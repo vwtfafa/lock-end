@@ -36,9 +36,12 @@ paths remain subject to the verification limits documented there.
 
 ### Architecture direction
 
-The repository is not yet a fully multi-platform monorepo in production. The
-current production path remains the Paper/Folia plugin, while the repository
-contains a planned migration toward a shared API and shared core architecture.
+The repository is on its way to a multi-platform monorepo. The Gradle
+multi-module structure is prepared (shared `lockend.java-conventions` plugin;
+the Paper plugin lives in `platforms/paper/`), but the shared modules and the
+additional platforms are not yet in production. The current production path
+remains the Paper/Folia plugin, while the repository contains a planned
+migration toward a shared API and shared core architecture.
 
 The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
 The plan is the authoritative design direction for future refactors, but it must
@@ -182,8 +185,9 @@ document why the deprecated API is the only option.
 
 ## 5. Text, messages, and translations
 
-- All bundled language files live in `src/main/resources/lang/messages_<code>.yml`
-  and use **MiniMessage only**. Never use `§` there.
+- All bundled language files live in
+  `platforms/paper/src/main/resources/lang/messages_<code>.yml` and use
+  **MiniMessage only**. Never use `§` there.
 - Supported languages: `de`, `en`, `es`, `fr`, `it`, `ja`, `ru`, `zh`.
 - `en` is the reference file. Every key must exist in **all eight** files;
   `LanguageKeyParityTest` fails otherwise.
@@ -215,7 +219,7 @@ Use the wrapper. On Windows use `gradlew.bat`; on Linux/CI use `./gradlew`.
 .\gradlew.bat checkstyleMain spotbugsMain --no-daemon
 
 # Output jar
-# build/libs/lock-end-<version>.jar (shadowJar is the distributable)
+# platforms/paper/build/libs/lock-end-<version>.jar (shadowJar is the distributable)
 ```
 
 Rules:
@@ -380,12 +384,17 @@ as a "translation" without noting it.
 
 | Path | Purpose |
 |---|---|
-| `build.gradle.kts` | Versions, dependencies, quality gates, server tasks |
-| `src/main/resources/plugin.yml` | Plugin metadata, permissions, `api-version` |
-| `src/main/resources/config.yml` | Default configuration |
-| `src/main/resources/lang/` | Eight MiniMessage language files |
-| `src/main/java/org/vwtfafa/lockEnd/util/PaperScheduler.java` | Folia-safe scheduling |
-| `src/main/java/org/vwtfafa/lockEnd/MessageService.java` | Message lookup and rendering |
-| `src/main/java/org/vwtfafa/lockEnd/commands/` | Brigadier command tree and history/undo |
+| `gradle.properties` | Central versions: project version, Java, Paper API, tools |
+| `settings.gradle.kts` | Module includes for the multi-module monorepo |
+| `buildSrc/` | Shared `lockend.java-conventions` Gradle plugin |
+| `config/checkstyle/checkstyle.xml` | Checkstyle rules shared by all Java modules |
+| `config/spotbugs/spotbugs.xml` | SpotBugs filter shared by all Java modules |
+| `platforms/paper/build.gradle.kts` | Paper module build (versions come from `gradle.properties`) |
+| `platforms/paper/src/main/resources/plugin.yml` | Plugin metadata, permissions, `api-version` |
+| `platforms/paper/src/main/resources/config.yml` | Default configuration |
+| `platforms/paper/src/main/resources/lang/` | Eight MiniMessage language files |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/util/PaperScheduler.java` | Folia-safe scheduling |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/MessageService.java` | Message lookup and rendering |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/commands/` | Brigadier command tree and history/undo |
 | `.github/workflows/code-quality.yml` | CI build + Paper/Folia smoke tests |
 | `.claude/skills/` | Local helper skills (`run-lock-end`, `i18n-sync`); gitignored |

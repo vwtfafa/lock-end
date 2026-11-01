@@ -1,15 +1,10 @@
 plugins {
-    java
+    id("lockend.java-conventions")
     id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.6.1"
-    checkstyle
-    id("com.github.spotbugs") version "6.5.13"
 }
 
-group = "org.vwtfafa"
-version = "3.1.0"
-
-val paperApiVersion = "26.3.build.236-stable"
+val paperApiVersion = providers.gradleProperty("paperApiVersion").get()
 
 repositories {
     mavenCentral()
@@ -21,7 +16,6 @@ repositories {
         name = "placeholderapi"
         url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     }
-    gradlePluginPortal()
 }
 
 dependencies {
@@ -30,9 +24,6 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.2.1")
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
     testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
-    // Gradle 9+ no longer injects the platform launcher automatically
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
 }
 
 tasks {
@@ -69,60 +60,17 @@ runPaper.folia.registerTask {
     runDirectory(file("run/folia"))
 }
 
-val targetJavaVersion = 25
-
-java {
-    val javaVersion = JavaVersion.toVersion(targetJavaVersion)
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
-
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible) {
-        options.release.set(targetJavaVersion)
-    }
-}
-
 tasks.processResources {
     val props = mapOf("version" to project.version)
     inputs.properties(props)
     filteringCharset = "UTF-8"
 
     // Ship third-party license notices with the distribution jar.
-    from("THIRD-PARTY-NOTICES.md") {
+    from(rootProject.file("THIRD-PARTY-NOTICES.md")) {
         into("META-INF")
     }
 
     filesMatching("plugin.yml") {
         expand(props)
     }
-}
-
-checkstyle {
-    toolVersion = "10.12.4"
-    configFile = file("config/checkstyle/checkstyle.xml")
-}
-
-spotbugs {
-    toolVersion.set("4.10.3")
-    ignoreFailures.set(false)
-    effort.set(com.github.spotbugs.snom.Effort.MAX)
-    reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)
-    reportsDir.set(file("build/reports/spotbugs"))
-    includeFilter.set(file("config/spotbugs/spotbugs.xml"))
-}
-
-// Static analysis targets production code; unit tests are exempt.
-tasks.named("spotbugsTest") {
-    enabled = false
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }

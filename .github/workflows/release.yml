@@ -110,14 +110,14 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ARTIFACT="build/libs/lock-end-${VERSION}.jar"
+          ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
 
           if [ ! -f "$ARTIFACT" ]; then
             echo "ERROR: Expected plugin JAR not found:"
             echo "$ARTIFACT"
             echo
             echo "Available files:"
-            ls -la build/libs/
+            ls -la platforms/paper/build/libs/
             exit 1
           fi
 
@@ -264,7 +264,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           TYPE: ${{ steps.config.outputs.type }}
         run: |
-          ARTIFACT="build/libs/lock-end-${VERSION}.jar"
+          ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
 
           if [ "$TYPE" = "stable" ]; then
             PRERELEASE=false
