@@ -37,11 +37,13 @@ paths remain subject to the verification limits documented there.
 ### Architecture direction
 
 The repository is on its way to a multi-platform monorepo. The Gradle
-multi-module structure is prepared (shared `lockend.java-conventions` plugin;
-the Paper plugin lives in `platforms/paper/`), but the shared modules and the
-additional platforms are not yet in production. The current production path
-remains the Paper/Folia plugin, while the repository contains a planned
-migration toward a shared API and shared core architecture.
+multi-module structure is prepared (shared `lockend.java-conventions` plugin),
+and `lock-end-api` exists as a plain-Java shared API module without any
+platform dependency. The Paper plugin lives in `platforms/paper/` and does not
+yet depend on the shared API; the core extraction and additional platforms are
+not yet in production. The current production path remains the Paper/Folia
+plugin, while the migration continues toward a shared API and shared core
+architecture.
 
 The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
 The plan is the authoritative design direction for future refactors, but it must
@@ -386,6 +388,8 @@ as a "translation" without noting it.
 |---|---|
 | `gradle.properties` | Central versions: project version, Java, Paper API, tools |
 | `settings.gradle.kts` | Module includes for the multi-module monorepo |
+| `lock-end-api/` | Shared, platform-independent API module (plain Java) |
+| `docs/api/shared-api.md` | Shared API contract and Paper compatibility rules |
 | `buildSrc/` | Shared `lockend.java-conventions` Gradle plugin |
 | `config/checkstyle/checkstyle.xml` | Checkstyle rules shared by all Java modules |
 | `config/spotbugs/spotbugs.xml` | SpotBugs filter shared by all Java modules |
