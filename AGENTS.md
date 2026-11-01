@@ -25,6 +25,7 @@ authoritative project instruction document.
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
+| Current direction | Paper-first implementation with an active multiplatform migration plan for shared API/core and loader-specific adapters |
 
 The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
 "remember" a version from documentation or old notes; read the build file.
@@ -32,6 +33,28 @@ The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
 The EndLock 3.1 API and release scope are documented in
 [ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
 paths remain subject to the verification limits documented there.
+
+### Architecture direction
+
+The repository is not yet a fully multi-platform monorepo in production. The
+current production path remains the Paper/Folia plugin, while the repository
+contains a planned migration toward a shared API and shared core architecture.
+
+The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
+The plan is the authoritative design direction for future refactors, but it must
+not be treated as permission to rewrite the existing plugin overnight or to add
+unverified loader APIs. The existing Paper implementation remains the baseline
+that all platform abstractions must preserve.
+
+Rules for future architecture work:
+
+- Keep Paper/Folia behavior working as the baseline implementation.
+- Prefer shared domain logic over copy-pasted platform code.
+- Keep platform-specific dependencies out of shared modules.
+- Introduce platform abstraction only when the migration is incremental and
+  verifiable.
+- Do not assume Fabric, NeoForge, Forge, or Datapack are already implemented just
+  because the roadmap exists.
 
 ---
 
