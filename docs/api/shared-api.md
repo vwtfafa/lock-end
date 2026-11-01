@@ -36,30 +36,35 @@ the multiplatform migration (see
   main thread; Folia: global region thread; other platforms document their
   own context). See the Javadoc of `LockStateChangeListener`.
 
-## Paper compatibility adapter (prepared in this phase, wired in Phase 4)
+## Paper compatibility adapter (wired in Phase 4)
 
 The existing Paper API (`org.vwtfafa.lockEnd.api.EndLockApi`,
 `EndLockStateChangeEvent`) is the version 3.1 read-only surface of the
 plugin. It must not be removed without a documented migration path.
 
-The migration introduces an adapter in the Paper platform module that backs
-the legacy service with the same runtime state that backs the shared API:
+The adapter is wired: the Paper module depends on the shared core, the
+runtime lock state lives in `LockStateManager`, and both services are
+registered in the Bukkit `ServicesManager` (`EndLockApi` legacy,
+shared `LockEndApi`):
 
 ```text
 Shared API (lock-end-api)
     |
-    └── Paper API adapter (platforms/paper, Phase 4)
-            |
-            └── Legacy EndLockApi / EndLockStateChangeEvent (3.1, unchanged)
+    └── SharedEndLockApiProvider (platforms/paper) ──> LockStateManager
+    |
+    └── Legacy EndLockApi / EndLockStateChangeEvent (3.1, unchanged)
 ```
 
-Adapter goals (implemented when the Paper module starts depending on the
-shared API):
+Adapter contract:
 
 - `EndLockApi.isLocked()` and the shared `isLocked()` observe the same
-  volatile runtime state.
-- A shared `LockStateChange` publication also fires the legacy Bukkit event
-  so existing listeners continue to work.
+  runtime state (the shared `LockStateManager`).
+- A state change flips the shared state and notifies shared
+  `LockStateChangeListener`s immediately in the tick context; the legacy
+  Bukkit event is still fired last, after the Paper-side side effects, with
+  the previously documented suppression behavior.
+- The plain text stripping rule (MiniMessage/section codes) is identical in
+  both providers, so both APIs expose identical reason texts.
 - No removal or signature change of the legacy classes; the shared API is an
   additional surface.
 

@@ -28,7 +28,12 @@ import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 import org.vwtfafa.lockEnd.util.PaperScheduler;
+import org.vwtfafa.lockend.core.LockActions;
+import org.vwtfafa.lockend.core.LockStateManager;
+import org.vwtfafa.lockend.core.LockStateRepository;
 import org.vwtfafa.lockend.core.ScheduleSupport;
+import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.api.LockEndApi;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +65,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     // Volatile because bStats chart suppliers read them from an async thread.
-    private volatile boolean locked = false;
+    // Ownership of the runtime lock state lives in the shared core; the
+    // manager exposes the same volatile read semantics as the old boolean.
+    private volatile LockStateManager lockStateManager;
+    private volatile LockStateRepository lockStateRepository;
     private volatile MessageService messages;
     private volatile ScheduleManager schedules;
     private volatile EvacuationService evacuation;
@@ -69,6 +77,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private LockEndExpansion placeholderExpansion;
     // Internal read-only 3.1 API provider; only registered on the enable path.
     private EndLockApi apiProvider;
+    // Shared 4.x API provider (same runtime state as the legacy service).
+    private LockEndApi sharedApiProvider;
     private final AtomicInteger lockCount = new AtomicInteger();
     private final AtomicInteger unlockCount = new AtomicInteger();
     private final AtomicInteger blockedCount = new AtomicInteger();
@@ -109,7 +119,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         paperScheduler = new PaperScheduler(this);
         saveDefaultConfig();
         migrateConfig();
-        locked = getConfig().getBoolean("locked", false);
+        // The persisted lock state is loaded through the shared repository
+        // contract; a missing or invalid entry never boots the End locked.
+        lockStateRepository = new ConfigLockStateRepository(this::getConfig);
+        lockStateManager = new LockStateManager(lockStateRepository.load().isLocked());
+        // The supplier resolves on every call, so reason config changes and
+        // reloads are always reflected in API and snapshot reads.
+        lockStateManager.setReasonSupplier(this::getLockReason);
         lockCount.set(getConfig().getInt("stats.lock-count", 0));
         unlockCount.set(getConfig().getInt("stats.unlock-count", 0));
         blockedCount.set(getConfig().getInt("stats.blocked-count", 0));
@@ -151,7 +167,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         // A server may restart while the End is locked. Re-run the configured
         // evacuation instead of leaving players stranded in the End.
-        if (locked && getConfig().getBoolean("evacuation.enabled", false)) {
+        if (isLocked() && getConfig().getBoolean("evacuation.enabled", false)) {
             evacuation.schedule();
         }
 
@@ -176,8 +192,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
             historyCommand.flush();
         }
         persistStatsToConfig();
-        getConfig().set("locked", locked);
-        saveConfig();
+        if (lockStateRepository != null && lockStateManager != null) {
+            lockStateRepository.save(lockStateManager.getState());
+            saveConfig();
+        }
         if (paperScheduler != null) {
             paperScheduler.cancelAsyncTasks();
         }
@@ -200,6 +218,10 @@ public final class LockEnd extends JavaPlugin implements Listener {
             getServer().getServicesManager().unregister(EndLockApi.class, apiProvider);
             apiProvider = null;
         }
+        if (sharedApiProvider != null) {
+            getServer().getServicesManager().unregister(LockEndApi.class, sharedApiProvider);
+            sharedApiProvider = null;
+        }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
         }
@@ -221,6 +243,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         getServer().getServicesManager().register(
                 EndLockApi.class, provider, this, ServicePriority.Normal);
         apiProvider = provider;
+
+        // The shared 4.x surface is backed by the same runtime state manager,
+        // so both APIs always observe the same state, reason and changes.
+        LockEndApi sharedProvider = new SharedEndLockApiProvider(lockStateManager, this::getLockReason);
+        getServer().getServicesManager().register(
+                LockEndApi.class, sharedProvider, this, ServicePriority.Normal);
+        sharedApiProvider = sharedProvider;
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action) {
@@ -228,28 +257,34 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action, UUID actorUuid) {
-        if (locked == newLocked) {
+        // Fail fast on unknown action identifiers before touching the state;
+        // the five legacy identifiers map 1:1 onto the shared enum.
+        LockAction triggerAction = LockActions.fromActionName(action);
+        if (lockStateManager.isLocked() == newLocked) {
             return false;
         }
 
-        boolean previousState = locked;
-        locked = newLocked;
+        boolean previousState = lockStateManager.isLocked();
+        // Flip the shared runtime state and notify the shared API listeners
+        // in this tick context; the Paper-side side effects run below while
+        // the legacy Bukkit event is still fired last (after side effects).
+        lockStateManager.updateLocked(newLocked, triggerAction, actor, actorUuid);
         try {
             historyCommand.recordPreviousState(previousState);
-            recordStateChange(locked);
+            recordStateChange(newLocked);
             persistStatsToConfig();
-            getConfig().set("locked", locked);
+            lockStateRepository.save(lockStateManager.getState());
             saveConfig();
 
-            if (!locked) {
+            if (!newLocked) {
                 schedules.handleUnlocked();
                 evacuation.cancel();
                 gracePeriodTask.cancel();
             }
-            messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+            messages.broadcastLockState(newLocked, newLocked ? "broadcast-locked" : "broadcast-unlocked", actor);
             logAction(actor, action);
-            historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
-            if (locked) {
+            historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, newLocked);
+            if (newLocked) {
                 startGracePeriodIfEnabled();
                 evacuation.schedule();
             }
@@ -563,7 +598,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // A pending evacuation re-reads the config when it runs, so keep it
         // alive across reloads. Restart one if evacuation is enabled but no
         // task survived (for example after a restart while locked).
-        if (locked && getConfig().getBoolean("evacuation.enabled", false) && !evacuation.isPending()) {
+        if (isLocked() && getConfig().getBoolean("evacuation.enabled", false) && !evacuation.isPending()) {
             evacuation.schedule();
         }
 
@@ -663,7 +698,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public String getRemainingText() {
-        if (!locked) {
+        if (!isLocked()) {
             return messages.msg("remaining-unlocked");
         }
         LocalDateTime target = schedules.getTime();
@@ -677,14 +712,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean isLocked() {
-        return locked;
+        return lockStateManager != null && lockStateManager.isLocked();
     }
 
     private void logAction(String player, String action) {
         if (!getConfig().getBoolean("logging.enabled", true)) {
             return;
         }
-        String message = String.format("%s - Player: %s - Status: %s", action, player, locked ? "LOCKED" : "UNLOCKED");
+        String message = String.format("%s - Player: %s - Status: %s", action, player,
+                isLocked() ? "LOCKED" : "UNLOCKED");
         if (asyncLogger != null) {
             asyncLogger.log(message);
         }
@@ -740,7 +776,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 event.getTo().getWorld().getEnvironment(),
                 event.getTo().getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(
-                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                isLocked(), gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkPlayer(request, event.getCause(),
                         () -> whitelistChecker.canBypass(player, event.getTo().getWorld()));
 
@@ -763,11 +799,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (locked && getConfig().getBoolean("evacuation.enabled", false)
+        if (isLocked() && getConfig().getBoolean("evacuation.enabled", false)
                 && isGuardedEndWorld(player.getWorld()) && !evacuation.isPending()) {
             evacuation.schedule();
         }
-        if (locked && joinNotificationsEnabled) {
+        if (isLocked() && joinNotificationsEnabled) {
             sendJoinNotification(player);
         }
     }
@@ -778,7 +814,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerRespawn(PlayerRespawnEvent event) {
-        if (!locked) {
+        if (!isLocked()) {
             return;
         }
         Location to = event.getRespawnLocation();
@@ -798,7 +834,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 to.getWorld().getEnvironment(),
                 to.getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(
-                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                isLocked(), gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkPlayer(request, PlayerTeleportEvent.TeleportCause.UNKNOWN,
                         () -> whitelistChecker.canBypass(player, to.getWorld()));
 
@@ -839,7 +875,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     // gateways and plugin-driven entity teleports in one handler.
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityTeleport(EntityTeleportEvent event) {
-        if (!blockEntities || !locked) {
+        if (!blockEntities || !isLocked()) {
             return;
         }
         if (event.getEntity() instanceof Player) {
@@ -859,7 +895,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 to.getWorld().getEnvironment(),
                 to.getWorld().getName());
         EndAccessGate.Verdict verdict = new EndAccessGate(
-                locked, gracePeriodTask.isActive(), blockEndGateway, endWorlds)
+                isLocked(), gracePeriodTask.isActive(), blockEndGateway, endWorlds)
                 .checkEntity(request, event instanceof EntityTeleportEndGatewayEvent);
         if (verdict == EndAccessGate.Verdict.BLOCKED) {
             event.setCancelled(true);

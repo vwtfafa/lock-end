@@ -36,14 +36,16 @@ paths remain subject to the verification limits documented there.
 
 ### Architecture direction
 
-The repository is on its way to a multi-platform monorepo. The Gradle
-multi-module structure is prepared (shared `lockend.java-conventions` plugin),
-and `lock-end-api` exists as a plain-Java shared API module without any
-platform dependency. The Paper plugin lives in `platforms/paper/` and does not
-yet depend on the shared API; the core extraction and additional platforms are
-not yet in production. The current production path remains the Paper/Folia
-plugin, while the migration continues toward a shared API and shared core
-architecture.
+The repository is on its way to a multi-platform monorepo. `lock-end-api`
+(shared, plain-Java surface) and `lock-end-core` (shared logic: runtime lock
+state via `LockStateManager`, change dispatch, strict schedule helpers,
+platform contracts) exist without platform dependencies, and the Paper plugin
+lives in `platforms/paper/` connected to the shared core (state, persistence
+via `ConfigLockStateRepository`, scheduling helpers, shared 4.x API service
+registration). Legacy commands, events, history, messaging and the 3.1
+`EndLockApi`/`EndLockStateChangeEvent` remain unchanged. Fabric, NeoForge,
+Forge and the datapack are still future phases; the Paper/Folia plugin is the
+production baseline that all platform abstractions preserve.
 
 The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
 The plan is the authoritative design direction for future refactors, but it must
@@ -389,6 +391,7 @@ as a "translation" without noting it.
 | `gradle.properties` | Central versions: project version, Java, Paper API, tools |
 | `settings.gradle.kts` | Module includes for the multi-module monorepo |
 | `lock-end-api/` | Shared, platform-independent API module (plain Java) |
+| `lock-end-core/` | Shared core: state management, dispatch, schedule helpers, platform contracts |
 | `docs/api/shared-api.md` | Shared API contract and Paper compatibility rules |
 | `buildSrc/` | Shared `lockend.java-conventions` Gradle plugin |
 | `config/checkstyle/checkstyle.xml` | Checkstyle rules shared by all Java modules |
