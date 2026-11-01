@@ -6,6 +6,7 @@ rootProject.name = "lock-end"
 
 // Shared, platform-independent modules.
 include("lock-end-api")
+include("lock-end-core")
 
 // Platforms.
 include("platforms:paper")
