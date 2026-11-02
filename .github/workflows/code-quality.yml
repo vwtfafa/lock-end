@@ -2,7 +2,7 @@ name: Code Quality Checks
 
 on:
   push:
-    branches: [master, beta, v2.0]
+    branches: [master, beta, v2.0, feature/multiplatform-core]
   pull_request:
     branches: [master, beta]
 
@@ -28,6 +28,14 @@ jobs:
       - name: Run Gradle checks
         run: |
           ./gradlew build --no-daemon --stacktrace
+
+      - name: Validate Datapack resources explicitly
+        run: |
+          ./gradlew :datapack:validatePack --no-daemon --stacktrace
+
+      - name: Build shared API javadoc
+        run: |
+          ./gradlew :lock-end-api:javadoc --no-daemon --stacktrace
 
       - name: Smoke test on pinned Paper 26.3 Build 209
         run: |
@@ -168,3 +176,87 @@ jobs:
         with:
           name: spotbugs-report
           path: platforms/paper/build/reports/spotbugs/main/*.xml
+
+      - name: Archive release artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts
+          path: |
+            platforms/paper/build/libs/lock-end-*.jar
+            platforms/fabric/build/libs/lock-end-fabric-*.jar
+            platforms/neoforge/build/libs/lock-end-neoforge-*.jar
+            datapack/build/libs/lock-end-datapack-*.zip
+          if-no-files-found: error
+
+      - name: Archive API javadoc
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: api-javadoc
+          path: lock-end-api/build/docs/javadoc/
+          if-no-files-found: error
+
+  smoke-fabric:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: temurin
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # Bounded dev-server smoke: the boot must log the mod init line. The
+      # vanilla dedicated server shuts itself down once stdin reaches EOF
+      # (CI stdin is /dev/null), so no stop signal has to be fed through
+      # Gradle; timeout 900 is only a safety net for hangs.
+      - name: Boot smoke test on Fabric (dev dedicated server)
+        run: |
+          mkdir -p platforms/fabric/run
+          printf 'eula=true\n' > platforms/fabric/run/eula.txt
+          timeout 900 ./gradlew :platforms:fabric:runServer --no-daemon --console=plain < /dev/null > fabric-run.log 2>&1 || true
+          grep -Fq 'EndLock (Fabric) initialized' fabric-run.log || {
+            cat fabric-run.log
+            echo "Fabric smoke test did not observe the EndLock init line."
+            exit 1
+          }
+          echo "EndLock (Fabric) booted on the dev dedicated server."
+
+  smoke-neoforge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: temurin
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # Bounded dev-server smoke mirroring the Fabric job above: stdin EOF
+      # terminates the dedicated server, timeout 900 is the hang safety net.
+      - name: Boot smoke test on NeoForge (dev dedicated server)
+        run: |
+          mkdir -p platforms/neoforge/run
+          printf 'eula=true\n' > platforms/neoforge/run/eula.txt
+          timeout 900 ./gradlew :platforms:neoforge:runServer --no-daemon --console=plain < /dev/null > neoforge-run.log 2>&1 || true
+          grep -Fq 'EndLock (NeoForge) initialized' neoforge-run.log || {
+            cat neoforge-run.log
+            echo "NeoForge smoke test did not observe the EndLock init line."
+            exit 1
+          }
+          echo "EndLock (NeoForge) booted on the dev dedicated server."
