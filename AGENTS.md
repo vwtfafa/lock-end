@@ -39,13 +39,17 @@ paths remain subject to the verification limits documented there.
 The repository is on its way to a multi-platform monorepo. `lock-end-api`
 (shared, plain-Java surface) and `lock-end-core` (shared logic: runtime lock
 state via `LockStateManager`, change dispatch, strict schedule helpers,
-platform contracts) exist without platform dependencies, and the Paper plugin
+platform contracts) exist without platform dependencies, the Paper plugin
 lives in `platforms/paper/` connected to the shared core (state, persistence
 via `ConfigLockStateRepository`, scheduling helpers, shared 4.x API service
-registration). Legacy commands, events, history, messaging and the 3.1
-`EndLockApi`/`EndLockStateChangeEvent` remain unchanged. Fabric, NeoForge,
-Forge and the datapack are still future phases; the Paper/Folia plugin is the
-production baseline that all platform abstractions preserve.
+registration), and `platforms/fabric/` is an initial independent Fabric
+mod adapter (Loom 1.19-SNAPSHOT, Mojang-name vanilla for MC 26.3, JSON
+persistence in the config dir, arrival-bounce plus tick-scan End guard,
+`/endlock lock|unlock|status`). Legacy commands, events, history, messaging
+and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain unchanged. NeoForge,
+Forge and the datapack are still future phases; the Paper/Folia plugin and
+the Paper behaviors remain the production baseline that all platform
+abstractions preserve.
 
 The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
 The plan is the authoritative design direction for future refactors, but it must
