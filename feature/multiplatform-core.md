@@ -338,74 +338,74 @@ Its feature set must therefore be documented separately.
 
 Tasks:
 
-- [ ] Create `feature/multiplatform-core` from `beta`.
-- [ ] Keep `beta` as the integration branch.
-- [ ] Prepare the Gradle multi-module structure.
-- [ ] Centralize Minecraft and Java versions.
-- [ ] Preserve the existing Paper build.
-- [ ] Document the target architecture.
+- [x] Create `feature/multiplatform-core` from `beta`.
+- [x] Keep `beta` as the integration branch.
+- [x] Prepare the Gradle multi-module structure.
+- [x] Centralize Minecraft and Java versions.
+- [x] Preserve the existing Paper build.
+- [x] Document the target architecture.
 
-**Completion criteria:** The existing Paper plugin still builds successfully.
+**Completion criteria:** The existing Paper plugin still builds successfully. ✅ (`gradlew build` green on `cc7f675`)
 
 ### Phase 2 – Shared API
 
 Tasks:
 
-- [ ] Create `lock-end-api`.
-- [ ] Introduce platform-independent data structures.
-- [ ] Implement state change listeners.
-- [ ] Define API contracts.
-- [ ] Document API compatibility rules.
-- [ ] Prepare the Paper compatibility adapter.
-- [ ] Add API unit tests.
+- [x] Create `lock-end-api`.
+- [x] Introduce platform-independent data structures.
+- [x] Implement state change listeners.
+- [x] Define API contracts.
+- [x] Document API compatibility rules.
+- [x] Prepare the Paper compatibility adapter.
+- [x] Add API unit tests.
 
-**Completion criteria:** The shared API compiles without Minecraft or Bukkit dependencies.
+**Completion criteria:** The shared API compiles without Minecraft or Bukkit dependencies. ✅ (`cdccd67`)
 
 ### Phase 3 – Core Extraction
 
 Tasks:
 
-- [ ] Analyze existing LockManager dependencies.
-- [ ] Extract lock state management.
-- [ ] Extract scheduling logic.
-- [ ] Extract platform-independent policies.
-- [ ] Introduce storage interfaces.
-- [ ] Introduce platform service interfaces.
-- [ ] Add unit tests.
-- [ ] Remove unnecessary platform dependencies.
+- [x] Analyze existing LockManager dependencies.
+- [x] Extract lock state management.
+- [x] Extract scheduling logic.
+- [x] Extract platform-independent policies.
+- [x] Introduce storage interfaces.
+- [x] Introduce platform service interfaces.
+- [x] Add unit tests.
+- [x] Remove unnecessary platform dependencies.
 
-**Completion criteria:** Core logic can be tested independently.
+**Completion criteria:** Core logic can be tested independently. ✅ (`a8405ee`, `b2420c1`)
 
 ### Phase 4 – Paper Migration
 
 Tasks:
 
-- [ ] Connect Paper to the shared core.
-- [ ] Preserve existing commands.
-- [ ] Preserve existing Paper events.
-- [ ] Preserve API registration.
-- [ ] Migrate scheduling.
-- [ ] Migrate state persistence.
-- [ ] Run existing Paper tests.
-- [ ] Verify Folia compatibility where supported.
+- [x] Connect Paper to the shared core.
+- [x] Preserve existing commands.
+- [x] Preserve existing Paper events.
+- [x] Preserve API registration.
+- [x] Migrate scheduling.
+- [x] Migrate state persistence.
+- [x] Run existing Paper tests.
+- [x] Verify Folia compatibility where supported.
 
-**Completion criteria:** The Paper plugin works with the shared core without losing existing functionality.
+**Completion criteria:** The Paper plugin works with the shared core without losing existing functionality. ✅ (`f83d7b3`)
 
 ### Phase 5 – Fabric Implementation
 
 Tasks:
 
-- [ ] Add Fabric Gradle module.
-- [ ] Add Fabric Loader and Fabric API dependencies.
-- [ ] Connect the shared API and core.
-- [ ] Implement server initialization.
-- [ ] Implement dimension transition restrictions.
-- [ ] Implement commands.
-- [ ] Implement configuration.
-- [ ] Implement state persistence.
+- [x] Add Fabric Gradle module.
+- [x] Add Fabric Loader and Fabric API dependencies.
+- [x] Connect the shared API and core.
+- [x] Implement server initialization.
+- [x] Implement dimension transition restrictions.
+- [x] Implement commands.
+- [x] Implement configuration.
+- [x] Implement state persistence.
 - [ ] Test on a dedicated server.
 
-**Completion criteria:** Fabric can run Lock-End independently of Paper.
+**Completion criteria:** Fabric can run Lock-End independently of Paper. 🔄 (`c86a750` implements the adapter and the full build passes; the dedicated-server smoke test is still pending.)
 
 ### Phase 6 – NeoForge and Forge
 
