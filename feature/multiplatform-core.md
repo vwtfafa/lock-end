@@ -573,3 +573,28 @@ Lock-End 4.0.0 will use a shared-core architecture with independent platform ada
 The existing `beta` branch remains the foundation. No unnecessary rewrite of the existing Paper implementation should happen before its dependencies and responsibilities have been analyzed.
 
 **Primary objective:** One Lock-End core, one shared API, multiple independent platform implementations.
+
+---
+
+## 12. Follow-up Work (recorded after Phase 8)
+
+Deferred maintenance items agreed with the user; do not treat them as part of
+the migration itself.
+
+- [ ] **Re-align the version pins (follow-up to
+  `chore(release): prepare 3.0.1 with Paper 26.3 build 209`).** During the
+  migration the compile/test target moved to
+  `paperApiVersion=26.3.build.236-stable` (gradle.properties), while the CI
+  smoke still downloads Paper 26.3 Build 209 and Folia 26.3 Build 5, and
+  README/MODRINTH/CHANGELOG still say Build #209. In the same style as the
+  3.0.1 alignment, update all of these **together**: CI download URL +
+  SHA-256, README/MODRINTH claims, and (if decided as part of it) the
+  `paperApiVersion`; then rerun the Paper/Folia smokes locally. Wait for an
+  explicit go before touching versions (no unprompted version bumps).
+- [ ] **Docs overhaul pass (single pass, after the pin alignment).** Refresh
+  all user-facing and contributor docs in one go so versions, platforms,
+  installation instructions and limitations match the implemented state:
+  README.md, MODRINTH.md, datapack/README.md, docs/3.1-integration-guide.md,
+  docs/api/shared-api.md, ROADMAP-3.1.md, AGENTS.md, plus the module build
+  script comments. Keep the Paper-first story ("Paper is the production
+  baseline") visible in every document.
