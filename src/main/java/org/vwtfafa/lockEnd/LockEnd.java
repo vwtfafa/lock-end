@@ -18,7 +18,10 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.vwtfafa.lockEnd.api.EndLockApi;
+import org.vwtfafa.lockEnd.api.EndLockStateChangeEvent;
 import org.vwtfafa.lockEnd.commands.ConfigValidatorCommand;
 import org.vwtfafa.lockEnd.commands.EndLockCommand;
 import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
@@ -64,6 +67,8 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private UpdateChecker updateChecker;
     private File logFile;
     private LockEndExpansion placeholderExpansion;
+    // Internal read-only 3.1 API provider; only registered on the enable path.
+    private EndLockApi apiProvider;
     private final AtomicInteger lockCount = new AtomicInteger();
     private final AtomicInteger unlockCount = new AtomicInteger();
     private final AtomicInteger blockedCount = new AtomicInteger();
@@ -122,6 +127,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         undoCommand = new UndoCommand(this);
         configValidatorCommand = new ConfigValidatorCommand(this);
         configureAsyncLogger();
+        registerApiService();
 
         Bukkit.getPluginManager().registerEvents(this, this);
 
@@ -187,6 +193,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
         }
+        if (apiProvider != null) {
+            // Defensive: the server already unregisterAll(service providers)
+            // in its own disable path (contract §6); we deregister first so
+            // the API disappears as early as the disable runs.
+            getServer().getServicesManager().unregister(EndLockApi.class, apiProvider);
+            apiProvider = null;
+        }
         if (asyncLogger != null) {
             asyncLogger.shutdown();
         }
@@ -195,6 +208,19 @@ public final class LockEnd extends JavaPlugin implements Listener {
             updateChecker = null;
         }
         getLogger().info("EndLock disabled");
+    }
+
+    /**
+     * Publishes the read-only 3.1 API as a Bukkit service. Must only run after
+     * the lock state and reason manager exist (their volatiles are initialized
+     * at the start of onEnable), contract docs/3.1-api-contract.md section 6;
+     * disabled paths remove the provider automatically.
+     */
+    private void registerApiService() {
+        EndLockApi provider = new DefaultEndLockApi(this::isLocked, this::getLockReason);
+        getServer().getServicesManager().register(
+                EndLockApi.class, provider, this, ServicePriority.Normal);
+        apiProvider = provider;
     }
 
     public boolean changeLockState(boolean newLocked, String actor, String action) {
@@ -208,25 +234,43 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         boolean previousState = locked;
         locked = newLocked;
-        historyCommand.recordPreviousState(previousState);
-        recordStateChange(locked);
-        persistStatsToConfig();
-        getConfig().set("locked", locked);
-        saveConfig();
+        try {
+            historyCommand.recordPreviousState(previousState);
+            recordStateChange(locked);
+            persistStatsToConfig();
+            getConfig().set("locked", locked);
+            saveConfig();
 
-        if (!locked) {
-            schedules.handleUnlocked();
-            evacuation.cancel();
-            gracePeriodTask.cancel();
+            if (!locked) {
+                schedules.handleUnlocked();
+                evacuation.cancel();
+                gracePeriodTask.cancel();
+            }
+            messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
+            logAction(actor, action);
+            historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
+            if (locked) {
+                startGracePeriodIfEnabled();
+                evacuation.schedule();
+            }
+        } catch (RuntimeException | Error failure) {
+            try {
+                fireStateChangeEvent(previousState, newLocked, action, actor, actorUuid);
+            } catch (RuntimeException | Error eventFailure) {
+                if (eventFailure != failure) {
+                    failure.addSuppressed(eventFailure);
+                }
+            }
+            throw failure;
         }
-        messages.broadcastLockState(locked, locked ? "broadcast-locked" : "broadcast-unlocked", actor);
-        logAction(actor, action);
-        historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, locked);
-        if (locked) {
-            startGracePeriodIfEnabled();
-            evacuation.schedule();
-        }
+        fireStateChangeEvent(previousState, newLocked, action, actor, actorUuid);
         return true;
+    }
+
+    private void fireStateChangeEvent(
+            boolean previousState, boolean newState, String action, String actor, UUID actorUuid) {
+        getServer().getPluginManager().callEvent(
+                new EndLockStateChangeEvent(previousState, newState, action, actor, actorUuid));
     }
 
     public boolean undoLastAction(String actor) {

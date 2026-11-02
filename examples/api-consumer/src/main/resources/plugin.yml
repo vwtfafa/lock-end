@@ -1,0 +1,6 @@
+name: EndLockApiConsumer
+version: "0.1.0"
+main: org.vwtfafa.apicons.EndLockApiConsumerPlugin
+api-version: "26.3"
+folia-supported: true
+softdepend: [EndLock]

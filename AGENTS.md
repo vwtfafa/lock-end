@@ -5,8 +5,8 @@ repository. It records how we work on EndLock. `build.gradle.kts`, `plugin.yml` 
 CI are the source of truth for versions and commands; if this file disagrees with
 them, the build files win and this file should be corrected.
 
-Legacy note: `CLAUDE.md` and the files under `.claude/` predate this document and
-are partially outdated (some still mention Paper 26.2). This file takes precedence.
+`CLAUDE.md` is retained only as a pointer to this file. `AGENTS.md` is the
+authoritative project instruction document.
 
 ---
 
@@ -29,6 +29,10 @@ are partially outdated (some still mention Paper 26.2). This file takes preceden
 The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
 "remember" a version from documentation or old notes; read the build file.
 
+The EndLock 3.1 API and release scope are documented in
+[ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
+paths remain subject to the verification limits documented there.
+
 ---
 
 ## 2. Golden rules
@@ -38,8 +42,8 @@ The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
    alternative, and say why in the commit body or code comment if it is not obvious.
 2. **Verify every API before using it.** Never guess or invent classes, methods,
    parameters, or return types. Check the official Javadoc for the exact configured
-   version (see section 3). If you cannot verify an API, say so instead of writing
-   speculative code.
+   Paper 26.3 version (see section 3). If you cannot verify an API, say so instead
+   of writing speculative code.
 3. **Use Adventure for all player-facing text.** `Component`, `MiniMessage`,
    `TextReplacementConfig`, `sendActionBar(Component)`. No `ChatColor`, no
    `player.sendMessage(String)`, no legacy `§` codes in bundled resources.
@@ -68,6 +72,21 @@ The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
 - Paper developer docs: <https://docs.papermc.io/paper/dev/api/>
 - Adventure Javadoc: <https://jd.advntr.dev/api/latest/>
 - PaperMC repository / builds: <https://repo.papermc.io/> and <https://papermc.io/downloads/paper>
+
+### Developing against Paper 26.3
+
+- Keep Paper 26.3 as the target and use its Javadocs and developer docs as the
+  source of truth. Do not use APIs from another version based on memory or
+  examples written for a different release.
+- Look for Paper 26.3 APIs that can meaningfully improve a requested feature,
+  especially lifecycle registration, Brigadier commands, events, and
+  Paper/Folia schedulers. Prefer them when they fit the existing architecture;
+  do not add an API merely to make the code look newer.
+- Before proposing a version-sensitive design, verify the API's availability,
+  behavior, deprecation status, and threading contract. If it cannot be verified,
+  describe the uncertainty and keep the design at proposal level.
+- Preserve the configured Paper and Folia targets unless a version change is
+  explicitly requested. API exploration is not permission to upgrade dependencies.
 
 ### Verification protocol
 
@@ -122,6 +141,11 @@ document why the deprecated API is the only option.
   (`EndLockCommand#buildNode`). Do not add commands to `plugin.yml`.
 - **Events:** use Paper events where they exist (`io.papermc.paper.event.*`). Keep
   handlers small and delegate to the existing services.
+- **Public integrations:** keep the EndLock API small and documented. Expose
+  stable contracts, not `LockEnd` implementation classes, config objects, or
+  mutable internal state. Verify any API changes against Paper 26.3 and Folia.
+  The implemented 3.1 surface and its limits are in
+  [ROADMAP-3.1.md](ROADMAP-3.1.md); do not expand it without a concrete need.
 - **Config:** every new option needs a default in `config.yml`, a read path in the
   owning service, and validation in the config validator. Preserve backwards
   compatibility and migration behavior (`ConfigMigrator`).
@@ -209,10 +233,12 @@ Keep both green; Folia support is not theoretical.
    unfinished work - never stage or commit files you did not touch.
 2. Make one logical change.
 3. Verify it (`gradlew build`, or the narrowest relevant test).
-4. Stage explicit paths: `git add <path> [<path> ...]`. Do not use `git add -A` or
+4. If the user asks to review changes before commit or push, leave the relevant
+   changes uncommitted and unpushed, show the diff, and wait for approval.
+5. Stage explicit paths: `git add <path> [<path> ...]`. Do not use `git add -A` or
    `git add .` while unrelated changes exist.
-5. Commit immediately.
-6. Report the commit hash and what was verified.
+6. Commit immediately when no review gate is pending.
+7. Report the commit hash and what was verified.
 
 If a change is not ready to commit, it is not done. Do not leave a finished change
 uncommitted "for later".
@@ -268,6 +294,21 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
 6. Run `gradlew build`.
 7. Commit.
 
+### Working on the 3.1 API
+
+1. Treat [ROADMAP-3.1.md](ROADMAP-3.1.md) and
+   [docs/3.1-api-contract.md](docs/3.1-api-contract.md) as the current
+   implemented contract, not as approval for additional API scope.
+2. Before changing the API, verify Paper 26.3 service/event behavior and Folia
+   threading against the configured API. Do not add speculative signatures.
+3. Keep the surface read-only unless a concrete consumer need justifies a
+   separately reviewed change. Do not expose broad settings or internals.
+4. Preserve existing state-change side effects (history, persistence,
+   schedules, messages, grace periods, and evacuation).
+5. Keep compatibility claims limited to verified paths. The current open
+   player-path tests and optional-dependency smoke test are listed in the
+   roadmap and prototype report.
+
 ### Changing versions or dependencies
 
 Only when explicitly requested. Update **all** of these together:
@@ -297,6 +338,8 @@ as a "translation" without noting it.
 ## 9. Definition of done
 
 - [ ] Uses Paper API where possible; every unfamiliar API was verified in the 26.3 Javadoc.
+- [ ] Paper 26.3 APIs were evaluated for the requested behavior without upgrading
+      the configured target or adding APIs without a concrete benefit.
 - [ ] No NMS, reflection, deprecated calls, or legacy color codes introduced.
 - [ ] Java 25, Paper/Minecraft 26.3, and Folia compatibility preserved.
 - [ ] Text uses Adventure components / MiniMessage.
