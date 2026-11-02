@@ -34,5 +34,8 @@ include("platforms:paper")
 include("platforms:fabric")
 include("platforms:neoforge")
 
+// Limited vanilla implementation (Phase 7).
+include("datapack")
+
 // platforms/forge and the datapack: added by
 // their respective migration phases.
