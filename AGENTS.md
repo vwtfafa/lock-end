@@ -42,12 +42,18 @@ state via `LockStateManager`, change dispatch, strict schedule helpers,
 platform contracts) exist without platform dependencies, the Paper plugin
 lives in `platforms/paper/` connected to the shared core (state, persistence
 via `ConfigLockStateRepository`, scheduling helpers, shared 4.x API service
-registration), and `platforms/fabric/` is an initial independent Fabric
+registration), `platforms/fabric/` is an initial independent Fabric
 mod adapter (Loom 1.19-SNAPSHOT, Mojang-name vanilla for MC 26.3, JSON
 persistence in the config dir, arrival-bounce plus tick-scan End guard,
-`/endlock lock|unlock|status`). Legacy commands, events, history, messaging
-and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain unchanged. NeoForge,
-Forge and the datapack are still future phases; the Paper/Folia plugin and
+`/endlock lock|unlock|status`), `platforms/neoforge/` is the NeoForge
+adapter (NeoForge 26.3.0.101, ModDevGradle 2, mod id `lockend`, pre-travel
+veto via the cancellable `EntityTravelToDimensionEvent`), and `datapack/`
+is a deliberately limited vanilla implementation (op-called `lockend:*`
+functions, persistent `lockend_state` scoreboard, `location_check`
+predicate; see `datapack/README.md` for the feature limits). Legacy
+commands, events, history, messaging
+and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain unchanged. Forge
+is verified compatible but deliberately deferred; the Paper/Folia plugin and
 the Paper behaviors remain the production baseline that all platform
 abstractions preserve.
 
