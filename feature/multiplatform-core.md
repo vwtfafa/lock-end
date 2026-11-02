@@ -403,9 +403,9 @@ Tasks:
 - [x] Implement commands.
 - [x] Implement configuration.
 - [x] Implement state persistence.
-- [ ] Test on a dedicated server.
+- [x] Test on a dedicated server.
 
-**Completion criteria:** Fabric can run Lock-End independently of Paper. 🔄 (`c86a750` implements the adapter and the full build passes; the dedicated-server smoke test is still pending.)
+**Completion criteria:** Fabric can run Lock-End independently of Paper. ✅ (`c86a750` implements the adapter and the full build passes; verified in-game by the user on MC 26.3 singleplayer with Fabric API 0.165.0+26.3: mod loads, `/endlock lock|unlock|status` work, End access is bounced. The server-environment skip bug found during this test was fixed in `b496851` (`environment: *`). A dedicated-server CI smoke run is added with the Phase 8 CI work.)
 
 ### Phase 6 – NeoForge and Forge
 
