@@ -411,16 +411,16 @@ Tasks:
 
 Tasks:
 
-- [ ] Add NeoForge module.
-- [ ] Implement NeoForge adapter.
-- [ ] Add shared API and core dependencies.
-- [ ] Implement dimension restrictions.
-- [ ] Implement commands and configuration.
-- [ ] Check Forge support for the selected Minecraft version.
+- [x] Add NeoForge module.
+- [x] Implement NeoForge adapter.
+- [x] Add shared API and core dependencies.
+- [x] Implement dimension restrictions.
+- [x] Implement commands and configuration.
+- [x] Check Forge support for the selected Minecraft version. (Verified: Forge 26.3-66.1.3 exists on maven.minecraftforge.net; the Forge task below is deliberately deferred - the user asked to continue from NeoForge to the Datapack first.)
 - [ ] Add Forge module if compatible.
-- [ ] Test each platform independently.
+- [ ] Test each platform independently. (NeoForge verified by the `:platforms:neoforge:runServer` dev-server smoke; Fabric pending its dedicated-server run; the dedicated CI smoke runs land with the Phase 8 CI work.)
 
-**Completion criteria:** Each supported modloader uses the same core behavior.
+**Completion criteria:** Each supported modloader uses the same core behavior. 🔄 (`7b6c9d2` implements the NeoForge adapter and the full build passes; Forge deferred as noted above; in-game verification follows like on Fabric.)
 
 ### Phase 7 – Datapack
 
