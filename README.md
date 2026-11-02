@@ -2,6 +2,26 @@
 
 **EndLock** is a lightweight Paper plugin that lets you globally lock or unlock access to the End dimension with a single command. Ideal for progression servers, events, or worlds where the End should stay closed until you decide otherwise.
 
+## Multiplatform
+
+EndLock is migrating to a multiplatform monorepo
+([`feature/multiplatform-core.md`](feature/multiplatform-core.md)). Alongside
+the Paper/Folia plugin, the same behavior now exists for:
+
+| Platform | Target | Artifact | Status |
+|---|---|---|---|
+| Paper / Folia | Minecraft 26.3 | `lock-end-3.1.0.jar` (see [Installation](#installation)) | Production baseline |
+| Fabric | Fabric Loader + Fabric API, Minecraft 26.3 | `lock-end-fabric-3.1.0.jar` → `mods/` folder | Verified in singleplayer; dedicated-server CI smoke included |
+| NeoForge | NeoForge 26.3.0.101 | `lock-end-neoforge-3.1.0.jar` → `mods/` folder | Dev-server smoke passed; in-game verification pending |
+| Forge | Forge 26.3 | – | Deferred (compatibility confirmed) |
+| Vanilla datapack | Any vanilla server/work | `lock-end-datapack-3.1.0.zip` → `<world>/datapacks/` | Limited subset; see [`datapack/README.md`](datapack/README.md) |
+
+The Fabric and NeoForge mods share the platform-independent `lock-end-api`
+and `lock-end-core` modules with the Paper plugin and expose the same
+`/endlock lock|unlock|status` surface. The datapack cannot intercept
+teleports before they happen and has further documented limitations; use the
+mod implementations whenever the server can load mods.
+
 ## What's new in 3.1
 
 Version 3.1 adds a small, read-only public plugin API in

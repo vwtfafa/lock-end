@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+Multiplatform work on the `feature/multiplatform-core` branch: Lock-End grows
+from a Paper-only plugin into a monorepo with shared modules and per-platform
+adapters (plan: `feature/multiplatform-core.md`).
+
+### Added
+- Gradle multi-module layout: shared, platform-independent `lock-end-api`
+  (data structures, change listeners, API contracts) and `lock-end-core`
+  (lock state management, change dispatch, strict schedule helpers, platform
+  contracts). The Paper plugin is connected to both; the existing 3.1 API
+  surface, `examples/api-consumer`, and all Paper behaviors remain unchanged
+  (`docs/api/shared-api.md`).
+- **Fabric mod** (`platforms/fabric`): server-side Lock-End for Fabric Loader
+  with Fabric API on Minecraft 26.3 (official Mojang mappings, `environment: *`
+  so singleplayer works). Arrival-bounce guard plus a tick-scan End guard,
+  `/endlock lock|unlock|status` commands, JSON state persistence in the config
+  directory; shared API and core are merged into the distributable
+  `lock-end-fabric-<version>.jar`.
+- **NeoForge mod** (`platforms/neoforge`): independent adapter for NeoForge
+  26.3.0.101 (ModDevGradle 2). Dimension transit into the locked End is vetoed
+  pre-travel via the cancellable `EntityTravelToDimensionEvent`; `/endlock
+  lock|unlock|status` commands; JSON state persistence. Mod id is `lockend`
+  (FML strict ids do not allow hyphens; Fabric and Paper keep `lock-end`).
+- **Vanilla datapack** (`datapack`): deliberately limited implementation for
+  servers without a mod loader. Op-controlled `lockend:lock|unlock|status|
+  set_spawn` functions, `evacuate`/`evacuate_player` guard wired to the
+  `minecraft:tick` tag, lock state in the persistent `lockend_state`
+  scoreboard (survives restarts, including stranded-player eviction).
+  Dimension filtering uses a `minecraft:location_check` predicate because
+  MC 26.3 selectors have no dimension option. Shipped with a structural
+  `PackValidator` (`validatePack` build task: pack.mcmeta, function tags,
+  references, reachability), a reproducible `lock-end-datapack-<version>.zip`
+  distribution, and its limitations documented in `datapack/README.md`.
+- Phase 8 CI: the push trigger includes `feature/multiplatform-core`, the
+  quality job validates the datapack and publishes the shared API javadoc,
+  dedicated smoke jobs boot the Fabric and NeoForge dev servers, and the
+  release artifacts (Paper, Fabric, and NeoForge jars plus the datapack zip)
+  are uploaded as workflow artifacts.
+
+### Verified
+- Fabric: in-game by the user on MC 26.3 singleplayer (Fabric API
+  0.165.0+26.3): mod loads, commands work, End access is bounced; a
+  dedicated-server CI smoke is part of the Phase 8 CI extension.
+- NeoForge: dev-dedicated-server smoke (`:platforms:neoforge:runServer`,
+  `Done`, clean shutdown, state persisted).
+- Datapack: the built zip loads on an MC 26.3 dev server without any
+  datapack/function error; in-game vanilla verification is still pending.
+- Forge: compatibility confirmed (Forge 26.3-66.1.3 exists), the adapter is
+  deliberately deferred.
+
 ## [3.1.0] - 2026-11-01
 
 ### Added
