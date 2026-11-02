@@ -1,5 +1,21 @@
 rootProject.name = "lock-end"
 
+// Fabric Loom lives outside the Gradle Plugin Portal; resolve it from the
+// official Fabric Maven before falling back to the portal. Versions for
+// platform dependencies are centralized in gradle.properties; the Loom
+// version itself is declared in platforms/fabric/build.gradle.kts because
+// plugin versions must be constant expressions there.
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven {
+            name = "fabricmc"
+            url = uri("https://maven.fabricmc.net/")
+        }
+    }
+}
+
 // Lock-End multi-module monorepo. The migration phases are described in
 // feature/multiplatform-core.md; each platform lives in its own module and
 // no platform module depends on another platform module.
@@ -10,7 +26,7 @@ include("lock-end-core")
 
 // Platforms.
 include("platforms:paper")
+include("platforms:fabric")
 
-// lock-end-core: added with the core extraction phase.
-// platforms/fabric, platforms/neoforge, platforms/forge, datapack: added by
+// platforms/neoforge, platforms/forge, datapack: added by
 // their respective migration phases.
