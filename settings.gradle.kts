@@ -22,7 +22,7 @@ plugins {
 }
 
 // Lock-End multi-module monorepo. The migration phases are described in
-// feature/multiplatform-core.md; each platform lives in its own module and
+// Multiplatform monorepo layout; each platform lives in its own module and
 // no platform module depends on another platform module.
 
 // Shared, platform-independent modules.

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Working agreement for AI coding agents (OpenCode, Claude Code, Codex, ...) in this
-repository. It records how we work on EndLock. `build.gradle.kts`, `plugin.yml` and
+repository. It records how we work on EndLock. `gradle.properties`, `plugin.yml` and
 CI are the source of truth for versions and commands; if this file disagrees with
 them, the build files win and this file should be corrected.
 
@@ -25,10 +25,11 @@ authoritative project instruction document.
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
-| Current direction | Paper-first implementation with an active multiplatform migration plan for shared API/core and loader-specific adapters |
+| Current direction | Multiplatform monorepo (Lock-End 4.0.0): Paper/Folia plugin as the production baseline, plus Fabric, NeoForge and vanilla-datapack adapters; Forge deliberately deferred |
 
-The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
-"remember" a version from documentation or old notes; read the build file.
+The versions in `gradle.properties` (`lockEndVersion`, `paperApiVersion`) are
+authoritative. Do not
+"remember" a version from documentation or old notes; read the properties file.
 
 The EndLock 3.1 API and release scope are documented in
 [ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
@@ -36,7 +37,7 @@ paths remain subject to the verification limits documented there.
 
 ### Architecture direction
 
-The repository is on its way to a multi-platform monorepo. `lock-end-api`
+The repository is a multi-platform monorepo as of the 4.0.0 release. `lock-end-api`
 (shared, plain-Java surface) and `lock-end-core` (shared logic: runtime lock
 state via `LockStateManager`, change dispatch, strict schedule helpers,
 platform contracts) exist without platform dependencies, the Paper plugin
@@ -57,10 +58,9 @@ is verified compatible but deliberately deferred; the Paper/Folia plugin and
 the Paper behaviors remain the production baseline that all platform
 abstractions preserve.
 
-The migration plan is documented in [feature/multiplatform-core.md](feature/multiplatform-core.md).
-The plan is the authoritative design direction for future refactors, but it must
-not be treated as permission to rewrite the existing plugin overnight or to add
-unverified loader APIs. The existing Paper implementation remains the baseline
+The original migration plan `feature/multiplatform-core.md` was retired after
+the 4.0.0 migration was completed; this architecture section is the surviving
+record of its decisions. The existing Paper implementation remains the baseline
 that all platform abstractions must preserve.
 
 Rules for future architecture work:
@@ -68,10 +68,16 @@ Rules for future architecture work:
 - Keep Paper/Folia behavior working as the baseline implementation.
 - Prefer shared domain logic over copy-pasted platform code.
 - Keep platform-specific dependencies out of shared modules.
-- Introduce platform abstraction only when the migration is incremental and
+- Introduce platform abstraction only when new work is incremental and
   verifiable.
-- Do not assume Fabric, NeoForge, Forge, or Datapack are already implemented just
-  because the roadmap exists.
+- Do not assume Forge is implemented: its adapter is deliberately deferred
+  even though Forge 26.3-66.1.3 compatibility was verified.
+- Open follow-up from the retired plan: the compile target is
+  `paperApiVersion=26.3.build.236-stable`, while the CI smoke pins and most
+  docs still say Paper 26.3 Build 209 / Folia Build 5; these pins
+  (CI download URL + SHA-256 plus README/MODRINTH/CHANGELOG claims) are to be
+  realigned together on an explicit go, then re-tested with the Paper/Folia
+  smokes.
 
 ---
 
@@ -354,10 +360,12 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
 
 Only when explicitly requested. Update **all** of these together:
 
-- `paperApiVersion` / plugin versions in `build.gradle.kts`,
-- `api-version` and `minecraftVersion` in `plugin.yml` / `build.gradle.kts`,
+- `lockEndVersion`, `paperApiVersion` and the loader/dependency versions in
+  `gradle.properties`,
+- `api-version` and `minecraftVersion` in `plugin.yml` / the paper build script,
 - CI smoke-test download URLs and SHA-256 hashes in `.github/workflows/code-quality.yml`,
-- `README.md`, `MODRINTH.md`, `CHANGELOG.md`, and `version` in `build.gradle.kts`.
+- `README.md`, `MODRINTH.md`, and `CHANGELOG.md`, plus the jar-name examples in
+  `docs/3.1-integration-guide.md` and `examples/api-consumer/README.md`.
 
 Then run `gradlew build` and both smoke tests locally if possible.
 

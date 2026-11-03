@@ -2,7 +2,7 @@ plugins {
     id("lockend.java-conventions")
 }
 
-// Phase 7 of feature/multiplatform-core.md: the vanilla datapack is a pure
+// The vanilla datapack is a pure
 // resource implementation. The module ships its pack sources (validated by a
 // structural validator) and packages them into the distributable zip; no
 // platform integration exists by design (vanilla datapacks cannot intercept

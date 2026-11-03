@@ -1,8 +1,9 @@
 # Lock-End Datapack (vanilla)
 
 A deliberately limited vanilla implementation of Lock-End for servers without
-a mod loader. The migration plan (feature/multiplatform-core.md, section 5.5)
-documents the reduced feature set.
+a mod loader. The datapack intentionally trades the full feature set for a
+zero-dependency install; the Paper/Folia plugin, the Fabric and NeoForge mods
+are the full implementations.
 
 ## Install
 

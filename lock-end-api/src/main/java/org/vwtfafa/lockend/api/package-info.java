@@ -1,7 +1,7 @@
 /**
  * Shared, platform-independent EndLock API package.
  *
- * <p>Rules for this package (feature/multiplatform-core.md, section 3):</p>
+ * <p>Rules for this package:</p>
  * <ul>
  *   <li>No Bukkit, Paper, Fabric, NeoForge, Forge or other Minecraft
  *       implementation dependency may appear here; the module must stay

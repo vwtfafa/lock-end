@@ -1,8 +1,7 @@
 # Lock-End Shared API (lock-end-api)
 
 The shared API is the platform-independent, type-safe surface introduced by
-the multiplatform migration (see
-[feature/multiplatform-core.md](../feature/multiplatform-core.md), section 3).
+the Lock-End 4.0 multiplatform migration.
 
 ## Modules
 
