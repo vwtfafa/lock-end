@@ -4,23 +4,34 @@
 
 ## Multiplatform
 
-EndLock is migrating to a multiplatform monorepo
-([`feature/multiplatform-core.md`](feature/multiplatform-core.md)). Alongside
-the Paper/Folia plugin, the same behavior now exists for:
+EndLock 4.0 is a multiplatform monorepo. Alongside the Paper/Folia plugin,
+the same behavior now exists for:
 
 | Platform | Target | Artifact | Status |
 |---|---|---|---|
-| Paper / Folia | Minecraft 26.3 | `lock-end-3.1.0.jar` (see [Installation](#installation)) | Production baseline |
-| Fabric | Fabric Loader + Fabric API, Minecraft 26.3 | `lock-end-fabric-3.1.0.jar` → `mods/` folder | Verified in singleplayer; dedicated-server CI smoke included |
-| NeoForge | NeoForge 26.3.0.101 | `lock-end-neoforge-3.1.0.jar` → `mods/` folder | Dev-server smoke passed; in-game verification pending |
+| Paper / Folia | Minecraft 26.3 | `lock-end-4.0.0.jar` (see [Installation](#installation)) | Production baseline |
+| Fabric | Fabric Loader + Fabric API, Minecraft 26.3 | `lock-end-fabric-4.0.0.jar` → `mods/` folder | Verified in singleplayer; main-line CI smoke |
+| NeoForge | NeoForge 26.3.0.101 | `lock-end-neoforge-4.0.0.jar` → `mods/` folder | Dev-server smoke passed; in-game verification pending |
 | Forge | Forge 26.3 | – | Deferred (compatibility confirmed) |
-| Vanilla datapack | Any vanilla server/work | `lock-end-datapack-3.1.0.zip` → `<world>/datapacks/` | Limited subset; see [`datapack/README.md`](datapack/README.md) |
+| Vanilla datapack | Any vanilla server/world | `lock-end-datapack-4.0.0.zip` → `<world>/datapacks/` | Limited subset; see [`datapack/README.md`](datapack/README.md) |
 
 The Fabric and NeoForge mods share the platform-independent `lock-end-api`
 and `lock-end-core` modules with the Paper plugin and expose the same
 `/endlock lock|unlock|status` surface. The datapack cannot intercept
 teleports before they happen and has further documented limitations; use the
 mod implementations whenever the server can load mods.
+
+## What's new in 4.0
+
+Version 4.0 takes EndLock multiplatform. One Lock-End core and one shared
+API now power four implementations: the Paper/Folia plugin (the unchanged
+production baseline, including the 3.1 public API), a Fabric mod with
+arrival-bounce and tick-scan guards, a NeoForge mod with a pre-travel veto,
+and a deliberately limited vanilla datapack with scoreboard-persisted lock
+state. The release workflow attaches one downloadable artifact per platform:
+`lock-end-4.0.0.jar`, `lock-end-fabric-4.0.0.jar`,
+`lock-end-neoforge-4.0.0.jar`, and `lock-end-datapack-4.0.0.zip`.
+Forge support is confirmed compatible but deliberately deferred.
 
 ## What's new in 3.1
 
@@ -73,7 +84,7 @@ migrate and write.
 
 ## Installation
 
-1. Download the latest `lock-end-3.1.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
+1. Download the latest `lock-end-4.0.0.jar` from [Releases](https://github.com/vwtfafa/lock-end/releases) or Modrinth.
 2. Place the file in your server's `plugins/` folder.
 3. Start or restart the server.
 4. Edit `plugins/EndLock/config.yml` if needed (language, initial lock state, update checker). bStats can be disabled globally via `plugins/bStats/config.json`.
@@ -342,10 +353,10 @@ The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation
 
 Outputs:
 
-- `platforms/paper/build/libs/lock-end-3.1.0.jar` (Paper/Folia plugin)
-- `platforms/fabric/build/libs/lock-end-fabric-3.1.0.jar` (Fabric mod)
-- `platforms/neoforge/build/libs/lock-end-neoforge-3.1.0.jar` (NeoForge mod)
-- `datapack/build/libs/lock-end-datapack-3.1.0.zip` (vanilla datapack)
+- `platforms/paper/build/libs/lock-end-4.0.0.jar` (Paper/Folia plugin)
+- `platforms/fabric/build/libs/lock-end-fabric-4.0.0.jar` (Fabric mod)
+- `platforms/neoforge/build/libs/lock-end-neoforge-4.0.0.jar` (NeoForge mod)
+- `datapack/build/libs/lock-end-datapack-4.0.0.zip` (vanilla datapack)
 
 ## Automatic releases (GitHub Actions)
 

@@ -2,11 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [4.0.0] - 2026-11-03
 
-Multiplatform work on the `feature/multiplatform-core` branch: Lock-End grows
-from a Paper-only plugin into a monorepo with shared modules and per-platform
-adapters (plan: `feature/multiplatform-core.md`).
+Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
+plugin into a monorepo with shared modules and per-platform adapters.
 
 ### Added
 - Gradle multi-module layout: shared, platform-independent `lock-end-api`
@@ -34,20 +33,35 @@ adapters (plan: `feature/multiplatform-core.md`).
   Dimension filtering uses a `minecraft:location_check` predicate because
   MC 26.3 selectors have no dimension option. Shipped with a structural
   `PackValidator` (`validatePack` build task: pack.mcmeta, function tags,
-  references, reachability), a reproducible `lock-end-datapack-<version>.zip`
-  distribution, and its limitations documented in `datapack/README.md`.
-- Phase 8 CI: the push trigger includes `feature/multiplatform-core`, the
-  quality job validates the datapack and publishes the shared API javadoc,
-  dedicated smoke jobs boot the Fabric and NeoForge dev servers, and the
-  release artifacts (Paper, Fabric, and NeoForge jars plus the datapack zip)
-  are uploaded as workflow artifacts.
+  references, reachability) and a reproducible
+  `lock-end-datapack-<version>.zip` distribution; limitations documented in
+  `datapack/README.md`.
+- CI: the quality workflow validates the datapack and builds the shared API
+  javadoc, dedicated boot smoke jobs run the Fabric and NeoForge dev servers
+  (only for pushes to the master/beta branches), the release workflow ships
+  one artifact per platform, and every quality run uploads the release
+  artifacts plus the API javadoc as workflow artifacts.
+
+### Changed
+- Bumped the project version to 4.0.0.
+- The release pipeline reads the version from `gradle.properties`
+  (`lockEndVersion`) and replaced the old root `build.gradle.kts` source.
+
+### Docs
+- README documents the full platform matrix (Paper/Folia, Fabric, NeoForge,
+  Forge, datapack) with one artifact per platform.
+- Retired the migration plan document `feature/multiplatform-core.md`; the
+  surviving architecture record lives in `AGENTS.md`, and the remaining
+  open follow-ups are listed there.
+- Release template and Modrinth page describe the per-platform artifacts and
+  their installation paths.
 
 ### Verified
 - Fabric: in-game by the user on MC 26.3 singleplayer (Fabric API
   0.165.0+26.3): mod loads, commands work, End access is bounced; a
-  dedicated-server CI smoke is part of the Phase 8 CI extension.
+  dedicated-server CI smoke runs for main-line pushes.
 - NeoForge: dev-dedicated-server smoke (`:platforms:neoforge:runServer`,
-  `Done`, clean shutdown, state persisted).
+  `Done`, clean shutdown, state persisted); in-game verification pending.
 - Datapack: the built zip loads on an MC 26.3 dev server without any
   datapack/function error; in-game vanilla verification is still pending.
 - Forge: compatibility confirmed (Forge 26.3-66.1.3 exists), the adapter is
