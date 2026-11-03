@@ -14,10 +14,16 @@ repositories {
     mavenCentral()
 }
 
+val sharedModules by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
-    // Shared Lock-End modules (also merged into the distribution jar below).
     implementation(project(":lock-end-api"))
     implementation(project(":lock-end-core"))
+    sharedModules(project(":lock-end-api"))
+    sharedModules(project(":lock-end-core"))
 
     testImplementation("com.google.code.gson:gson:2.11.0")
 }
@@ -46,15 +52,7 @@ tasks {
         archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
 
-        configurations = listOf(project.configurations.runtimeClasspath.get())
-        dependencies {
-            // Only merge the shared Lock-End modules into the distribution
-            // jar; everything else is provided by NeoForge at runtime.
-            // Mirrors the Paper and Fabric modules' shadow filter.
-            exclude {
-                !it.moduleGroup.startsWith("org.vwtfafa")
-            }
-        }
+        configurations = listOf(sharedModules)
     }
 
     // ModDevGradle registers no remapping tasks (NeoForge uses the official

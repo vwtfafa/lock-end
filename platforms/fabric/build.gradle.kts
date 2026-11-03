@@ -17,6 +17,11 @@ repositories {
     mavenCentral()
 }
 
+val sharedModules by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$fabricMinecraftVersion")
     // Official Mojang mappings are the Loom default and the documented
@@ -28,6 +33,8 @@ dependencies {
     // Shared Lock-End modules (also merged into the distribution jar below).
     implementation(project(":lock-end-api"))
     implementation(project(":lock-end-core"))
+    sharedModules(project(":lock-end-api"))
+    sharedModules(project(":lock-end-core"))
 
     testImplementation("com.google.code.gson:gson:2.11.0")
 }
@@ -38,16 +45,7 @@ tasks {
         archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
 
-        configurations = listOf(project.configurations.runtimeClasspath.get())
-        dependencies {
-            // Only merge the shared Lock-End modules into the distribution
-            // jar; everything else stays a (Loom-provided) platform
-            // dependency at runtime. Mirrors the Paper module's shadow
-            // filter.
-            exclude {
-                !it.moduleGroup.startsWith("org.vwtfafa")
-            }
-        }
+        configurations = listOf(sharedModules)
     }
 
     // Loom 1.19 for Minecraft 26.3 needs no remapping at all (vanilla is
