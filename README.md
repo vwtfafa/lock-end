@@ -21,6 +21,10 @@ and `lock-end-core` modules with the Paper plugin and expose the same
 teleports before they happen and has further documented limitations; use the
 mod implementations whenever the server can load mods.
 
+The current mod/plugin gaps and a staged checklist for reaching feature parity
+are tracked in the
+[multiplatform feature-parity roadmap](docs/multiplatform-feature-parity.md).
+
 ## What's new in 4.0
 
 Version 4.0 takes EndLock multiplatform. One Lock-End core and one shared
