@@ -2,7 +2,7 @@
 
 @WARNING@
 
-**Requirements:** Paper or Folia @PAPER@+, Java @JAVA@
+**Requirements:** Paper or Folia @PAPER@+, Java @JAVA@ — plus Fabric (Loader 0.20.1+, Fabric API) or NeoForge 26.3.0.101+ mods, or a vanilla server for the datapack
 
 ### 📋 Changes since @BASE_LABEL@
 
@@ -34,6 +34,11 @@
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Short alias for `/endlock` (mobile-friendly) | `endlock.toggle` |
 
+Commands `/endlock lock`, `/endlock unlock`, and `/endlock status` (the subset
+command surface) also exist on the Fabric and NeoForge mods; the vanilla
+datapack offers the same three as `/function lockend:lock|unlock|status` plus
+`/function lockend:set_spawn`.
+
 ### 🔌 Integrations
 
 - **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
@@ -41,7 +46,7 @@
 
 ### 🔧 Configuration
 
-`plugins/EndLock/config.yml`:
+`plugins/EndLock/config.yml` (Paper/Folia):
 
 - Lock state, language (8 languages)
 - Broadcast notifications (actionbar or chat, scope)
@@ -52,19 +57,30 @@
 - bStats metrics
 - Integration toggles (PAPI, MiniMessage)
 
+The Fabric and NeoForge mods ship their own lightweight configuration in
+`config/lock-end.json` (lock state persists in `config/lock-end.state.json`);
+the datapack is configured purely in-game (see the datapack README).
+
 ### 🧱 Compatibility
 
 | Platform | Version | Support |
 | -------- | ------- | ------- |
-| **Paper** | @PAPER@+ | ✅ Recommended |
+| **Paper** | @PAPER@+ | ✅ Recommended production baseline |
 | **Purpur** | @PAPER@+ | ✅ Works |
 | **Folia** | @PAPER@+ | ✅ Supported (console-verified on alpha builds) |
+| **Fabric** | Loader 0.20.1+, Minecraft 26.3, Fabric API 0.165.0+ | ✅ Supported (in-game verified) |
+| **NeoForge** | 26.3.0.101+ | ✅ Supported |
+| **Vanilla datapack** | Minecraft 26.3 | ⚠️ Limited subset |
 
 ### 📦 Installation
 
-1. Download `lock-end-@VERSION@.jar` below
-2. Place it in your `plugins/` folder
-3. Restart your server (Paper or Folia @PAPER@+, Java @JAVA@)
+1. Download the artifact for your platform below:
+   - **Paper / Folia / Purpur:** `lock-end-@VERSION@.jar` → `plugins/` folder
+   - **Fabric:** `lock-end-fabric-@VERSION@.jar` → `mods/` folder (with Fabric API)
+   - **NeoForge:** `lock-end-neoforge-@VERSION@.jar` → `mods/` folder
+   - **Vanilla datapack:** `lock-end-datapack-@VERSION@.zip` → `<world>/datapacks/` (limited subset — run `/function lockend:set_spawn` once as an operator)
+2. Restart the server (Java @JAVA@).
+3. Edit `plugins/EndLock/config.yml` (Paper/Folia) or `config/lock-end.json` (Fabric/NeoForge) if needed.
 
 ### 📚 Documentation
 

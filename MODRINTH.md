@@ -18,6 +18,11 @@
 **Lock-End** is a lightweight Minecraft plugin that allows server admins to globally lock or unlock access to the **End dimension** with a simple command.
 Perfect for survival servers, SMPs, events, or progression-based gameplay.
 
+Multiplatform: alongside the Paper/Folia plugin, releases now include a
+**Fabric mod**, a **NeoForge mod**, and a **limited vanilla datapack**.
+Paper remains the production baseline; the mod and datapack artifacts and
+their limitations are documented in the GitHub release text and README.
+
 Version 3.0.2 removes the optional FastStats integration; the existing bStats integration remains unchanged.
 
 ---
