@@ -3,12 +3,14 @@ package org.vwtfafa.lockend.fabric;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
+import org.vwtfafa.lockend.core.LockBypassChecker;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 /**
  * Reads and writes the Fabric mod's settings file
@@ -22,13 +24,17 @@ final class FabricEndLockConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String DEFAULT_REASON = "Maintenance";
     private static final String CONFIG_FILE_NAME = "lock-end.json";
+    private static final LockBypassChecker EMPTY_BYPASS_CHECKER =
+            new LockBypassChecker(List.of(), List.of(), List.of());
 
     private final Path file;
     private final String lockReason;
+    private final LockBypassChecker bypassChecker;
 
-    private FabricEndLockConfig(Path file, String lockReason) {
+    private FabricEndLockConfig(Path file, String lockReason, LockBypassChecker bypassChecker) {
         this.file = file;
         this.lockReason = lockReason;
+        this.bypassChecker = bypassChecker;
     }
 
     /**
@@ -43,7 +49,8 @@ final class FabricEndLockConfig {
     static FabricEndLockConfig load(Path configDirectory) {
         Path file = configDirectory.resolve(CONFIG_FILE_NAME);
         if (!Files.exists(file)) {
-            FabricEndLockConfig defaults = new FabricEndLockConfig(file, DEFAULT_REASON);
+            FabricEndLockConfig defaults = new FabricEndLockConfig(
+                    file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER);
             defaults.save();
             return defaults;
         }
@@ -53,10 +60,11 @@ final class FabricEndLockConfig {
             if (stored == null) {
                 stored = new StoredConfig();
             }
-            return new FabricEndLockConfig(file, stored.reasonOrDefault());
+            return new FabricEndLockConfig(file, stored.reasonOrDefault(), stored.bypassChecker());
         } catch (IOException | JsonParseException exception) {
             backupCorruptFile(file, exception);
-            FabricEndLockConfig defaults = new FabricEndLockConfig(file, DEFAULT_REASON);
+            FabricEndLockConfig defaults = new FabricEndLockConfig(
+                    file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER);
             defaults.save();
             return defaults;
         }
@@ -70,11 +78,23 @@ final class FabricEndLockConfig {
     }
 
     /**
+     * @return the configured bypass (whitelist) rules; never {@code null}
+     */
+    LockBypassChecker bypassChecker() {
+        return bypassChecker;
+    }
+
+    /**
      * Writes the current settings back to disk.
      */
     void save() {
         StoredConfig stored = new StoredConfig();
         stored.lockReason = lockReason;
+        if (bypassChecker != null) {
+            stored.playerWhitelist = bypassChecker.playerNames();
+            stored.uuidWhitelist = bypassChecker.uuids();
+            stored.worldWhitelist = bypassChecker.worlds();
+        }
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -106,12 +126,26 @@ final class FabricEndLockConfig {
      */
     private static final class StoredConfig {
         String lockReason;
+        List<String> playerWhitelist;
+        List<String> uuidWhitelist;
+        List<String> worldWhitelist;
 
         String reasonOrDefault() {
             if (lockReason == null || lockReason.isBlank()) {
                 return DEFAULT_REASON;
             }
             return lockReason;
+        }
+
+        LockBypassChecker bypassChecker() {
+            return new LockBypassChecker(
+                    listOrEmpty(playerWhitelist),
+                    listOrEmpty(uuidWhitelist),
+                    listOrEmpty(worldWhitelist));
+        }
+
+        private static List<String> listOrEmpty(List<String> values) {
+            return values == null ? List.of() : values;
         }
     }
 }

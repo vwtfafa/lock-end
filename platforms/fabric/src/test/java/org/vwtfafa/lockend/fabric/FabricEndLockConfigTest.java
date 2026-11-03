@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,11 +31,33 @@ class FabricEndLockConfigTest {
 
     @Test
     void humanEditsArePickedUpOnReload() throws IOException {
-        Files.writeString(tempDir.resolve("lock-end.json"), fileContent("Closed for maintenance"));
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Closed for maintenance",
+                  "playerWhitelist": ["Admin"],
+                  "uuidWhitelist": ["11111111-1111-1111-1111-111111111111"],
+                  "worldWhitelist": ["minecraft:the_end"]
+                }
+                """);
 
         FabricEndLockConfig reloaded = FabricEndLockConfig.load(tempDir);
 
         assertEquals("Closed for maintenance", reloaded.lockReason());
+        assertEquals(List.of("Admin"), reloaded.bypassChecker().playerNames());
+        assertEquals(List.of("11111111-1111-1111-1111-111111111111"),
+                reloaded.bypassChecker().uuids());
+        assertEquals(List.of("minecraft:the_end"), reloaded.bypassChecker().worlds());
+    }
+
+    @Test
+    void firstBootPersistsEmptyBypassLists() throws IOException {
+        FabricEndLockConfig.load(tempDir);
+
+        String json = Files.readString(tempDir.resolve("lock-end.json"));
+
+        assertTrue(json.contains("\"playerWhitelist\": []"));
+        assertTrue(json.contains("\"uuidWhitelist\": []"));
+        assertTrue(json.contains("\"worldWhitelist\": []"));
     }
 
     @Test

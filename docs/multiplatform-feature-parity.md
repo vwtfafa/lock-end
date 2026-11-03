@@ -37,8 +37,28 @@ parity.
 - [x] Protect players from entering a locked End.
 - [x] Evacuate players already in the End when locking and recover stranded
   players after startup with the lock active.
+- [x] Support player-name, UUID, destination-dimension, and permission bypasses
+  on Fabric and NeoForge.
 - [ ] Align permission granularity with Paper's per-command permissions.
 - [ ] Align evacuation behavior and options with Paper's configuration.
+
+Fabric and NeoForge read the bypass lists from `config/lock-end.json`:
+
+```json
+{
+  "lockReason": "Maintenance",
+  "playerWhitelist": ["ExamplePlayer"],
+  "uuidWhitelist": [],
+  "worldWhitelist": ["minecraft:the_end"]
+}
+```
+
+World entries match a full dimension key or its path without the namespace.
+Fabric also supports the `lock-end:whitelist.bypass` permission and
+`lock-end:bypass.world.<namespace>.<path>` per-dimension permission, both with
+an operator-level fallback. NeoForge uses Minecraft's native admin permission
+for permission bypasses; its vanilla permission system does not provide
+arbitrary named permission nodes.
 
 The travel guards are intentionally platform-specific: Fabric uses an arrival
 bounce plus a periodic safety scan; NeoForge cancels pre-travel. Confirm their
@@ -50,7 +70,9 @@ behavior with live server tests as part of any guard changes.
 
 - [ ] Support configured End dimensions/worlds consistently, including custom
   dimensions where the loader permits it.
-- [ ] Add player-name, UUID, world, and permission-based bypass rules.
+- [x] Add player-name, UUID, world, and permission-based bypass rules on Fabric
+  and NeoForge (permission-node granularity remains platform-specific; see
+  above).
 - [ ] Add a command to set/clear the lock reason at runtime.
 - [ ] Add configuration reload and validation with clear error reporting.
 - [ ] Match Paper's command permissions instead of using one blanket operator

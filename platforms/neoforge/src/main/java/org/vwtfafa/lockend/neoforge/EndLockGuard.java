@@ -1,15 +1,18 @@
 package org.vwtfafa.lockend.neoforge;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
+import org.vwtfafa.lockend.core.LockBypassChecker;
 import org.vwtfafa.lockend.core.LockStateManager;
 
 /**
@@ -35,8 +38,11 @@ import org.vwtfafa.lockend.core.LockStateManager;
 final class EndLockGuard {
 
     private static final String LOCKED_MESSAGE_PREFIX = "The End is locked: ";
+    private static final Identifier WHITELIST_BYPASS_PERMISSION =
+            Identifier.fromNamespaceAndPath("lock-end", "whitelist.bypass");
 
     private final LockStateManager state;
+    private final LockBypassChecker bypassChecker;
     private volatile MinecraftServer server;
 
     /**
@@ -44,8 +50,9 @@ final class EndLockGuard {
      *
      * @param state the shared runtime lock state
      */
-    EndLockGuard(LockStateManager state) {
+    EndLockGuard(LockStateManager state, LockBypassChecker bypassChecker) {
         this.state = state;
+        this.bypassChecker = bypassChecker;
     }
 
     /**
@@ -83,7 +90,8 @@ final class EndLockGuard {
         if (!state.isLocked() || !isEndDimension(event.getDimension())) {
             return;
         }
-        if (event.getEntity() instanceof ServerPlayer player) {
+        if (event.getEntity() instanceof ServerPlayer player
+                && !canBypass(player, event.getDimension())) {
             event.setCanceled(true);
             player.sendSystemMessage(Component.literal(
                     LOCKED_MESSAGE_PREFIX + state.getLockReason()));
@@ -103,10 +111,18 @@ final class EndLockGuard {
             return;
         }
         for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
-            if (isEndLevel(player.level())) {
+            if (isEndLevel(player.level()) && !canBypass(player, player.level().dimension())) {
                 teleportOut(player);
             }
         }
+    }
+
+    private boolean canBypass(ServerPlayer player, ResourceKey<Level> destination) {
+        return bypassChecker.canBypass(
+                player.getName().getString(),
+                player.getUUID(),
+                destination.identifier().toString(),
+                () -> player.permissions().hasPermission(Permissions.COMMANDS_ADMIN));
     }
 
     /**

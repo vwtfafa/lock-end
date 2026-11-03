@@ -25,6 +25,9 @@ plugin into a monorepo with shared modules and per-platform adapters.
   pre-travel via the cancellable `EntityTravelToDimensionEvent`; `/endlock
   lock|unlock|status` commands; JSON state persistence. Mod id is `lockend`
   (FML strict ids do not allow hyphens; Fabric and Paper keep `lock-end`).
+- Fabric and NeoForge now share player-name, UUID, and dimension bypass
+  configuration with permission bypasses, and their distributable jars bundle
+  only Lock-End shared modules (not Minecraft/loader classes).
 - **Vanilla datapack** (`datapack`): deliberately limited implementation for
   servers without a mod loader. Op-controlled `lockend:lock|unlock|status|
   set_spawn` functions, `evacuate`/`evacuate_player` guard wired to the

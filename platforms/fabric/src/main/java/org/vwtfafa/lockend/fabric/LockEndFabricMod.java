@@ -59,7 +59,7 @@ public class LockEndFabricMod implements ModInitializer {
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
-        guard = new EndLockGuard(state);
+        guard = new EndLockGuard(state, config.bypassChecker());
         registerLifecycleHooks();
         registerDimensionHooks();
         registerCommands();

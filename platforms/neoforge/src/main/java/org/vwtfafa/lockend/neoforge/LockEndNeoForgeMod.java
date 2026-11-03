@@ -61,7 +61,7 @@ public class LockEndNeoForgeMod {
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
-        guard = new EndLockGuard(state);
+        guard = new EndLockGuard(state, config.bypassChecker());
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onTravelToDimension);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);

@@ -1,13 +1,17 @@
 package org.vwtfafa.lockend.fabric;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
+import net.fabricmc.fabric.api.permission.v1.PermissionContextOwner;
+import org.vwtfafa.lockend.core.LockBypassChecker;
 import org.vwtfafa.lockend.core.LockStateManager;
 
 /**
@@ -37,18 +41,24 @@ final class EndLockGuard {
 
     private static final long SCAN_INTERVAL_TICKS = 20L;
     private static final String LOCKED_MESSAGE_PREFIX = "The End is locked: ";
+    private static final Identifier WHITELIST_BYPASS_PERMISSION =
+            Identifier.fromNamespaceAndPath("lock-end", "whitelist.bypass");
 
     private final LockStateManager state;
+    private final LockBypassChecker bypassChecker;
     private volatile MinecraftServer server;
     private long ticksSinceScan;
 
     /**
-     * Creates the guard around the shared runtime lock state.
+     * Creates the guard around the shared runtime lock state and the
+     * configured bypass rules.
      *
-     * @param state the shared runtime lock state
+     * @param state         the shared runtime lock state
+     * @param bypassChecker the configured bypass (whitelist) rules
      */
-    EndLockGuard(LockStateManager state) {
+    EndLockGuard(LockStateManager state, LockBypassChecker bypassChecker) {
         this.state = state;
+        this.bypassChecker = bypassChecker;
     }
 
     /**
@@ -96,7 +106,7 @@ final class EndLockGuard {
      * @param destination the level the player arrived in
      */
     void onPlayerLevelChange(ServerPlayer player, ServerLevel origin, ServerLevel destination) {
-        if (!state.isLocked() || !isEndLevel(destination)) {
+        if (!state.isLocked() || !isEndLevel(destination) || canBypass(player, destination)) {
             return;
         }
         teleportOut(player);
@@ -114,10 +124,24 @@ final class EndLockGuard {
             return;
         }
         for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
-            if (isEndLevel(player.level())) {
+            if (isEndLevel(player.level()) && !canBypass(player, player.level())) {
                 teleportOut(player);
             }
         }
+    }
+
+    private boolean canBypass(ServerPlayer player, ServerLevel destination) {
+        String worldKey = destination.dimension().identifier().toString();
+        Identifier worldPermission = Identifier.fromNamespaceAndPath(
+                "lock-end", "bypass.world." + worldKey.replace(':', '.'));
+        PermissionContextOwner permissionOwner = (PermissionContextOwner) player;
+        return bypassChecker.canBypass(
+                player.getName().getString(),
+                player.getUUID(),
+                worldKey,
+                () -> permissionOwner.checkPermission(worldPermission, PermissionLevel.ADMINS)
+                        || permissionOwner.checkPermission(
+                                WHITELIST_BYPASS_PERMISSION, PermissionLevel.ADMINS));
     }
 
     private void teleportOut(ServerPlayer player) {
