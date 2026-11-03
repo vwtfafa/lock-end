@@ -91,10 +91,14 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep "^version" build.gradle.kts | head -1 | sed "s/^version = ['\"]//;s/['\"].*$//" | tr -d ' ')
+          # The version lives in gradle.properties (lockEndVersion) since the
+          # multiplatform monorepo migration; there is no root build.gradle.kts
+          # anymore. The Paper conventions plugin feeds it into plugin.yml via
+          # project.version, so one source stays authoritative.
+          VERSION=$(grep '^lockEndVersion=' gradle.properties | head -1 | sed 's/^lockEndVersion=//' | tr -d ' \r')
 
           if [ -z "$VERSION" ]; then
-            echo "ERROR: Could not extract version from build.gradle.kts"
+            echo "ERROR: Could not extract version from gradle.properties"
             exit 1
           fi
 
@@ -106,31 +110,53 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon --stacktrace
 
-      - name: Verify JAR
+      - name: Verify release artifacts
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
+          PAPER_ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
+          FABRIC_ARTIFACT="platforms/fabric/build/libs/lock-end-fabric-${VERSION}.jar"
+          NEOFORGE_ARTIFACT="platforms/neoforge/build/libs/lock-end-neoforge-${VERSION}.jar"
+          DATAPACK_ARTIFACT="datapack/build/libs/lock-end-datapack-${VERSION}.zip"
 
-          if [ ! -f "$ARTIFACT" ]; then
-            echo "ERROR: Expected plugin JAR not found:"
-            echo "$ARTIFACT"
-            echo
-            echo "Available files:"
-            ls -la platforms/paper/build/libs/
-            exit 1
-          fi
-
-          echo "Found: $ARTIFACT"
-          jar tf "$ARTIFACT" | grep -Fxq "plugin.yml"
-          for language in de en es fr it ja ru zh; do
-            jar tf "$ARTIFACT" | grep -Fxq "lang/messages_${language}.yml"
+          for ARTIFACT in "$PAPER_ARTIFACT" "$FABRIC_ARTIFACT" "$NEOFORGE_ARTIFACT" "$DATAPACK_ARTIFACT"; do
+            if [ ! -f "$ARTIFACT" ]; then
+              echo "ERROR: Expected release artifact not found:"
+              echo "$ARTIFACT"
+              echo
+              echo "Available files:"
+              ls -la platforms/*/build/libs/ datapack/build/libs/ 2>/dev/null || true
+              exit 1
+            fi
+            echo "Found: $ARTIFACT"
           done
-          PLUGIN_YML=$(unzip -p "$ARTIFACT" plugin.yml)
+
+          jar tf "$PAPER_ARTIFACT" | grep -Fxq "plugin.yml"
+          for language in de en es fr it ja ru zh; do
+            jar tf "$PAPER_ARTIFACT" | grep -Fxq "lang/messages_${language}.yml"
+          done
+          PLUGIN_YML=$(unzip -p "$PAPER_ARTIFACT" plugin.yml)
           printf '%s\n' "$PLUGIN_YML" | grep -Fxq "version: '${VERSION}'"
           printf '%s\n' "$PLUGIN_YML" | grep -Fxq "api-version: '26.3'"
           printf '%s\n' "$PLUGIN_YML" | grep -Fxq "main: org.vwtfafa.lockEnd.LockEnd"
           echo "Plugin descriptor and all language resources verified."
+
+          jar tf "$FABRIC_ARTIFACT" | grep -Fxq "fabric.mod.json"
+          jar tf "$FABRIC_ARTIFACT" | grep -Fxq "META-INF/THIRD-PARTY-NOTICES.md"
+          FABRIC_JSON=$(unzip -p "$FABRIC_ARTIFACT" fabric.mod.json)
+          printf '%s\n' "$FABRIC_JSON" | grep -Eq "\"version\"[[:space:]]*:[[:space:]]*\"${VERSION}\""
+          echo "Fabric mod descriptor verified."
+
+          jar tf "$NEOFORGE_ARTIFACT" | grep -Fxq "META-INF/neoforge.mods.toml"
+          NEOFORGE_TOML=$(unzip -p "$NEOFORGE_ARTIFACT" META-INF/neoforge.mods.toml)
+          printf '%s\n' "$NEOFORGE_TOML" | grep -Eq "(^|[[:space:]])version=['\"]${VERSION}['\"]"
+          echo "NeoForge mod descriptor verified."
+
+          unzip -p "$DATAPACK_ARTIFACT" pack.mcmeta | grep -Eq "min_format|pack_format"
+          for function in lock unlock status set_spawn; do
+            unzip -Z1 "$DATAPACK_ARTIFACT" | grep -Fxq "data/lockend/function/${function}.mcfunction"
+          done
+          echo "Datapack zip verified."
 
       - name: Prepare release body
         env:
@@ -264,7 +290,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           TYPE: ${{ steps.config.outputs.type }}
         run: |
-          ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
+          PAPER_ARTIFACT="platforms/paper/build/libs/lock-end-${VERSION}.jar"
+          FABRIC_ARTIFACT="platforms/fabric/build/libs/lock-end-fabric-${VERSION}.jar"
+          NEOFORGE_ARTIFACT="platforms/neoforge/build/libs/lock-end-neoforge-${VERSION}.jar"
+          DATAPACK_ARTIFACT="datapack/build/libs/lock-end-datapack-${VERSION}.zip"
 
           if [ "$TYPE" = "stable" ]; then
             PRERELEASE=false
@@ -279,7 +308,10 @@ jobs:
 
             gh release upload \
               "$TAG" \
-              "$ARTIFACT" \
+              "$PAPER_ARTIFACT" \
+              "$FABRIC_ARTIFACT" \
+              "$NEOFORGE_ARTIFACT" \
+              "$DATAPACK_ARTIFACT" \
               --clobber
 
             gh release edit \
@@ -292,7 +324,10 @@ jobs:
 
             gh release create \
               "$TAG" \
-              "$ARTIFACT" \
+              "$PAPER_ARTIFACT" \
+              "$FABRIC_ARTIFACT" \
+              "$NEOFORGE_ARTIFACT" \
+              "$DATAPACK_ARTIFACT" \
               --title "Lock-End ${TAG}" \
               --notes-file release-body.md \
               --prerelease="$PRERELEASE" \

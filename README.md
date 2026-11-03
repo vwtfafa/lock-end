@@ -337,27 +337,34 @@ compliance records are required.
 The repository ships a Gradle **9.8.2** wrapper, so no local Gradle installation is required.
 
 ```bash
-./gradlew shadowJar
+./gradlew build
 ```
 
-Output: `platforms/paper/build/libs/lock-end-3.1.0.jar`
+Outputs:
+
+- `platforms/paper/build/libs/lock-end-3.1.0.jar` (Paper/Folia plugin)
+- `platforms/fabric/build/libs/lock-end-fabric-3.1.0.jar` (Fabric mod)
+- `platforms/neoforge/build/libs/lock-end-neoforge-3.1.0.jar` (NeoForge mod)
+- `datapack/build/libs/lock-end-datapack-3.1.0.zip` (vanilla datapack)
 
 ## Automatic releases (GitHub Actions)
 
-On every push to a release-configured branch, GitHub Actions will:
+On every push to a release-configured branch, the release workflow will:
 
-1. Build the plugin with Java 25
-2. Read the version from `build.gradle.kts`
+1. Build all modules with Java 25 (Paper, Fabric, NeoForge, datapack)
+2. Read the version from `gradle.properties` (`lockEndVersion`)
 3. Create or **fully overwrite** the GitHub Release tagged **`v{version}`**
 4. Replace the release text from [`.github/RELEASE_TEMPLATE.md`](.github/RELEASE_TEMPLATE.md)
-5. Remove old JAR assets and upload the new `lock-end-{version}.jar`
+5. Replace the release assets (via `--clobber`) with the four release
+   artifacts: `lock-end-{version}.jar`, `lock-end-fabric-{version}.jar`,
+   `lock-end-neoforge-{version}.jar`, and `lock-end-datapack-{version}.zip`
 6. Move the tag to the latest commit
 
-**Same version, new push?** Title, description, JAR, and tag are replaced automatically — you do not need to edit anything on GitHub.
+**Same version, new push?** Title, description, assets, and tag are replaced automatically — you do not need to edit anything on GitHub.
 
-**New release version:** bump `version` in `build.gradle.kts`. The build expands that value into `plugin.yml` automatically.
+**New release version:** bump `lockEndVersion` in `gradle.properties`. The build expands that value into `plugin.yml`, `fabric.mod.json`, `neoforge.mods.toml`, and the datapack zip name automatically.
 
-**Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@VERSION@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
+**Customize release text:** edit `.github/RELEASE_TEMPLATE.md` only (placeholders: `@TITLE@`, `@VERSION@`, `@WARNING@`, `@PAPER@`, `@JAVA@`, `@BRANCH@`, `@BASE_LABEL@`, `@CHANGELOG@`, `@GITHUB_SHA@`, `@BUILD_DATE@`).
 
 Run a local test server (downloads the latest Paper 26.3 build; currently Build #209, STABLE):
 
