@@ -38,6 +38,10 @@ jobs:
           ./gradlew :lock-end-api:javadoc --no-daemon --stacktrace
 
       - name: Smoke test on pinned Paper 26.3 Build 209
+        # Heavy server smokes run only for pushes to the main integration
+        # branches; feature-branch pushes and PRs get the light build+test
+        # pipeline so CI stays fast during development.
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta')
         run: |
           mkdir -p smoke-paper/plugins
           curl --fail --location --retry 3 \
@@ -95,6 +99,7 @@ jobs:
           exit 1
 
       - name: Smoke test on pinned Folia 26.3 Build 5 (ALPHA)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta')
         run: |
           mkdir -p smoke-folia/plugins
           curl --fail --location --retry 3 \
@@ -198,6 +203,7 @@ jobs:
           if-no-files-found: error
 
   smoke-fabric:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -231,6 +237,7 @@ jobs:
           echo "EndLock (Fabric) booted on the dev dedicated server."
 
   smoke-neoforge:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/beta')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
