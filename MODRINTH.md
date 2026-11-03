@@ -62,7 +62,7 @@ Version 3.0.2 removes the optional FastStats integration; the existing bStats in
 | `/endlock reload` | Reload configuration and dependent components | `endlock.reload` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
 | `/endlock history status` | Check history storage status and in-memory entry count | `endlock.history` |
-| `/endlock history <page> [player|action <value>]` | Filter history by player or action | `endlock.history` |
+| `/endlock history <page> [player\|action <value>]` | Filter history by player or action | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
 | `/endlock pause` | Pause scheduled unlock timers | `endlock.admin` |

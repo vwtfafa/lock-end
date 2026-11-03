@@ -121,7 +121,7 @@ For example: `/endlock history`, `/lock history`, `/el history` all work the sam
 | `schedule status` | Show the active schedule | `endlock.admin` |
 | `schedule clear` | Clear the active schedule | `endlock.admin` |
 | `history <page>` | Show a history page | `endlock.history` |
-| `history <page> [json|csv] [player|action <value>]` | Filter and/or export history | `endlock.history` |
+| `history <page> [json\|csv] [player\|action <value>]` | Filter and/or export history | `endlock.history` |
 | `evacuate preview` | Preview eligible End players and destination | `endlock.admin` |
 | `evacuate execute` | Execute the unchanged preview within 30 seconds | `endlock.admin` |
 
