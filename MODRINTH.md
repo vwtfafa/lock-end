@@ -67,6 +67,17 @@ admin level); the vanilla
 datapack offers the lock/unlock/status subset as /function
 lockend:lock|unlock|status plus /function lockend:set_spawn.
 
+The scheduled unlock/lock commands (`/endlock unlockin`, `/endlock
+unlockat`, `/endlock lockin`, `/endlock lockat`, `/endlock schedule status|clear`,
+`/endlock cancel`, `/endlock pause`, and `/endlock resume`) also exist on the
+Fabric and NeoForge mods: bare numbers keep the legacy unit (days for
+`unlockin`, minutes for `lockin`), duration tokens schedule an exact time,
+and the schedule persists in `config/lock-end.schedule.json` across restarts.
+Countdown lines go to admins, the one-shot preview broadcasts to everyone
+(`countdown`/`preview` in `config/lock-end.json`, Paper defaults). Fabric
+gates the schedule-setting commands behind the `lock-end:toggle` node;
+NeoForge uses the vanilla admin level.
+
 
 ---
 

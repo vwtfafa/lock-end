@@ -44,7 +44,10 @@ parity.
   players after startup with the lock active.
 - [x] Support player-name, UUID, destination-dimension, and permission bypasses
   on Fabric and NeoForge.
-- [ ] Align permission granularity with Paper's per-command permissions.
+- [x] Schedule lock/unlock actions with persistence, countdown, preview, and
+  `schedule`/`cancel`/`pause`/`resume` controls (see checklist section 2;
+  live scheduling on a running server is still pending a smoke test).
+- [x] Align permission granularity with Paper's per-command permissions.
 - [ ] Align evacuation behavior and options with Paper's configuration.
 
 Fabric and NeoForge read the settings from `config/lock-end.json`:
@@ -56,7 +59,9 @@ Fabric and NeoForge read the settings from `config/lock-end.json`:
   "blockEntities": true,
   "playerWhitelist": ["ExamplePlayer"],
   "uuidWhitelist": [],
-  "worldWhitelist": ["minecraft:the_end"]
+  "worldWhitelist": ["minecraft:the_end"],
+  "countdown": {"enabled": true, "interval": 10, "startBefore": 300},
+  "preview": {"enabled": false, "seconds": 30}
 }
 ```
 
@@ -122,12 +127,37 @@ latest additions and still need a live confirmation.
 
 ### 2. Scheduling
 
-- [ ] Schedule lock and unlock by duration and by date/time.
-- [ ] Persist scheduled actions and resume them safely after restart.
-- [ ] Add schedule status, clear/cancel, pause, and resume controls.
-- [ ] Add configurable countdown and pre-action preview notifications.
-- [ ] Test clock changes, invalid input, already-locked states, and restart
-  recovery.
+- [x] Schedule lock and unlock by duration and by date/time:
+  `/endlock unlockin <days|duration>`, `/endlock unlockat <date> <time>`,
+  `/endlock lockin <minutes|duration>`, and `/endlock lockat <date> <time>`
+  on both Fabric and NeoForge. A bare number keeps the Paper legacy unit
+  (days for `unlockin`, minutes for `lockin`); `90m`/`2h`/`7d` tokens
+  schedule an exact point in time, with the strict shared format and
+  future-target validation of the Paper commands.
+- [x] Persist scheduled actions and resume them safely after restart: the
+  schedule lives in `config/lock-end.schedule.json` (`action`, `target`,
+  `paused`). On boot the shared core scheduler restores a future target,
+  clears a lapsed target (never executes it after a restart) and rejects an
+  unsupported action name instead of coercing it to `unlock`; the cleaned-up
+  file is rewritten so the condition does not repeat.
+- [x] Add schedule status, clear/cancel, pause, and resume controls:
+  `/endlock schedule status|clear`, `/endlock cancel`, `/endlock pause`, and
+  `/endlock resume` on both mods, mirroring the Paper status line shape and
+  pausing without moving the target (resuming executes an already-lapsed
+  target immediately).
+- [x] Add configurable countdown and pre-action preview notifications:
+  `countdown` (`enabled`/`interval`/`startBefore`, Paper defaults on) and
+  `preview` (`enabled`/`seconds`, Paper default off) in `lock-end.json`,
+  republished on `/endlock reload`. Countdown lines go to admins, the
+  one-shot preview broadcasts to everyone; like Paper, both stay silent when
+  the current state already matches the scheduled target state.
+- [x] Test clock changes, invalid input, already-locked states, and restart
+  recovery: the shared core scheduler is clock-injected and covered by
+  plain JUnit tests (clock jumps both directions, invalid schedule input,
+  already-matching target states, pause/resume including restored paused
+  schedules, lapsed/invalid persisted data, countdown bucket timing and
+  preview windows), plus repository round-trip and config-default tests on
+  both mods.
 
 ### 3. History and operations
 

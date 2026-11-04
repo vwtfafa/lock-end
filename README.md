@@ -17,10 +17,14 @@ the same behavior now exists for:
 
 The Fabric and NeoForge mods share the platform-independent `lock-end-api`
 and `lock-end-core` modules with the Paper plugin and expose
-`/endlock lock|unlock|status|reason <subcommand>|reload` with per-subcommand
-permission gates (`lock-end:admin` / `lock-end:reload` on Fabric with an
-operator fallback; the vanilla admin level on NeoForge; status is public on
-both). The datapack cannot intercept
+`/endlock lock|unlock|status|reason <subcommand>|unlockin|unlockat|lockin|
+lockat|schedule|cancel|pause|resume|reload` with per-subcommand
+permission gates (`lock-end:admin` / `lock-end:reload` /
+`lock-end:toggle` on Fabric with an operator fallback; the vanilla admin
+level on NeoForge; status is public on
+both). Scheduled actions persist in `config/lock-end.schedule.json` and
+survive restarts, with countdown and preview notifications configured in
+`config/lock-end.json`. The datapack cannot intercept
 teleports before they happen and has further documented limitations; use the
 mod implementations whenever the server can load mods.
 

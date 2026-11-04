@@ -86,4 +86,41 @@ class ScheduleSupportTest {
         assertFalse(ScheduleSupport.isSupportedAction(""));
         assertFalse(ScheduleSupport.isSupportedAction(null));
     }
+
+    @Test
+    void parsesPositiveIntegersOnly() {
+        assertEquals(7, ScheduleSupport.tryParsePositiveInt("7"));
+        assertEquals(7, ScheduleSupport.tryParsePositiveInt(" 7 "));
+        assertNull(ScheduleSupport.tryParsePositiveInt("0"));
+        assertNull(ScheduleSupport.tryParsePositiveInt("-2"));
+        assertNull(ScheduleSupport.tryParsePositiveInt("2h"));
+        assertNull(ScheduleSupport.tryParsePositiveInt(null));
+    }
+
+    @Test
+    void parsesDurationTargetsFromTheCallerSReference() {
+        LocalDateTime now = LocalDateTime.of(2026, 11, 5, 12, 0);
+
+        assertEquals(LocalDateTime.of(2026, 11, 5, 13, 0),
+                ScheduleSupport.parseDurationTarget("60m", now));
+        assertEquals(LocalDateTime.of(2026, 11, 5, 14, 0),
+                ScheduleSupport.parseDurationTarget("2H", now));
+        assertEquals(LocalDateTime.of(2026, 11, 12, 12, 0),
+                ScheduleSupport.parseDurationTarget("7d", now));
+        assertEquals(LocalDateTime.of(2026, 11, 5, 13, 30),
+                ScheduleSupport.parseDurationTarget("90m", now));
+    }
+
+    @Test
+    void invalidDurationTargetsParseToNull() {
+        LocalDateTime now = LocalDateTime.of(2026, 11, 5, 12, 0);
+
+        assertNull(ScheduleSupport.parseDurationTarget("7", now));
+        assertNull(ScheduleSupport.parseDurationTarget("0h", now));
+        assertNull(ScheduleSupport.parseDurationTarget("2x", now));
+        assertNull(ScheduleSupport.parseDurationTarget("h", now));
+        assertNull(ScheduleSupport.parseDurationTarget("", now));
+        assertNull(ScheduleSupport.parseDurationTarget(null, now));
+        assertNull(ScheduleSupport.parseDurationTarget("60m", null));
+    }
 }

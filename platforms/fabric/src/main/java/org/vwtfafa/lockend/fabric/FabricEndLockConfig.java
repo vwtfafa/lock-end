@@ -21,13 +21,21 @@ import java.util.List;
  * every boot and mutable through the {@code setLockReason} and
  * {@link #reload} paths. Guarding options: the End dimension scope
  * ({@code endWorlds}; see {@link EndDimensionScope}) and the non-player
- * entity block ({@code blockEntities}).
+ * entity block ({@code blockEntities}). Schedule notification options
+ * ({@code countdown}, {@code preview}) mirror the Paper plugin defaults.
  */
 final class FabricEndLockConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String DEFAULT_REASON = "Maintenance";
     private static final String CONFIG_FILE_NAME = "lock-end.json";
+    // Countdown and preview defaults mirror the Paper plugin's config.yml so
+    // both platforms behave identically on a fresh installation.
+    private static final boolean DEFAULT_COUNTDOWN_ENABLED = true;
+    private static final long DEFAULT_COUNTDOWN_INTERVAL = 10L;
+    private static final long DEFAULT_COUNTDOWN_START_BEFORE = 300L;
+    private static final boolean DEFAULT_PREVIEW_ENABLED = false;
+    private static final long DEFAULT_PREVIEW_SECONDS = 30L;
     private static final LockBypassChecker EMPTY_BYPASS_CHECKER =
             new LockBypassChecker(List.of(), List.of(), List.of());
     private static final EndDimensionScope DEFAULT_SCOPE = new EndDimensionScope(List.of());
@@ -37,6 +45,11 @@ final class FabricEndLockConfig {
     private final LockBypassChecker bypassChecker;
     private final EndDimensionScope endScope;
     private final boolean blockEntities;
+    private final boolean countdownEnabled;
+    private final long countdownIntervalSeconds;
+    private final long countdownStartBeforeSeconds;
+    private final boolean previewEnabled;
+    private final long previewSeconds;
     private final String parseFailure;
 
     private FabricEndLockConfig(
@@ -45,12 +58,22 @@ final class FabricEndLockConfig {
             LockBypassChecker bypassChecker,
             EndDimensionScope endScope,
             boolean blockEntities,
+            boolean countdownEnabled,
+            long countdownIntervalSeconds,
+            long countdownStartBeforeSeconds,
+            boolean previewEnabled,
+            long previewSeconds,
             String parseFailure) {
         this.file = file;
         this.lockReason = lockReason;
         this.bypassChecker = bypassChecker;
         this.endScope = endScope;
         this.blockEntities = blockEntities;
+        this.countdownEnabled = countdownEnabled;
+        this.countdownIntervalSeconds = countdownIntervalSeconds;
+        this.countdownStartBeforeSeconds = countdownStartBeforeSeconds;
+        this.previewEnabled = previewEnabled;
+        this.previewSeconds = previewSeconds;
         this.parseFailure = parseFailure;
     }
 
@@ -81,6 +104,11 @@ final class FabricEndLockConfig {
                     stored.bypassChecker(),
                     stored.endScopeOrDefault(),
                     stored.blockEntitiesOrDefault(),
+                    stored.countdownEnabledOrDefault(),
+                    stored.countdownIntervalOrDefault(),
+                    stored.countdownStartBeforeOrDefault(),
+                    stored.previewEnabledOrDefault(),
+                    stored.previewSecondsOrDefault(),
                     null);
         } catch (IOException | JsonParseException exception) {
             backupCorruptFile(file, exception);
@@ -102,7 +130,9 @@ final class FabricEndLockConfig {
 
     private static FabricEndLockConfig writeDefaults(Path file, String parseFailure) {
         FabricEndLockConfig defaults = new FabricEndLockConfig(
-                file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true, parseFailure);
+                file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
+                DEFAULT_COUNTDOWN_ENABLED, DEFAULT_COUNTDOWN_INTERVAL, DEFAULT_COUNTDOWN_START_BEFORE,
+                DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS, parseFailure);
         defaults.save();
         return defaults;
     }
@@ -140,6 +170,44 @@ final class FabricEndLockConfig {
      */
     boolean blockEntities() {
         return blockEntities;
+    }
+
+    /**
+     * @return {@code true} if periodic countdown announcements run for a
+     *         pending scheduled action (default like the Paper plugin)
+     */
+    boolean countdownEnabled() {
+        return countdownEnabled;
+    }
+
+    /**
+     * @return the minimum seconds between countdown announcements (at least 1)
+     */
+    long countdownIntervalSeconds() {
+        return countdownIntervalSeconds;
+    }
+
+    /**
+     * @return countdown announcements only run while remaining seconds are at
+     *         most this value
+     */
+    long countdownStartBeforeSeconds() {
+        return countdownStartBeforeSeconds;
+    }
+
+    /**
+     * @return {@code true} if the one-shot preview notification runs shortly
+     *         before a due scheduled action (default off, like Paper)
+     */
+    boolean previewEnabled() {
+        return previewEnabled;
+    }
+
+    /**
+     * @return the preview notification window in seconds
+     */
+    long previewSeconds() {
+        return previewSeconds;
     }
 
     /**
@@ -188,6 +256,9 @@ final class FabricEndLockConfig {
             stored.uuidWhitelist = bypassChecker.uuids();
             stored.worldWhitelist = bypassChecker.worlds();
         }
+        stored.countdown = new StoredConfig.CountdownSettings(countdownEnabled,
+                countdownIntervalSeconds, countdownStartBeforeSeconds);
+        stored.preview = new StoredConfig.PreviewSettings(previewEnabled, previewSeconds);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -224,6 +295,8 @@ final class FabricEndLockConfig {
         List<String> playerWhitelist;
         List<String> uuidWhitelist;
         List<String> worldWhitelist;
+        CountdownSettings countdown;
+        PreviewSettings preview;
 
         String reasonOrDefault() {
             if (lockReason == null || lockReason.isBlank()) {
@@ -249,8 +322,73 @@ final class FabricEndLockConfig {
             return blockEntities == null || blockEntities;
         }
 
+        boolean countdownEnabledOrDefault() {
+            // The Paper default enables the countdown; files predating the
+            // option keep that behavior.
+            return countdown == null || countdown.enabled == null || countdown.enabled;
+        }
+
+        long countdownIntervalOrDefault() {
+            if (countdown == null || countdown.interval == null || countdown.interval < 1) {
+                return DEFAULT_COUNTDOWN_INTERVAL;
+            }
+            return countdown.interval;
+        }
+
+        long countdownStartBeforeOrDefault() {
+            if (countdown == null || countdown.startBefore == null || countdown.startBefore < 1) {
+                return DEFAULT_COUNTDOWN_START_BEFORE;
+            }
+            return countdown.startBefore;
+        }
+
+        boolean previewEnabledOrDefault() {
+            return preview != null && preview.enabled != null && preview.enabled;
+        }
+
+        long previewSecondsOrDefault() {
+            if (preview == null || preview.seconds == null || preview.seconds < 1) {
+                return DEFAULT_PREVIEW_SECONDS;
+            }
+            return preview.seconds;
+        }
+
         private static List<String> listOrEmpty(List<String> values) {
             return values == null ? List.of() : values;
+        }
+
+        /**
+         * JSON wire format of the countdown notification settings.
+         */
+        private static final class CountdownSettings {
+            Boolean enabled;
+            Long interval;
+            Long startBefore;
+
+            CountdownSettings() {
+            }
+
+            CountdownSettings(boolean enabled, long interval, long startBefore) {
+                this.enabled = enabled;
+                this.interval = interval;
+                this.startBefore = startBefore;
+            }
+        }
+
+        /**
+         * JSON wire format of the preview notification settings.
+         */
+        private static final class PreviewSettings {
+            Boolean enabled;
+            Long seconds;
+
+            PreviewSettings() {
+            }
+
+            PreviewSettings(boolean enabled, long seconds) {
+                this.enabled = enabled;
+                this.seconds = seconds;
+            }
         }
     }
 }

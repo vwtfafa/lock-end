@@ -1,6 +1,9 @@
 package org.vwtfafa.lockend.neoforge;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
@@ -8,11 +11,18 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.core.LockScheduler;
 import org.vwtfafa.lockend.core.LockStateManager;
+import org.vwtfafa.lockend.core.PersistedSchedule;
+import org.vwtfafa.lockend.core.ScheduleSupport;
 
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 /**
  * NeoForge entrypoint of the Lock-End lock for the End dimension, annotated
@@ -28,15 +38,21 @@ import java.nio.file.Path;
  *       blocking this event stops the dimension transition in both the
  *       entity and the player travel paths (no arrival bounce, no tick
  *       scan).</li>
+ *   <li>{@link ServerTickEvent.Post}: the roughly once-per-second poll of
+ *       the shared {@link LockScheduler}.</li>
  *   <li>{@link ServerStartedEvent}: restart safety net - players already
  *       inside the End after a boot with a persisted active lock are
  *       evacuated once.</li>
- *   <li>{@link ServerStoppingEvent}: final state persistence.</li>
+ *   <li>{@link ServerStoppingEvent}: final state and schedule persistence.</li>
  * </ul>
  *
  * <p>All listeners run on the main server thread; the runtime state is
  * managed by the shared core with the same volatile semantics as the Paper
- * plugin.</p>
+ * plugin. Scheduled actions persist in
+ * {@code config/lock-end.schedule.json} ({@link JsonScheduleRepository}),
+ * countdown and preview behavior mirrors the Paper plugin: countdown lines
+ * go to admins, the preview broadcasts to everyone. The scheduler wiring is
+ * deliberately a copy of the Fabric adapter's behavior.</p>
  */
 @Mod("lockend")
 public class LockEndNeoForgeMod {
@@ -44,10 +60,16 @@ public class LockEndNeoForgeMod {
     /** Logger shared by all NeoForge adapter classes (package-visible). */
     static final Logger LOGGER = LoggerFactory.getLogger("lock-end");
 
+    private static final int SCHEDULE_TICK_CADENCE = 20;
+
     private final LockStateManager state;
     private final JsonLockStateRepository repository;
     private final EndLockGuard guard;
+    private final JsonScheduleRepository scheduleRepository;
+    private final LockScheduler scheduler;
     private NeoForgeEndLockConfig config;
+    private volatile MinecraftServer liveServer;
+    private int scheduleTickOffset;
 
     /**
      * Creates the mod instance, loads configuration and persistence and
@@ -63,8 +85,14 @@ public class LockEndNeoForgeMod {
         state.setReasonSupplier(config::lockReason);
 
         guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
+        scheduleRepository = new JsonScheduleRepository(configDirectory);
+        scheduler = new LockScheduler(new SchedulerCallbacks(), Clock.systemDefaultZone());
+        applyScheduleSettings();
+        restorePersistedSchedule();
+
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onTravelToDimension);
+        NeoForge.EVENT_BUS.addListener(this::onServerTick);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
 
@@ -92,6 +120,18 @@ public class LockEndNeoForgeMod {
     }
 
     /**
+     * Scheduler poll at a one-second cadence (every 20 server ticks).
+     *
+     * @param event the post server tick event
+     */
+    private void onServerTick(ServerTickEvent.Post event) {
+        scheduleTickOffset = (scheduleTickOffset + 1) % SCHEDULE_TICK_CADENCE;
+        if (scheduleTickOffset == 0 && liveServer != null) {
+            scheduler.tick(state.isLocked());
+        }
+    }
+
+    /**
      * Lifecycle hook: stores the live server and runs the persisted-lock
      * restart evacuation.
      *
@@ -99,6 +139,7 @@ public class LockEndNeoForgeMod {
      */
     private void onServerStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
+        liveServer = server;
         guard.attachServer(server);
         guard.handleServerStarted();
     }
@@ -106,12 +147,111 @@ public class LockEndNeoForgeMod {
     /**
      * Lifecycle hook: persists the final state so a persisted lock
      * re-applies on the next boot (where the restart evacuation clears any
-     * player stranded inside).
+     * player stranded inside), plus the current runtime schedule.
      *
      * @param event the server stopping event
      */
     private void onServerStopping(ServerStoppingEvent event) {
         repository.save(state.getState());
+        persistRuntimeSchedule();
+        liveServer = null;
+    }
+
+    /**
+     * {@code System} is the Paper plugin's actor name for scheduled state
+     * changes (no player identity).
+     */
+    boolean changeStateScheduled(boolean lock) {
+        boolean changed = state.updateLocked(lock,
+                lock ? LockAction.SCHEDULED_LOCK : LockAction.SCHEDULED_UNLOCK, "System", null);
+        if (changed) {
+            repository.save(state.getState());
+            if (lock) {
+                guard.evacuate();
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * Schedules a pending action at an absolute target and persists it.
+     *
+     * @param action the action name ({@code lock} or {@code unlock})
+     * @param target the absolute execution time; must lie in the future (the
+     *               command layer validates)
+     * @return {@code true} when the schedule was accepted
+     */
+    boolean applyScheduled(String action, LocalDateTime target) {
+        if (!ScheduleSupport.isSupportedAction(action) || target == null) {
+            return false;
+        }
+        scheduler.schedule(action, target);
+        scheduleRepository.save(new PersistedSchedule(action, target, false));
+        LOGGER.info("Scheduled {} at {}; pending action set.", action,
+                target.format(ScheduleSupport.SCHEDULE_FORMAT));
+        return true;
+    }
+
+    /**
+     * Clears the pending action and its persistence.
+     */
+    void cancelSchedule() {
+        scheduler.cancel();
+        scheduleRepository.clear();
+        LOGGER.info("Schedule cleared.");
+    }
+
+    /**
+     * Pauses the pending schedule without moving its target and persists the
+     * paused flag.
+     */
+    void pauseSchedule() {
+        scheduler.pause();
+        persistRuntimeSchedule();
+        LOGGER.info("Schedule paused.");
+    }
+
+    /**
+     * Resumes a paused schedule (a lapsed target executes on the next tick)
+     * and persists the resumed flag.
+     */
+    void resumeSchedule() {
+        scheduler.resume();
+        persistRuntimeSchedule();
+        LOGGER.info("Schedule resumed.");
+    }
+
+    /**
+     * @return {@code true} if a pending scheduled action exists
+     */
+    boolean hasSchedule() {
+        return scheduler.hasAction();
+    }
+
+    /**
+     * @return {@code true} while the pending schedule is paused
+     */
+    boolean isSchedulePaused() {
+        return scheduler.isPaused();
+    }
+
+    /**
+     * Builds the schedule status line mirroring the Paper plugin's
+     * {@code schedule-status} message shape.
+     *
+     * @return the status line; never {@code null}
+     */
+    String scheduleStatusLine() {
+        LocalDateTime target = scheduler.target();
+        if (target == null) {
+            return "No scheduled action.";
+        }
+        String remaining = ScheduleSupport.formatDuration(
+                Math.max(0L, scheduler.remainingSeconds()));
+        return "Action: " + scheduler.action()
+                + " | Target: " + target.format(ScheduleSupport.SCHEDULE_FORMAT)
+                + " | Remaining: " + remaining
+                + " | Paused: " + scheduler.isPaused();
     }
 
     /**
@@ -130,7 +270,8 @@ public class LockEndNeoForgeMod {
 
     /**
      * Reloads the settings file and republishes its values to the live
-     * consumers: the lock state reason supplier and the guard rules.
+     * consumers: the lock state reason supplier, the guard rules and the
+     * schedule notification settings.
      *
      * @return {@code null} when the file was read cleanly, otherwise a
      *         human-readable recovery notice (defaults are then active for
@@ -141,6 +282,118 @@ public class LockEndNeoForgeMod {
         config = config.reload();
         state.setReasonSupplier(config::lockReason);
         guard.applyRules(config.bypassChecker(), config.endScope(), config.blockEntities());
+        applyScheduleSettings();
         return config.parseFailureMessage();
+    }
+
+    /**
+     * Publishes the countdown and preview notification settings from the
+     * active config.
+     */
+    private void applyScheduleSettings() {
+        scheduler.setCountdownSettings(config.countdownEnabled(),
+                config.countdownStartBeforeSeconds(), config.countdownIntervalSeconds());
+        scheduler.setPreviewSettings(config.previewEnabled(), config.previewSeconds());
+    }
+
+    /**
+     * Restores the runtime schedule from the persisted file. A lapsed or
+     * invalid persisted schedule is cleared (never executed on boot) and its
+     * file cleaned up so the condition does not repeat.
+     */
+    private void restorePersistedSchedule() {
+        PersistedSchedule persisted = scheduleRepository.load();
+        LockScheduler.RestoreResult result = scheduler.restore(
+                persisted.isEmpty() ? null : persisted.action(),
+                persisted.target(),
+                persisted.paused());
+        if (result == LockScheduler.RestoreResult.RESUMED) {
+            LOGGER.info("Restored scheduled {} at {}{}.", persisted.action(),
+                    persisted.target().format(ScheduleSupport.SCHEDULE_FORMAT),
+                    persisted.paused() ? " (paused)" : "");
+        } else if (result == LockScheduler.RestoreResult.LAPSED_CLEARED) {
+            LOGGER.info("Persisted schedule had already passed the restart; cleared.");
+            scheduleRepository.clear();
+        } else if (result == LockScheduler.RestoreResult.INVALID_CLEARED) {
+            LOGGER.warn("Persisted schedule holds an unsupported action '{}'; cleared.", persisted.action());
+            scheduleRepository.clear();
+        }
+    }
+
+    /**
+     * Writes the current runtime schedule to the persistence file.
+     */
+    private void persistRuntimeSchedule() {
+        LocalDateTime target = scheduler.target();
+        if (target == null) {
+            scheduleRepository.clear();
+            return;
+        }
+        scheduleRepository.save(new PersistedSchedule(scheduler.action(), target, scheduler.isPaused()));
+    }
+
+    /**
+     * The scheduler callbacks, delivered in the server thread context:
+     * executes the due state change through {@link #changeStateScheduled},
+     * sends countdown lines to admins and broadcasts the one-shot preview
+     * to everyone, mirroring the Paper plugin. Deliberately a copy of the
+     * Fabric adapter's callback implementation.
+     */
+    private final class SchedulerCallbacks implements LockScheduler.Callbacks {
+
+        private static final String PREFIX = "[EndLock] ";
+
+        @Override
+        public void executeScheduled(boolean lock) {
+            MinecraftServer server = liveServer;
+            if (server == null) {
+                return;
+            }
+            boolean changed = changeStateScheduled(lock);
+            if (!changed) {
+                LOGGER.info("Scheduled {} target state already active; skipped.", lock ? "lock" : "unlock");
+            } else {
+                server.getPlayerList().broadcastSystemMessage(Component.literal(lock
+                        ? "The End is now locked! (scheduled) "
+                        + describeReason()
+                        : "The End has been unlocked. (scheduled)"), false);
+                LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
+            }
+            scheduleRepository.clear();
+        }
+
+        @Override
+        public void announceCountdown(String action, long remainingSeconds) {
+            MinecraftServer server = liveServer;
+            if (server == null) {
+                return;
+            }
+            boolean lock = "lock".equalsIgnoreCase(action);
+            String rendered = PREFIX + "The End will be "
+                    + (lock ? "locked" : "unlocked")
+                    + " in " + ScheduleSupport.formatDuration(remainingSeconds) + ".";
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                if (player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)) {
+                    player.sendSystemMessage(Component.literal(rendered));
+                }
+            }
+        }
+
+        @Override
+        public void announcePreview(String action, long secondsBefore) {
+            MinecraftServer server = liveServer;
+            if (server == null) {
+                return;
+            }
+            boolean lock = "lock".equalsIgnoreCase(action);
+            server.getPlayerList().broadcastSystemMessage(Component.literal(lock
+                    ? "The End will be locked in " + secondsBefore + " seconds!"
+                    : "The End will be unlocked in " + secondsBefore + " seconds!"), false);
+        }
+
+        private String describeReason() {
+            String reason = state.getLockReason();
+            return reason.isBlank() ? "" : "Reason: " + reason;
+        }
     }
 }

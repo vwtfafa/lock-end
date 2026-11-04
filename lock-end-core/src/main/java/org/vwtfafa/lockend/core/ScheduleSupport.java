@@ -1,10 +1,14 @@
 package org.vwtfafa.lockend.core;
 
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Pure schedule helper logic shared by all platforms: strict schedule time
@@ -94,4 +98,63 @@ public final class ScheduleSupport {
     public static boolean isSupportedAction(String action) {
         return "lock".equalsIgnoreCase(action) || "unlock".equalsIgnoreCase(action);
     }
+
+    /**
+     * Tries to parse a positive integer.
+     *
+     * @param input the raw token; may be {@code null}
+     * @return the parsed value, or {@code null} for anything but positive
+     *         integers
+     */
+    public static Integer tryParsePositiveInt(String input) {
+        if (input == null) {
+            return null;
+        }
+        try {
+            int value = Integer.parseInt(input.trim());
+            return value > 0 ? value : null;
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses a natural duration like {@code 90m}, {@code 2h} or {@code 7d}
+     * into an absolute target time. A bare positive number is not a
+     * duration (command layers decide its legacy meaning); the reference
+     * point comes from the caller so tests are deterministic.
+     *
+     * @param input the raw token; may be {@code null}
+     * @param now   the reference point
+     * @return the absolute target, or {@code null} for anything else
+     */
+    public static LocalDateTime parseDurationTarget(String input, LocalDateTime now) {
+        if (input == null || now == null) {
+            return null;
+        }
+        Matcher matcher = DURATION_PATTERN.matcher(input.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+        try {
+            long amount = Long.parseLong(matcher.group(1));
+            if (amount <= 0) {
+                return null;
+            }
+            return switch (matcher.group(2).toLowerCase(Locale.ROOT)) {
+                case "m" -> now.plusMinutes(amount);
+                case "h" -> now.plusHours(amount);
+                default -> now.plusDays(amount);
+            };
+        } catch (NumberFormatException | DateTimeException | ArithmeticException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Shared duration token: a positive number followed by m, h or d
+     * (case-insensitive).
+     */
+    private static final Pattern DURATION_PATTERN = Pattern
+            .compile("(\\d+)\\s*([mhd])", Pattern.CASE_INSENSITIVE);
 }

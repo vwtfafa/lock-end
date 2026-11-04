@@ -32,6 +32,21 @@ plugin into a monorepo with shared modules and per-platform adapters.
   NeoForge: update the lock reason at runtime, persist it to
   `config/lock-end.json`, and restore the built-in default on clear (Paper
   parity for the `reason` command step).
+- Scheduled lock/unlock actions on Fabric and NeoForge (Paper-parity
+  section 2 of the multiplatform feature plan): `/endlock unlockin <days|
+  duration>`, `/endlock unlockat <date> <time>`, `/endlock lockin <minutes|
+  duration>`, `/endlock lockat <date> <time>` plus `/endlock schedule
+  status|clear`, `cancel`, `pause`, and `resume`. The schedule persists in
+  `config/lock-end.schedule.json` and restores safely on boot: a future
+  target resumes counting, a lapsed target is cleared (never executed after
+  a restart), and an unsupported action name never coerces to `unlock`.
+  Countdown announcements (admins; Paper defaults: 10 s interval inside a
+  300 s window) and the one-shot preview (broadcast, off by default) are
+  configured in `lock-end.json` and republished on `/endlock reload`; both
+  skip when the current state already matches the scheduled target state.
+  Fabric gates `unlockin`/`unlockat`/`lockin`/`lockat` behind the new
+  `lock-end:toggle` node like Paper's `endlock.toggle`; NeoForge uses the
+  vanilla admin level.
 - `/endlock reload` on Fabric and NeoForge rereads `config/lock-end.json`
   live and republishes the settings to the lock state and guards; corrupt
   files are backed up as `lock-end.json.corrupt`, rebuilt with defaults, and

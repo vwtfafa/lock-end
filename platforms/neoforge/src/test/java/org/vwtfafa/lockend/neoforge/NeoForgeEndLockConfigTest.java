@@ -36,6 +36,57 @@ class NeoForgeEndLockConfigTest {
     }
 
     @Test
+    void countdownAndPreviewBootWithPaperDefaults() throws IOException {
+        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+
+        assertTrue(config.countdownEnabled());
+        assertEquals(10L, config.countdownIntervalSeconds());
+        assertEquals(300L, config.countdownStartBeforeSeconds());
+        assertFalse(config.previewEnabled());
+        assertEquals(30L, config.previewSeconds());
+        String json = Files.readString(tempDir.resolve("lock-end.json"));
+        assertTrue(json.contains("\"countdown\""));
+        assertTrue(json.contains("\"preview\""));
+    }
+
+    @Test
+    void countdownAndPreviewEditsArePickedUp() throws IOException {
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "countdown": {"enabled": false, "interval": 30, "startBefore": 1200},
+                  "preview": {"enabled": true, "seconds": 45}
+                }
+                """);
+
+        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+
+        assertFalse(config.countdownEnabled());
+        assertEquals(30L, config.countdownIntervalSeconds());
+        assertEquals(1200L, config.countdownStartBeforeSeconds());
+        assertTrue(config.previewEnabled());
+        assertEquals(45L, config.previewSeconds());
+    }
+
+    @Test
+    void countdownAndPreviewInvalidValuesFallBackToDefaults() throws IOException {
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "countdown": {"enabled": true, "interval": -3, "startBefore": null},
+                  "preview": {"enabled": null, "seconds": 0}
+                }
+                """);
+
+        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+
+        assertEquals(10L, config.countdownIntervalSeconds());
+        assertEquals(300L, config.countdownStartBeforeSeconds());
+        assertFalse(config.previewEnabled());
+        assertEquals(30L, config.previewSeconds());
+    }
+
+    @Test
     void humanEditsArePickedUpOnReload() throws IOException {
         Files.writeString(tempDir.resolve("lock-end.json"), """
                 {
