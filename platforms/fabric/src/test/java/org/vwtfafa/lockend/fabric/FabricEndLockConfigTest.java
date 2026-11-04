@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -67,6 +68,37 @@ class FabricEndLockConfigTest {
         FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
+    }
+
+    @Test
+    void setLockReasonUpdatesLiveValueAndPersists() throws IOException {
+        FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
+
+        config.setLockReason("  Closed for maintenance  ");
+        FabricEndLockConfig reloaded = FabricEndLockConfig.load(tempDir);
+
+        assertEquals("Closed for maintenance", config.lockReason());
+        assertEquals("Closed for maintenance", reloaded.lockReason());
+    }
+
+    @Test
+    void setLockReasonRejectsBlankInput() throws IOException {
+        FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
+
+        assertThrows(IllegalArgumentException.class, () -> config.setLockReason("   "));
+        assertThrows(IllegalArgumentException.class, () -> config.setLockReason(null));
+    }
+
+    @Test
+    void clearReasonRestoresDefaultAndPersists() throws IOException {
+        FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
+        config.setLockReason("Event night");
+
+        config.clearReason();
+        FabricEndLockConfig reloaded = FabricEndLockConfig.load(tempDir);
+
+        assertEquals("Maintenance", config.lockReason());
+        assertEquals("Maintenance", reloaded.lockReason());
     }
 
     @Test

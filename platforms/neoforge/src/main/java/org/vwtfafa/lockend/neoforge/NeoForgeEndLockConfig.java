@@ -30,7 +30,7 @@ final class NeoForgeEndLockConfig {
             new LockBypassChecker(List.of(), List.of(), List.of());
 
     private final Path file;
-    private final String lockReason;
+    private String lockReason;
     private final LockBypassChecker bypassChecker;
 
     private NeoForgeEndLockConfig(Path file, String lockReason, LockBypassChecker bypassChecker) {
@@ -84,6 +84,31 @@ final class NeoForgeEndLockConfig {
      */
     LockBypassChecker bypassChecker() {
         return bypassChecker;
+    }
+
+    /**
+     * Updates the lock reason at runtime and writes the settings file, so the
+     * change survives a restart. The live reason supplier resolves this field
+     * on every call, so status and denial feedback switch immediately.
+     *
+     * @param reason the new reason; must not be {@code null} or blank
+     * @throws IllegalArgumentException if the reason is {@code null} or blank
+     */
+    void setLockReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("reason must not be blank");
+        }
+        this.lockReason = reason.trim();
+        save();
+    }
+
+    /**
+     * Restores the built-in default lock reason and writes the settings file,
+     * matching what a fresh default file contains.
+     */
+    void clearReason() {
+        this.lockReason = DEFAULT_REASON;
+        save();
     }
 
     /**

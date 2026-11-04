@@ -28,6 +28,10 @@ plugin into a monorepo with shared modules and per-platform adapters.
 - Fabric and NeoForge now share player-name, UUID, and dimension bypass
   configuration with permission bypasses, and their distributable jars bundle
   only Lock-End shared modules (not Minecraft/loader classes).
+- `/endlock reason set <reason>` and `/endlock reason clear` on Fabric and
+  NeoForge: update the lock reason at runtime, persist it to
+  `config/lock-end.json`, and restore the built-in default on clear (Paper
+  parity for the `reason` command step).
 - **Vanilla datapack** (`datapack`): deliberately limited implementation for
   servers without a mod loader. Op-controlled `lockend:lock|unlock|status|
   set_spawn` functions, `evacuate`/`evacuate_player` guard wired to the

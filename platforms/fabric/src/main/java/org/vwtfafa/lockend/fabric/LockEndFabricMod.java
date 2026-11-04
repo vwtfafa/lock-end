@@ -101,7 +101,7 @@ public class LockEndFabricMod implements ModInitializer {
      */
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
-                new LockEndCommands(state, repository, guard).registerAll(dispatcher, buildContext, selection));
+                new LockEndCommands(state, repository, guard, config).registerAll(dispatcher, buildContext, selection));
     }
 
     /**

@@ -47,6 +47,7 @@ public class LockEndNeoForgeMod {
     private final LockStateManager state;
     private final JsonLockStateRepository repository;
     private final EndLockGuard guard;
+    private final NeoForgeEndLockConfig config;
 
     /**
      * Creates the mod instance, loads configuration and persistence and
@@ -55,7 +56,7 @@ public class LockEndNeoForgeMod {
      */
     public LockEndNeoForgeMod() {
         Path configDirectory = FMLPaths.CONFIGDIR.get();
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(configDirectory);
+        config = NeoForgeEndLockConfig.load(configDirectory);
         repository = new JsonLockStateRepository(configDirectory);
 
         state = new LockStateManager(false).loadFromPersistence(repository);
@@ -77,7 +78,7 @@ public class LockEndNeoForgeMod {
      * @param event the command registration event
      */
     private void onRegisterCommands(RegisterCommandsEvent event) {
-        new LockEndCommands(state, repository, guard).registerAll(event.getDispatcher());
+        new LockEndCommands(state, repository, guard, config).registerAll(event.getDispatcher());
     }
 
     /**

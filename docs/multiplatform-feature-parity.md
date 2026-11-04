@@ -73,7 +73,11 @@ behavior with live server tests as part of any guard changes.
 - [x] Add player-name, UUID, world, and permission-based bypass rules on Fabric
   and NeoForge (permission-node granularity remains platform-specific; see
   above).
-- [ ] Add a command to set/clear the lock reason at runtime.
+- [x] Add a command to set/clear the lock reason at runtime: `/endlock reason
+  set <reason>` persists the reason to `config/lock-end.json` and
+  `/endlock reason clear` restores the built-in default ("Maintenance"), on
+  both Fabric and NeoForge. The mods keep one editable reason per server;
+  Paper additionally offers reason keys via its `lock-reasons` registry.
 - [ ] Add configuration reload and validation with clear error reporting.
 - [ ] Match Paper's command permissions instead of using one blanket operator
   gate; document the platform-specific permission nodes/defaults.
