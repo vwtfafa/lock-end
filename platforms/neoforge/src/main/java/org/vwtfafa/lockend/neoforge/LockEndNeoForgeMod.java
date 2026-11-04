@@ -47,7 +47,7 @@ public class LockEndNeoForgeMod {
     private final LockStateManager state;
     private final JsonLockStateRepository repository;
     private final EndLockGuard guard;
-    private final NeoForgeEndLockConfig config;
+    private NeoForgeEndLockConfig config;
 
     /**
      * Creates the mod instance, loads configuration and persistence and
@@ -62,7 +62,7 @@ public class LockEndNeoForgeMod {
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
-        guard = new EndLockGuard(state, config.bypassChecker());
+        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onTravelToDimension);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
@@ -78,7 +78,7 @@ public class LockEndNeoForgeMod {
      * @param event the command registration event
      */
     private void onRegisterCommands(RegisterCommandsEvent event) {
-        new LockEndCommands(state, repository, guard, config).registerAll(event.getDispatcher());
+        new LockEndCommands(state, repository, guard, this).registerAll(event.getDispatcher());
     }
 
     /**
@@ -119,5 +119,28 @@ public class LockEndNeoForgeMod {
      */
     public LockStateManager getState() {
         return state;
+    }
+
+    /**
+     * @return the currently active settings
+     */
+    NeoForgeEndLockConfig currentSettings() {
+        return config;
+    }
+
+    /**
+     * Reloads the settings file and republishes its values to the live
+     * consumers: the lock state reason supplier and the guard rules.
+     *
+     * @return {@code null} when the file was read cleanly, otherwise a
+     *         human-readable recovery notice (defaults are then active for
+     *         the unreadable file and it stays preserved as
+     *         {@code lock-end.json.corrupt})
+     */
+    String reloadSettings() {
+        config = config.reload();
+        state.setReasonSupplier(config::lockReason);
+        guard.applyRules(config.bypassChecker(), config.endScope(), config.blockEntities());
+        return config.parseFailureMessage();
     }
 }

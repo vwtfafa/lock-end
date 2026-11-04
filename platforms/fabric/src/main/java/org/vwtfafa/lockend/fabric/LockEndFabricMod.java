@@ -26,9 +26,11 @@ import java.nio.file.Path;
  *       persistence.</li>
  *   <li>{@link ServerEntityLevelChangeEvents#AFTER_PLAYER_CHANGE_LEVEL}:
  *       immediate bounce of a player who just arrived in the End while the
- *       lock is active. Fabric API exposes no cancellable dimension-change
- *       event, so the bounce happens after arrival (see the migration plan
- *       section 5.2: mixins only where necessary).</li>
+ *       lock is active; non-player entities are bounced the same way through
+ *       {@link ServerEntityLevelChangeEvents#AFTER_ENTITY_CHANGE_LEVEL} while
+ *       {@code blockEntities} is enabled. Fabric API exposes no cancellable
+ *       dimension-change event, so the bounce happens after arrival (see the
+ *       migration plan section 5.2: mixins only where necessary).</li>
  *   <li>{@link ServerTickEvents#END_SERVER_TICK}: throttled scan that
  *       catches players who reached the End by a route the arrival event
  *       could not cover.</li>
@@ -59,7 +61,7 @@ public class LockEndFabricMod implements ModInitializer {
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
-        guard = new EndLockGuard(state, config.bypassChecker());
+        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
         registerLifecycleHooks();
         registerDimensionHooks();
         registerCommands();
@@ -90,8 +92,11 @@ public class LockEndFabricMod implements ModInitializer {
         ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register(
                 (player, origin, destination) ->
                         guard.onPlayerLevelChange(player, origin, destination));
+        // Non-player entity arrivals are bounced the same way while
+        // blockEntities is enabled.
+        ServerEntityLevelChangeEvents.AFTER_ENTITY_CHANGE_LEVEL.register(guard::onEntityLevelChange);
         // Throttled scan as the safety net for players who reached the End
-        // by a route the arrival event could not cover.
+        // by a route the arrival events could not cover.
         ServerTickEvents.END_SERVER_TICK.register(guard::tick);
     }
 
@@ -101,7 +106,31 @@ public class LockEndFabricMod implements ModInitializer {
      */
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
-                new LockEndCommands(state, repository, guard, config).registerAll(dispatcher, buildContext, selection));
+                new LockEndCommands(state, repository, guard, this)
+                        .registerAll(dispatcher, buildContext, selection));
+    }
+
+    /**
+     * @return the currently active settings
+     */
+    FabricEndLockConfig currentSettings() {
+        return config;
+    }
+
+    /**
+     * Reloads the settings file and republishes its values to the live
+     * consumers: the lock state reason supplier and the guard rules.
+     *
+     * @return {@code null} when the file was read cleanly, otherwise a
+     *         human-readable recovery notice (defaults are then active for
+     *         the unreadable file and it stays preserved as
+     *         {@code lock-end.json.corrupt})
+     */
+    String reloadSettings() {
+        config = config.reload();
+        state.setReasonSupplier(config::lockReason);
+        guard.applyRules(config.bypassChecker(), config.endScope(), config.blockEntities());
+        return config.parseFailureMessage();
     }
 
     /**

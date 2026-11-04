@@ -59,10 +59,13 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 The base commands do not have a global permission in `plugin.yml`; each subcommand checks its own permission. This keeps public commands such as `status` and `stats` available while protecting administrative actions.
 
 
-Commands /endlock lock, /endlock unlock, and /endlock status (the subset
-command surface) also exist on the Fabric and NeoForge mods; the vanilla
-datapack offers the same three as /function lockend:lock|unlock|status plus
-/function lockend:set_spawn.
+Commands /endlock lock, /endlock unlock, /endlock status,
+/endlock reason set|clear, and /endlock reload also exist on the Fabric and
+NeoForge mods (Fabric permission nodes `lock-end:admin` and `lock-end:reload`
+with an operator fallback, status public; NeoForge gates them on the vanilla
+admin level); the vanilla
+datapack offers the lock/unlock/status subset as /function
+lockend:lock|unlock|status plus /function lockend:set_spawn.
 
 
 ---

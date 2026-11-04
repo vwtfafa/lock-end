@@ -96,9 +96,10 @@ public final class LockBypassChecker {
      * World key rule: a configured key with a namespace matches the
      * destination key exactly; a configured key without a namespace matches
      * the destination's path in any namespace, so {@code the_end} also covers
-     * {@code minecraft:the_end}.
+     * {@code minecraft:the_end}. Shared with the End dimension scope so both
+     * configured world lists follow one matching rule.
      */
-    private static boolean matchesWorldKey(String configured, String destinationKey) {
+    public static boolean matchesWorldKey(String configured, String destinationKey) {
         String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if (normalized.isEmpty()) {
             return false;

@@ -16,67 +16,73 @@ import org.vwtfafa.lockend.core.LockStateRepository;
 import java.util.UUID;
 
 /**
- * The NeoForge side of the Lock-End command surface. A small subset of the
- * Paper command tree: {@code /endlock lock}, {@code /endlock unlock},
- * {@code /endlock status} and {@code /endlock reason set|clear} (the runtime
- * lock-reason step from the Paper {@code reason} command). History, undo and
- * scheduling commands follow once their Paper behavior is extracted into the
- * shared core.
+ * The NeoForge side of the Lock-End command surface, matching the Paper
+ * per-node permission structure: {@code /endlock lock|unlock|reason set|
+ * reason clear|reload} require the game admin operator level, and
+ * {@code /endlock status} is public. NeoForge's vanilla permission system
+ * does not provide arbitrary named permission nodes, so the Paper
+ * {@code endlock.admin} and {@code endlock.reload} distinction is expressed
+ * as operator power; permission plugins cannot override it here.
  *
  * <p>The tree is registered through the game-bus {@code RegisterCommandsEvent}
- * and requires the game admin operator level (level 2 semantics, matching the
- * Paper permission default), using the vanilla 26.3 permission check
+ * using the vanilla 26.3 permission check
  * {@code Commands.hasPermission(Commands.LEVEL_ADMINS)}.</p>
  */
 final class LockEndCommands {
 
     private static final String COMMAND_NAME = "endlock";
+    private static final String REASON_USAGE = "Usage: /endlock reason set <reason>";
 
     private final LockStateManager state;
     private final LockStateRepository repository;
     private final EndLockGuard guard;
-    private final NeoForgeEndLockConfig config;
+    private final LockEndNeoForgeMod mod;
 
     /**
      * Creates the command tree around the shared state, the persistence
-     * repository, the dimension guard and the settings file owner.
+     * repository, the dimension guard and the owning mod instance (which
+     * publishes settings and reload).
      *
      * @param state      the shared runtime lock state
      * @param repository the persistence contract implementation
      * @param guard      the dimension guard used for immediate evacuation
-     * @param config     the settings file owner for runtime reason changes
+     * @param mod        the mod owning settings, state and guard
      */
     LockEndCommands(
             LockStateManager state,
             LockStateRepository repository,
             EndLockGuard guard,
-            NeoForgeEndLockConfig config) {
+            LockEndNeoForgeMod mod) {
         this.state = state;
         this.repository = repository;
         this.guard = guard;
-        this.config = config;
+        this.mod = mod;
     }
 
     /**
      * Registers the {@code /endlock} tree onto the given dispatcher. The
      * permission gate uses {@code Commands.hasPermission} on the vanilla 26.3
      * permission system ({@code CommandSourceStack} is a
-     * {@code PermissionSetSupplier}).
+     * {@code PermissionSetSupplier}); {@code status} stays public.
      *
      * @param dispatcher the command dispatcher supplied by the registration
      *                   event
      */
     void registerAll(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal(COMMAND_NAME)
-                .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
-                .then(Commands.literal("lock").executes(context -> executeChangeLock(context, true)))
-                .then(Commands.literal("unlock").executes(context -> executeChangeLock(context, false)))
                 .then(Commands.literal("status").executes(this::executeStatus))
+                .then(Commands.literal("lock").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .executes(context -> executeChangeLock(context, true)))
+                .then(Commands.literal("unlock").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .executes(context -> executeChangeLock(context, false)))
                 .then(Commands.literal("reason")
+                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
                         .then(Commands.literal("set")
                                 .then(Commands.argument("reason", StringArgumentType.greedyString())
                                         .executes(this::executeSetReason)))
-                        .then(Commands.literal("clear").executes(this::executeClearReason))));
+                        .then(Commands.literal("clear").executes(this::executeClearReason)))
+                .then(Commands.literal("reload").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .executes(this::executeReload)));
     }
 
     private int executeChangeLock(CommandContext<CommandSourceStack> context, boolean lock) {
@@ -115,19 +121,32 @@ final class LockEndCommands {
         CommandSourceStack source = context.getSource();
         String reason = StringArgumentType.getString(context, "reason").trim();
         if (reason.isEmpty()) {
-            source.sendFailure(Component.literal("Usage: /endlock reason set <reason>"));
+            source.sendFailure(Component.literal(REASON_USAGE));
             return Command.SINGLE_SUCCESS;
         }
-        config.setLockReason(reason);
+        mod.currentSettings().setLockReason(reason);
         source.sendSuccess(() -> Component.literal("Lock reason set to: " + reason), true);
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeClearReason(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        config.clearReason();
+        mod.currentSettings().clearReason();
         source.sendSuccess(() -> Component.literal("Lock reason cleared; restored default: "
-                + config.lockReason()), true);
+                + mod.currentSettings().lockReason()), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeReload(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        String failure = mod.reloadSettings();
+        if (failure == null) {
+            source.sendSuccess(() -> Component.literal("Reloaded the Lock-End settings."), true);
+        } else {
+            source.sendSuccess(() -> Component.literal(
+                    "Lock-End settings reloaded, but recovery was needed: " + failure
+                            + ". Fix the file and run /endlock reload again."), true);
+        }
         return Command.SINGLE_SUCCESS;
     }
 

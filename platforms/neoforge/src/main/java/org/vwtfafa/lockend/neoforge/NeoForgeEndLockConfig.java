@@ -3,6 +3,7 @@ package org.vwtfafa.lockend.neoforge;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
+import org.vwtfafa.lockend.core.EndDimensionScope;
 import org.vwtfafa.lockend.core.LockBypassChecker;
 
 import java.io.IOException;
@@ -11,15 +12,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Reads and writes the NeoForge mod's settings file
  * ({@code config/lock-end.json}) holding the human-editable settings. The
  * persisted lock state lives in a separate file owned by
  * {@link JsonLockStateRepository}; the settings file is write-through on
- * every boot and must not be edited at runtime. Deliberately a copy of the
- * Fabric adapter's behavior (migration plan section 5: platform adapters
- * implement their own persistence first).
+ * every boot and mutable through the {@code setLockReason} and
+ * {@link #reload} paths. Guarding options: the End dimension scope
+ * ({@code endWorlds}; see {@link EndDimensionScope}) and the non-player
+ * entity block ({@code blockEntities}). Deliberately a copy of the Fabric
+ * adapter's behavior (migration plan section 5: platform adapters implement
+ * their own persistence first).
  */
 final class NeoForgeEndLockConfig {
 
@@ -28,22 +33,36 @@ final class NeoForgeEndLockConfig {
     private static final String CONFIG_FILE_NAME = "lock-end.json";
     private static final LockBypassChecker EMPTY_BYPASS_CHECKER =
             new LockBypassChecker(List.of(), List.of(), List.of());
+    private static final EndDimensionScope DEFAULT_SCOPE = new EndDimensionScope(List.of());
 
     private final Path file;
     private String lockReason;
     private final LockBypassChecker bypassChecker;
+    private final EndDimensionScope endScope;
+    private final boolean blockEntities;
+    private final String parseFailure;
 
-    private NeoForgeEndLockConfig(Path file, String lockReason, LockBypassChecker bypassChecker) {
+    private NeoForgeEndLockConfig(
+            Path file,
+            String lockReason,
+            LockBypassChecker bypassChecker,
+            EndDimensionScope endScope,
+            boolean blockEntities,
+            String parseFailure) {
         this.file = file;
         this.lockReason = lockReason;
         this.bypassChecker = bypassChecker;
+        this.endScope = endScope;
+        this.blockEntities = blockEntities;
+        this.parseFailure = parseFailure;
     }
 
     /**
      * Loads the settings from the given file, creating a fresh default file
      * when it does not exist. Unparsable files fall back to defaults instead
      * of failing the mod boot; a backup copy of the offending file is kept
-     * next to it.
+     * next to it and the recovery is reported via {@link #parseFailureMessage()}
+     * so callers can surface it.
      *
      * @param configDirectory the directory holding the settings file
      * @return the loaded settings; never {@code null}
@@ -51,10 +70,7 @@ final class NeoForgeEndLockConfig {
     static NeoForgeEndLockConfig load(Path configDirectory) {
         Path file = configDirectory.resolve(CONFIG_FILE_NAME);
         if (!Files.exists(file)) {
-            NeoForgeEndLockConfig defaults = new NeoForgeEndLockConfig(
-                    file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER);
-            defaults.save();
-            return defaults;
+            return writeDefaults(file, null);
         }
         try {
             String json = Files.readString(file);
@@ -62,14 +78,42 @@ final class NeoForgeEndLockConfig {
             if (stored == null) {
                 stored = new StoredConfig();
             }
-            return new NeoForgeEndLockConfig(file, stored.reasonOrDefault(), stored.bypassChecker());
+            return new NeoForgeEndLockConfig(
+                    file,
+                    stored.reasonOrDefault(),
+                    stored.bypassChecker(),
+                    stored.endScopeOrDefault(),
+                    stored.blockEntitiesOrDefault(),
+                    null);
         } catch (IOException | JsonParseException exception) {
             backupCorruptFile(file, exception);
-            NeoForgeEndLockConfig defaults = new NeoForgeEndLockConfig(
-                    file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER);
-            defaults.save();
-            return defaults;
+            return writeDefaults(file, recoveryNotice(exception));
         }
+    }
+
+    /**
+     * Reloads the settings from the same file, applying the same
+     * corrupt-file recovery rules as {@link #load(Path)}. Assignments replace
+     * the boot settings, so callers must rewire the consumers (lock state
+     * reason supplier, guard rules) with the returned instance.
+     *
+     * @return the freshly loaded settings; never {@code null}
+     */
+    NeoForgeEndLockConfig reload() {
+        return load(file.getParent());
+    }
+
+    private static NeoForgeEndLockConfig writeDefaults(Path file, String parseFailure) {
+        NeoForgeEndLockConfig defaults = new NeoForgeEndLockConfig(
+                file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true, parseFailure);
+        defaults.save();
+        return defaults;
+    }
+
+    private static String recoveryNotice(Exception cause) {
+        return "lock-end.json could not be read ("
+                + Objects.toString(cause.getMessage(), "no details")
+                + "); it was kept as " + CONFIG_FILE_NAME + ".corrupt and rebuilt with defaults";
     }
 
     /**
@@ -84,6 +128,29 @@ final class NeoForgeEndLockConfig {
      */
     LockBypassChecker bypassChecker() {
         return bypassChecker;
+    }
+
+    /**
+     * @return the configured End dimension scope; never {@code null}
+     */
+    EndDimensionScope endScope() {
+        return endScope;
+    }
+
+    /**
+     * @return {@code true} if non-player entities may not enter the guarded
+     *         End while the lock is active
+     */
+    boolean blockEntities() {
+        return blockEntities;
+    }
+
+    /**
+     * @return a human-readable recovery notice when the last load fell back
+     *         to defaults, or {@code null} when the file was read cleanly
+     */
+    String parseFailureMessage() {
+        return parseFailure;
     }
 
     /**
@@ -117,6 +184,8 @@ final class NeoForgeEndLockConfig {
     void save() {
         StoredConfig stored = new StoredConfig();
         stored.lockReason = lockReason;
+        stored.endWorlds = endScope.configuredEnds();
+        stored.blockEntities = blockEntities;
         stored.playerWhitelist = bypassChecker.playerNames();
         stored.uuidWhitelist = bypassChecker.uuids();
         stored.worldWhitelist = bypassChecker.worlds();
@@ -151,6 +220,8 @@ final class NeoForgeEndLockConfig {
      */
     private static final class StoredConfig {
         String lockReason;
+        List<String> endWorlds;
+        Boolean blockEntities;
         List<String> playerWhitelist;
         List<String> uuidWhitelist;
         List<String> worldWhitelist;
@@ -167,6 +238,16 @@ final class NeoForgeEndLockConfig {
                     listOrEmpty(playerWhitelist),
                     listOrEmpty(uuidWhitelist),
                     listOrEmpty(worldWhitelist));
+        }
+
+        EndDimensionScope endScopeOrDefault() {
+            return new EndDimensionScope(listOrEmpty(endWorlds));
+        }
+
+        boolean blockEntitiesOrDefault() {
+            // The Paper default blocks entities: true, also when a stored
+            // file predates this option.
+            return blockEntities == null || blockEntities;
         }
 
         private static List<String> listOrEmpty(List<String> values) {

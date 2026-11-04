@@ -16,8 +16,11 @@ the same behavior now exists for:
 | Vanilla datapack | Any vanilla server/world | `lock-end-datapack-4.0.0.zip` → `<world>/datapacks/` | Limited subset; see [`datapack/README.md`](datapack/README.md) |
 
 The Fabric and NeoForge mods share the platform-independent `lock-end-api`
-and `lock-end-core` modules with the Paper plugin and expose the same
-`/endlock lock|unlock|status` surface. The datapack cannot intercept
+and `lock-end-core` modules with the Paper plugin and expose
+`/endlock lock|unlock|status|reason <subcommand>|reload` with per-subcommand
+permission gates (`lock-end:admin` / `lock-end:reload` on Fabric with an
+operator fallback; the vanilla admin level on NeoForge; status is public on
+both). The datapack cannot intercept
 teleports before they happen and has further documented limitations; use the
 mod implementations whenever the server can load mods.
 

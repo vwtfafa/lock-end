@@ -32,6 +32,23 @@ plugin into a monorepo with shared modules and per-platform adapters.
   NeoForge: update the lock reason at runtime, persist it to
   `config/lock-end.json`, and restore the built-in default on clear (Paper
   parity for the `reason` command step).
+- `/endlock reload` on Fabric and NeoForge rereads `config/lock-end.json`
+  live and republishes the settings to the lock state and guards; corrupt
+  files are backed up as `lock-end.json.corrupt`, rebuilt with defaults, and
+  the recovery is reported in the command feedback.
+- New mod settings mirroring Paper's `end` scope: `endWorlds` adds guarded
+  End dimensions next to `minecraft:the_end` (full `namespace:path` key or
+  bare path), and `blockEntities` (default `true`) blocks non-player
+  entities from entering the guarded End (arrival bounce on Fabric,
+  pre-travel veto on NeoForge; entities never bypass).
+- Mod commands now use per-subcommand permission gates like Paper: Fabric
+  exposes the `lock-end:admin` and `lock-end:reload` nodes (operator-level
+  fallback, status public); NeoForge gates the same commands on the vanilla
+  admin level because its permission system has no arbitrary named nodes.
+- Shared core split for the mod guards: `EndDimensionScope` decides guarded
+  dimensions and entry attempts with the Paper `EndAccessGate` semantics
+  (leaving and inner-End travel are never blocks), documented for the
+  datapack-style key matching.
 - **Vanilla datapack** (`datapack`): deliberately limited implementation for
   servers without a mod loader. Op-controlled `lockend:lock|unlock|status|
   set_spawn` functions, `evacuate`/`evacuate_player` guard wired to the

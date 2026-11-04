@@ -35,6 +35,11 @@ parity.
 - [x] Configure a lock reason and show it in status/denial feedback.
 - [x] Announce lock and unlock changes to online players.
 - [x] Protect players from entering a locked End.
+- [x] Protect non-player entities from entering the locked End while
+  `blockEntities` is enabled (arrival bounce on Fabric, pre-travel veto on
+  NeoForge); entities never bypass.
+- [x] Guard configurable extra End dimensions via `endWorlds` in
+  `config/lock-end.json` (always including `minecraft:the_end`).
 - [x] Evacuate players already in the End when locking and recover stranded
   players after startup with the lock active.
 - [x] Support player-name, UUID, destination-dimension, and permission bypasses
@@ -42,34 +47,48 @@ parity.
 - [ ] Align permission granularity with Paper's per-command permissions.
 - [ ] Align evacuation behavior and options with Paper's configuration.
 
-Fabric and NeoForge read the bypass lists from `config/lock-end.json`:
+Fabric and NeoForge read the settings from `config/lock-end.json`:
 
 ```json
 {
   "lockReason": "Maintenance",
+  "endWorlds": [],
+  "blockEntities": true,
   "playerWhitelist": ["ExamplePlayer"],
   "uuidWhitelist": [],
   "worldWhitelist": ["minecraft:the_end"]
 }
 ```
 
-World entries match a full dimension key or its path without the namespace.
-Fabric also supports the `lock-end:whitelist.bypass` permission and
-`lock-end:bypass.world.<namespace>.<path>` per-dimension permission, both with
-an operator-level fallback. NeoForge uses Minecraft's native admin permission
-for permission bypasses; its vanilla permission system does not provide
-arbitrary named permission nodes.
+`endWorlds` adds guarded End dimensions beyond `minecraft:the_end` (full
+dimension key or its path without the namespace; empty = vanilla End only)
+and `blockEntities` blocks non-player entities. Whitelist world entries match
+a full dimension key or its path without the namespace. Fabric also supports
+the `lock-end:admin` and `lock-end:reload` command permission nodes (with
+`lock-end:whitelist.bypass` and `lock-end:bypass.world.<namespace>.<path>`
+bypass nodes), each with an operator-level fallback. NeoForge uses Minecraft's
+native admin permission for commands and permission bypasses; its vanilla
+permission system does not provide arbitrary named permission nodes.
 
 The travel guards are intentionally platform-specific: Fabric uses an arrival
-bounce plus a periodic safety scan; NeoForge cancels pre-travel. Confirm their
-behavior with live server tests as part of any guard changes.
+bounce for players (plus an entity bounce for non-player arrivals) and a
+periodic safety scan; NeoForge cancels pre-travel for players and, while
+`blockEntities` is set, for non-player entities. Confirm their behavior with
+live server tests as part of any guard changes - the entity bounce path
+(`AFTER_ENTITY_CHANGE_LEVEL` teleport) and the entity pre-travel veto are the
+latest additions and still need a live confirmation.
 
 ## Checklist to reach Paper parity
 
 ### 1. Access rules and administration
 
-- [ ] Support configured End dimensions/worlds consistently, including custom
-  dimensions where the loader permits it.
+- [x] Support configured End dimensions/worlds consistently, including custom
+  dimensions where the loader permits it: `endWorlds` in
+  `config/lock-end.json` adds guarded dimension keys (full
+  `namespace:path` or bare path) next to the always-guarded
+  `minecraft:the_end`. Empty entries guard only the vanilla End, which is
+  narrower than Paper's "all End-environment worlds" scope because dimension
+  keys alone do not reveal an environment.
 - [x] Add player-name, UUID, world, and permission-based bypass rules on Fabric
   and NeoForge (permission-node granularity remains platform-specific; see
   above).
@@ -78,11 +97,28 @@ behavior with live server tests as part of any guard changes.
   `/endlock reason clear` restores the built-in default ("Maintenance"), on
   both Fabric and NeoForge. The mods keep one editable reason per server;
   Paper additionally offers reason keys via its `lock-reasons` registry.
-- [ ] Add configuration reload and validation with clear error reporting.
-- [ ] Match Paper's command permissions instead of using one blanket operator
-  gate; document the platform-specific permission nodes/defaults.
-- [ ] Match the configurable non-player entity and End-gateway protections
-  where the platform APIs allow them.
+- [x] Add configuration reload and validation with clear error reporting:
+  `/endlock reload` re-reads `lock-end.json` on both mods, republishes the
+  settings to the live lock state and guards, and reports a corrupt file
+  (backup kept as `lock-end.json.corrupt`, defaults rebuilt) in the command
+  feedback. Structural validity is enforced by JSON parsing plus the
+  blank/default rules of the loader.
+- [x] Match Paper's command permissions instead of using one blanket operator
+  gate. Fabric exposes per-subcommand nodes `lock-end:admin`
+  (lock/unlock/reason) and `lock-end:reload`, plus public
+  `lock-end:status`-style status, all with operator-level fallback.
+  NeoForge gates the same subcommands on the vanilla admin level because its
+  permission system has no arbitrary named nodes; permission plugins cannot
+  override either platform's builder there.
+- [x] Match the configurable non-player entity and End-gateway protections
+  where the platform APIs allow them: non-player entities are blocked on
+  NeoForge by cancelling the pre-travel event, and on Fabric by an arrival
+  bounce via `AFTER_ENTITY_CHANGE_LEVEL` (governed by `blockEntities`,
+  default `true`, matching Paper's `end.block-entities`), and entities never
+  bypass. End-gateway travel stays inside one dimension, so neither loader
+  exposes it to the guards and there is no `block-end-gateway` equivalent;
+  leaving/inner-End travel is always allowed, mirroring the Paper
+  `EndAccessGate` rules.
 
 ### 2. Scheduling
 

@@ -9,6 +9,9 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +30,8 @@ class NeoForgeEndLockConfigTest {
         NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
+        assertTrue(config.endScope().configuredEnds().isEmpty());
+        assertTrue(config.blockEntities());
         assertTrue(Files.exists(tempDir.resolve("lock-end.json")));
     }
 
@@ -35,6 +40,8 @@ class NeoForgeEndLockConfigTest {
         Files.writeString(tempDir.resolve("lock-end.json"), """
                 {
                   "lockReason": "Closed for maintenance",
+                  "endWorlds": ["minecraft:the_end", "custom:maintenance_end"],
+                  "blockEntities": false,
                   "playerWhitelist": ["Admin"],
                   "uuidWhitelist": ["11111111-1111-1111-1111-111111111111"],
                   "worldWhitelist": ["minecraft:the_end"]
@@ -44,6 +51,9 @@ class NeoForgeEndLockConfigTest {
         NeoForgeEndLockConfig reloaded = NeoForgeEndLockConfig.load(tempDir);
 
         assertEquals("Closed for maintenance", reloaded.lockReason());
+        assertEquals(List.of("minecraft:the_end", "custom:maintenance_end"),
+                reloaded.endScope().configuredEnds());
+        assertFalse(reloaded.blockEntities());
         assertEquals(List.of("Admin"), reloaded.bypassChecker().playerNames());
         assertEquals(List.of("11111111-1111-1111-1111-111111111111"),
                 reloaded.bypassChecker().uuids());
@@ -59,6 +69,8 @@ class NeoForgeEndLockConfigTest {
         assertTrue(json.contains("\"playerWhitelist\": []"));
         assertTrue(json.contains("\"uuidWhitelist\": []"));
         assertTrue(json.contains("\"worldWhitelist\": []"));
+        assertTrue(json.contains("\"endWorlds\": []"));
+        assertTrue(json.contains("\"blockEntities\": true"));
     }
 
     @Test
@@ -110,6 +122,20 @@ class NeoForgeEndLockConfigTest {
 
         assertEquals("Maintenance", config.lockReason());
         assertTrue(Files.exists(tempDir.resolve("lock-end.json.corrupt")));
+        assertNotNull(config.parseFailureMessage());
+        assertTrue(config.parseFailureMessage().contains("lock-end.json"));
+    }
+
+    @Test
+    void reloadPicksUpNewSettingsCleanly() throws IOException {
+        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        config.setLockReason("Event night");
+
+        Files.writeString(tempDir.resolve("lock-end.json"), fileContent("Server event"));
+        NeoForgeEndLockConfig reloaded = config.reload();
+
+        assertEquals("Server event", reloaded.lockReason());
+        assertNull(reloaded.parseFailureMessage());
     }
 
     private static String fileContent(String reason) {
