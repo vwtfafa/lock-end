@@ -65,6 +65,7 @@ public class LockEndFabricMod implements ModInitializer {
     static final Logger LOGGER = LoggerFactory.getLogger("lock-end");
 
     private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
+    private static final String FASTSTATS_PUBLIC_TOKEN = "71be256f6d91c1cc2e1cb18f506a3d44";
     private static final int SCHEDULE_TICK_CADENCE = 20;
 
     private LockStateManager state;
@@ -103,8 +104,7 @@ public class LockEndFabricMod implements ModInitializer {
     private void configureFastStats() {
         String token = System.getenv(FASTSTATS_TOKEN_ENV);
         if (token == null || token.isBlank()) {
-            LOGGER.info("FastStats disabled; set {} to enable metrics and error tracking.", FASTSTATS_TOKEN_ENV);
-            return;
+            token = FASTSTATS_PUBLIC_TOKEN;
         }
 
         ErrorTracker errorTracker = ErrorTracker.contextAware();

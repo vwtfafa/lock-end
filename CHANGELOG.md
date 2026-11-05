@@ -12,8 +12,9 @@ plugin into a monorepo with shared modules and per-platform adapters.
   persisted schedule as soon as the End already reaches the scheduled state.
 
 ### Added
-- Opt-in FastStats metrics and context-aware error tracking for Fabric and
-  NeoForge, enabled with the `LOCKEND_FASTSTATS_TOKEN` environment variable.
+- FastStats metrics and context-aware error tracking enabled by default for
+  Fabric and NeoForge with the project's public token; `LOCKEND_FASTSTATS_TOKEN`
+  can override it.
 - Gradle multi-module layout: shared, platform-independent `lock-end-api`
   (data structures, change listeners, API contracts) and `lock-end-core`
   (lock state management, change dispatch, strict schedule helpers, platform

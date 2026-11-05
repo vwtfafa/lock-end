@@ -236,13 +236,11 @@ jobs:
             echo "Fabric smoke test did not observe the EndLock init line."
             exit 1
           }
-          if [ -n "${LOCKEND_FASTSTATS_TOKEN:-}" ]; then
-            grep -Fq 'FastStats metrics and error tracking enabled.' fabric-run.log || {
-              cat fabric-run.log
-              echo "Fabric smoke test did not observe the FastStats activation line."
-              exit 1
-            }
-          fi
+          grep -Fq 'FastStats metrics and error tracking enabled.' fabric-run.log || {
+            cat fabric-run.log
+            echo "Fabric smoke test did not observe the FastStats activation line."
+            exit 1
+          }
           echo "EndLock (Fabric) booted on the dev dedicated server."
 
   smoke-neoforge:
@@ -277,11 +275,9 @@ jobs:
             echo "NeoForge smoke test did not observe the EndLock init line."
             exit 1
           }
-          if [ -n "${LOCKEND_FASTSTATS_TOKEN:-}" ]; then
-            grep -Fq 'FastStats metrics and error tracking enabled.' neoforge-run.log || {
-              cat neoforge-run.log
-              echo "NeoForge smoke test did not observe the FastStats activation line."
-              exit 1
-            }
-          fi
+          grep -Fq 'FastStats metrics and error tracking enabled.' neoforge-run.log || {
+            cat neoforge-run.log
+            echo "NeoForge smoke test did not observe the FastStats activation line."
+            exit 1
+          }
           echo "EndLock (NeoForge) booted on the dev dedicated server."
