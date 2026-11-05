@@ -52,7 +52,9 @@ server environment before startup. Without a non-empty token, the integration
 remains disabled. FastStats reports may include runtime/platform details and
 error messages or stack traces; review your FastStats project settings and
 privacy requirements before enabling it. This does not change the Paper
-plugin's existing bStats integration.
+plugin's existing bStats integration. GitHub Actions also passes the
+`LOCKEND_FASTSTATS_TOKEN` repository secret to its short-lived Fabric and
+NeoForge smoke servers when configured; release jars never contain the token.
 
 ## What's new in 3.1
 

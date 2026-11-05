@@ -225,6 +225,8 @@ jobs:
       # (CI stdin is /dev/null), so no stop signal has to be fed through
       # Gradle; timeout 900 is only a safety net for hangs.
       - name: Boot smoke test on Fabric (dev dedicated server)
+        env:
+          LOCKEND_FASTSTATS_TOKEN: ${{ secrets.LOCKEND_FASTSTATS_TOKEN }}
         run: |
           mkdir -p platforms/fabric/run
           printf 'eula=true\n' > platforms/fabric/run/eula.txt
@@ -234,6 +236,13 @@ jobs:
             echo "Fabric smoke test did not observe the EndLock init line."
             exit 1
           }
+          if [ -n "${LOCKEND_FASTSTATS_TOKEN:-}" ]; then
+            grep -Fq 'FastStats metrics and error tracking enabled.' fabric-run.log || {
+              cat fabric-run.log
+              echo "Fabric smoke test did not observe the FastStats activation line."
+              exit 1
+            }
+          fi
           echo "EndLock (Fabric) booted on the dev dedicated server."
 
   smoke-neoforge:
@@ -257,6 +266,8 @@ jobs:
       # Bounded dev-server smoke mirroring the Fabric job above: stdin EOF
       # terminates the dedicated server, timeout 900 is the hang safety net.
       - name: Boot smoke test on NeoForge (dev dedicated server)
+        env:
+          LOCKEND_FASTSTATS_TOKEN: ${{ secrets.LOCKEND_FASTSTATS_TOKEN }}
         run: |
           mkdir -p platforms/neoforge/run
           printf 'eula=true\n' > platforms/neoforge/run/eula.txt
@@ -266,4 +277,11 @@ jobs:
             echo "NeoForge smoke test did not observe the EndLock init line."
             exit 1
           }
+          if [ -n "${LOCKEND_FASTSTATS_TOKEN:-}" ]; then
+            grep -Fq 'FastStats metrics and error tracking enabled.' neoforge-run.log || {
+              cat neoforge-run.log
+              echo "NeoForge smoke test did not observe the FastStats activation line."
+              exit 1
+            }
+          fi
           echo "EndLock (NeoForge) booted on the dev dedicated server."
