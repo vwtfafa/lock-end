@@ -39,9 +39,32 @@ final class NeoForgeEndLockConfig {
     private static final long DEFAULT_COUNTDOWN_START_BEFORE = 300L;
     private static final boolean DEFAULT_PREVIEW_ENABLED = false;
     private static final long DEFAULT_PREVIEW_SECONDS = 30L;
+    // History, statistics and audit-logging defaults also mirror the Paper
+    // plugin's config.yml.
+    private static final boolean DEFAULT_STATS_ENABLED = true;
+    private static final int DEFAULT_HISTORY_MAX_ENTRIES = 1000;
+    private static final int DEFAULT_HISTORY_RETENTION_DAYS = 30;
+    private static final boolean DEFAULT_LOGGING_ENABLED = true;
+    private static final String DEFAULT_LOG_FILE = "EndLock.log";
+    private static final boolean DEFAULT_LOG_ATTEMPTS = true;
+    private static final int DEFAULT_RATE_LIMIT_SECONDS = 5;
     private static final LockBypassChecker EMPTY_BYPASS_CHECKER =
             new LockBypassChecker(List.of(), List.of(), List.of());
     private static final EndDimensionScope DEFAULT_SCOPE = new EndDimensionScope(List.of());
+
+    /**
+     * Player-interaction defaults. The broadcast, sound, grace-period and
+     * join-notification values mirror the Paper plugin's config.yml; the
+     * evacuation default is deliberately {@code true} on the mods so the
+     * previously documented always-evacuate guard behavior survives the
+     * parity change for existing installations.
+     */
+    private static final RuntimeSections DEFAULT_SECTIONS = new RuntimeSections(
+            true, true, true,
+            false, "BLOCK_ANVIL_LAND", 1.0f, 1.0f,
+            false, 10,
+            true, 10L, "", true,
+            false);
 
     private final Path file;
     private String lockReason;
@@ -53,6 +76,14 @@ final class NeoForgeEndLockConfig {
     private final long countdownStartBeforeSeconds;
     private final boolean previewEnabled;
     private final long previewSeconds;
+    private final boolean statsEnabled;
+    private final int historyMaxEntries;
+    private final int historyRetentionDays;
+    private final boolean loggingEnabled;
+    private final String logFile;
+    private final boolean logAttempts;
+    private final int logRateLimitSeconds;
+    private final RuntimeSections sections;
     private final String parseFailure;
 
     private NeoForgeEndLockConfig(
@@ -66,6 +97,14 @@ final class NeoForgeEndLockConfig {
             long countdownStartBeforeSeconds,
             boolean previewEnabled,
             long previewSeconds,
+            boolean statsEnabled,
+            int historyMaxEntries,
+            int historyRetentionDays,
+            boolean loggingEnabled,
+            String logFile,
+            boolean logAttempts,
+            int logRateLimitSeconds,
+            RuntimeSections sections,
             String parseFailure) {
         this.file = file;
         this.lockReason = lockReason;
@@ -77,6 +116,14 @@ final class NeoForgeEndLockConfig {
         this.countdownStartBeforeSeconds = countdownStartBeforeSeconds;
         this.previewEnabled = previewEnabled;
         this.previewSeconds = previewSeconds;
+        this.statsEnabled = statsEnabled;
+        this.historyMaxEntries = historyMaxEntries;
+        this.historyRetentionDays = historyRetentionDays;
+        this.loggingEnabled = loggingEnabled;
+        this.logFile = logFile;
+        this.logAttempts = logAttempts;
+        this.logRateLimitSeconds = logRateLimitSeconds;
+        this.sections = sections;
         this.parseFailure = parseFailure;
     }
 
@@ -112,6 +159,14 @@ final class NeoForgeEndLockConfig {
                     stored.countdownStartBeforeOrDefault(),
                     stored.previewEnabledOrDefault(),
                     stored.previewSecondsOrDefault(),
+                    stored.statsEnabledOrDefault(),
+                    stored.historyMaxEntriesOrDefault(),
+                    stored.historyRetentionDaysOrDefault(),
+                    stored.loggingEnabledOrDefault(),
+                    stored.logFileOrDefault(),
+                    stored.logAttemptsOrDefault(),
+                    stored.rateLimitSecondsOrDefault(),
+                    stored.sectionsOrDefault(),
                     null);
         } catch (IOException | JsonParseException exception) {
             backupCorruptFile(file, exception);
@@ -135,7 +190,10 @@ final class NeoForgeEndLockConfig {
         NeoForgeEndLockConfig defaults = new NeoForgeEndLockConfig(
                 file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
                 DEFAULT_COUNTDOWN_ENABLED, DEFAULT_COUNTDOWN_INTERVAL, DEFAULT_COUNTDOWN_START_BEFORE,
-                DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS, parseFailure);
+                DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS,
+                DEFAULT_STATS_ENABLED, DEFAULT_HISTORY_MAX_ENTRIES, DEFAULT_HISTORY_RETENTION_DAYS,
+                DEFAULT_LOGGING_ENABLED, DEFAULT_LOG_FILE, DEFAULT_LOG_ATTEMPTS,
+                DEFAULT_RATE_LIMIT_SECONDS, DEFAULT_SECTIONS, parseFailure);
         defaults.save();
         return defaults;
     }
@@ -214,6 +272,160 @@ final class NeoForgeEndLockConfig {
     }
 
     /**
+     * @return {@code true} if the operational statistics counters record
+     *         events (default like the Paper plugin)
+     */
+    boolean statsEnabled() {
+        return statsEnabled;
+    }
+
+    /**
+     * @return the maximum retained history entries (at least 1)
+     */
+    int historyMaxEntries() {
+        return historyMaxEntries;
+    }
+
+    /**
+     * @return the history retention window in days; non-positive keeps
+     *         entries forever, exactly like the Paper plugin
+     */
+    int historyRetentionDays() {
+        return historyRetentionDays;
+    }
+
+    /**
+     * @return {@code true} if the audit log file is written
+     */
+    boolean loggingEnabled() {
+        return loggingEnabled;
+    }
+
+    /**
+     * @return the audit log file name, created inside
+     *         {@code config/logs/}
+     */
+    String logFile() {
+        return logFile;
+    }
+
+    /**
+     * @return {@code true} if blocked access attempts are logged
+     */
+    boolean logAttempts() {
+        return logAttempts;
+    }
+
+    /**
+     * @return the minimum seconds between two logged attempts per player
+     */
+    int logRateLimitSeconds() {
+        return logRateLimitSeconds;
+    }
+
+    /**
+     * @return {@code true} if lock/unlock state changes are broadcast
+     */
+    boolean broadcastEnabled() {
+        return sections.broadcastEnabled();
+    }
+
+    /**
+     * @return {@code true} if broadcasts use the action bar (chat otherwise)
+     */
+    boolean broadcastUseActionbar() {
+        return sections.broadcastUseActionbar();
+    }
+
+    /**
+     * @return {@code true} if every player is notified (admins only otherwise)
+     */
+    boolean broadcastNotifyAll() {
+        return sections.broadcastNotifyAll();
+    }
+
+    /**
+     * @return {@code true} if access denial plays a sound
+     */
+    boolean soundEffectsEnabled() {
+        return sections.soundEffectsEnabled();
+    }
+
+    /**
+     * @return the configured denial sound value (enum style or key)
+     */
+    String soundEffectSound() {
+        return sections.soundEffectSound();
+    }
+
+    /**
+     * @return the denial sound volume (0..2)
+     */
+    float soundEffectVolume() {
+        return sections.soundEffectVolume();
+    }
+
+    /**
+     * @return the denial sound pitch (0..2)
+     */
+    float soundEffectPitch() {
+        return sections.soundEffectPitch();
+    }
+
+    /**
+     * @return {@code true} if a grace period delays lock enforcement
+     */
+    boolean gracePeriodEnabled() {
+        return sections.gracePeriodEnabled();
+    }
+
+    /**
+     * @return the grace period duration in seconds
+     */
+    int gracePeriodDuration() {
+        return sections.gracePeriodDuration();
+    }
+
+    /**
+     * @return {@code true} if locking also moves players out of the guarded
+     *         End (true on the mods by default, preserving the previous
+     *         always-evacuate guard behavior)
+     */
+    boolean evacuationEnabled() {
+        return sections.evacuationEnabled();
+    }
+
+    /**
+     * @return seconds the evacuation warning is shown before the move
+     */
+    long evacuationWarningSeconds() {
+        return sections.evacuationWarningSeconds();
+    }
+
+    /**
+     * @return the configured evacuation target world key; blank falls back
+     *         to the server's overworld
+     */
+    String evacuationTargetWorld() {
+        return sections.evacuationTargetWorld();
+    }
+
+    /**
+     * @return {@code true} if bypassing (whitelisted) players are skipped
+     */
+    boolean evacuationExcludeBypass() {
+        return sections.evacuationExcludeBypass();
+    }
+
+    /**
+     * @return {@code true} if players joining while the End is locked get a
+     *         notification
+     */
+    boolean joinNotificationsEnabled() {
+        return sections.joinNotificationsEnabled();
+    }
+
+    /**
      * @return a human-readable recovery notice when the last load fell back
      *         to defaults, or {@code null} when the file was read cleanly
      */
@@ -260,6 +472,22 @@ final class NeoForgeEndLockConfig {
         stored.countdown = new StoredConfig.CountdownSettings(countdownEnabled,
                 countdownIntervalSeconds, countdownStartBeforeSeconds);
         stored.preview = new StoredConfig.PreviewSettings(previewEnabled, previewSeconds);
+        stored.stats = new StoredConfig.StatsSettings(statsEnabled);
+        stored.history = new StoredConfig.HistorySettings(
+                historyMaxEntries, historyRetentionDays);
+        stored.logging = new StoredConfig.LoggingSettings(
+                loggingEnabled, logFile, logAttempts, logRateLimitSeconds);
+        stored.broadcast = new StoredConfig.BroadcastSettings(sections.broadcastEnabled(),
+                sections.broadcastUseActionbar(), sections.broadcastNotifyAll());
+        stored.soundEffects = new StoredConfig.SoundEffectSettings(sections.soundEffectsEnabled(),
+                sections.soundEffectSound(), sections.soundEffectVolume(), sections.soundEffectPitch());
+        stored.gracePeriod = new StoredConfig.GracePeriodSettings(sections.gracePeriodEnabled(),
+                sections.gracePeriodDuration());
+        stored.evacuation = new StoredConfig.EvacuationSettings(sections.evacuationEnabled(),
+                sections.evacuationWarningSeconds(), sections.evacuationTargetWorld(),
+                sections.evacuationExcludeBypass());
+        stored.joinNotifications = new StoredConfig.JoinNotificationSettings(
+                sections.joinNotificationsEnabled());
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -287,6 +515,44 @@ final class NeoForgeEndLockConfig {
     }
 
     /**
+     * Resolved player-interaction sections (broadcast, denial sound, grace
+     * period, evacuation, join notification).
+     *
+     * @param broadcastEnabled        state changes are broadcast
+     * @param broadcastUseActionbar   broadcast uses the action bar
+     * @param broadcastNotifyAll      every player is notified (admins only
+     *                                when {@code false})
+     * @param soundEffectsEnabled     access denial plays a sound
+     * @param soundEffectSound        configured sound value
+     * @param soundEffectVolume       sound volume (0..2)
+     * @param soundEffectPitch        sound pitch (0..2)
+     * @param gracePeriodEnabled      grace period after locking
+     * @param gracePeriodDuration     grace period length in seconds
+     * @param evacuationEnabled       locking moves End residents out
+     * @param evacuationWarningSeconds warning shown before the move
+     * @param evacuationTargetWorld   destination key; blank uses the
+     *                                overworld
+     * @param evacuationExcludeBypass bypassing players are skipped
+     * @param joinNotificationsEnabled locked-End notice on player join
+     */
+    record RuntimeSections(
+            boolean broadcastEnabled,
+            boolean broadcastUseActionbar,
+            boolean broadcastNotifyAll,
+            boolean soundEffectsEnabled,
+            String soundEffectSound,
+            float soundEffectVolume,
+            float soundEffectPitch,
+            boolean gracePeriodEnabled,
+            int gracePeriodDuration,
+            boolean evacuationEnabled,
+            long evacuationWarningSeconds,
+            String evacuationTargetWorld,
+            boolean evacuationExcludeBypass,
+            boolean joinNotificationsEnabled) {
+    }
+
+    /**
      * JSON wire format of the settings file.
      */
     private static final class StoredConfig {
@@ -298,6 +564,14 @@ final class NeoForgeEndLockConfig {
         List<String> worldWhitelist;
         CountdownSettings countdown;
         PreviewSettings preview;
+        StatsSettings stats;
+        HistorySettings history;
+        LoggingSettings logging;
+        BroadcastSettings broadcast;
+        SoundEffectSettings soundEffects;
+        GracePeriodSettings gracePeriod;
+        EvacuationSettings evacuation;
+        JoinNotificationSettings joinNotifications;
 
         String reasonOrDefault() {
             if (lockReason == null || lockReason.isBlank()) {
@@ -354,6 +628,107 @@ final class NeoForgeEndLockConfig {
             return preview.seconds;
         }
 
+        boolean statsEnabledOrDefault() {
+            // The Paper default records stats: a file predating the option
+            // keeps that behavior.
+            return stats == null || stats.enabled == null || stats.enabled;
+        }
+
+        int historyMaxEntriesOrDefault() {
+            if (history == null || history.maxEntries == null || history.maxEntries < 1) {
+                return DEFAULT_HISTORY_MAX_ENTRIES;
+            }
+            return history.maxEntries;
+        }
+
+        int historyRetentionDaysOrDefault() {
+            if (history == null || history.retentionDays == null) {
+                return DEFAULT_HISTORY_RETENTION_DAYS;
+            }
+            // Non-positive values keep entries forever, like the Paper plugin.
+            return history.retentionDays;
+        }
+
+        boolean loggingEnabledOrDefault() {
+            return logging == null || logging.enabled == null || logging.enabled;
+        }
+
+        String logFileOrDefault() {
+            if (logging == null || logging.logFile == null || logging.logFile.isBlank()) {
+                return DEFAULT_LOG_FILE;
+            }
+            return logging.logFile.trim();
+        }
+
+        boolean logAttemptsOrDefault() {
+            return logging == null || logging.logAttempts == null || logging.logAttempts;
+        }
+
+        int rateLimitSecondsOrDefault() {
+            if (logging == null || logging.rateLimitSeconds == null || logging.rateLimitSeconds < 0) {
+                return DEFAULT_RATE_LIMIT_SECONDS;
+            }
+            return logging.rateLimitSeconds;
+        }
+
+        /**
+         * Resolves the player-interaction sections, applying defaults like
+         * the Paper plugin (evacuation defaults to {@code true} on the mods).
+         */
+        RuntimeSections sectionsOrDefault() {
+            BroadcastSettings broadcastValues = broadcast == null
+                    ? new BroadcastSettings(true, true, true) : broadcast;
+            SoundEffectSettings soundValues = soundEffects == null
+                    ? new SoundEffectSettings(false, "BLOCK_ANVIL_LAND", 1.0f, 1.0f)
+                    : soundEffects;
+            GracePeriodSettings graceValues = gracePeriod == null
+                    ? new GracePeriodSettings(false, 10) : gracePeriod;
+            EvacuationSettings evacuationValues = evacuation == null
+                    ? new EvacuationSettings(true, 10L, "", true) : evacuation;
+            JoinNotificationSettings joinValues = joinNotifications == null
+                    ? new JoinNotificationSettings(false) : joinNotifications;
+            return new RuntimeSections(
+                    booleanOrDefault(broadcastValues.enabled, true),
+                    booleanOrDefault(broadcastValues.useActionbar, true),
+                    booleanOrDefault(broadcastValues.notifyAll, true),
+                    booleanOrDefault(soundValues.enabled, false),
+                    stringOrDefault(soundValues.sound, "BLOCK_ANVIL_LAND"),
+                    floatOrDefault(soundValues.volume, 1.0f),
+                    floatOrDefault(soundValues.pitch, 1.0f),
+                    booleanOrDefault(graceValues.enabled, false),
+                    intOrDefault(graceValues.duration, 10),
+                    // Mods default to evacuating: the previous guard behavior
+                    // moved living End residents once the lock became active.
+                    booleanOrDefault(evacuationValues.enabled, true),
+                    longOrDefault(evacuationValues.warningSeconds, 10L),
+                    stringOrDefault(evacuationValues.targetWorld, ""),
+                    booleanOrDefault(evacuationValues.excludeBypass, true),
+                    booleanOrDefault(joinValues.enabled, false));
+        }
+
+        private static boolean booleanOrDefault(Boolean value, boolean fallback) {
+            return value == null ? fallback : value;
+        }
+
+        private static String stringOrDefault(String value, String fallback) {
+            return value == null ? fallback : value;
+        }
+
+        private static float floatOrDefault(Float value, float fallback) {
+            return value == null ? fallback : Math.min(2.0f, Math.max(0.0f, value));
+        }
+
+        private static int intOrDefault(Integer value, int fallback) {
+            return value == null ? fallback : Math.max(0, value);
+        }
+
+        private static long longOrDefault(Long value, long fallback) {
+            if (value == null || value < 0) {
+                return fallback;
+            }
+            return value;
+        }
+
         private static List<String> listOrEmpty(List<String> values) {
             return values == null ? List.of() : values;
         }
@@ -389,6 +764,146 @@ final class NeoForgeEndLockConfig {
             PreviewSettings(boolean enabled, long seconds) {
                 this.enabled = enabled;
                 this.seconds = seconds;
+            }
+        }
+
+        /**
+         * JSON wire format of the statistics settings.
+         */
+        private static final class StatsSettings {
+            Boolean enabled;
+
+            StatsSettings() {
+            }
+
+            StatsSettings(boolean enabled) {
+                this.enabled = enabled;
+            }
+        }
+
+        /**
+         * JSON wire format of the history retention settings.
+         */
+        private static final class HistorySettings {
+            Integer maxEntries;
+            Integer retentionDays;
+
+            HistorySettings() {
+            }
+
+            HistorySettings(int maxEntries, int retentionDays) {
+                this.maxEntries = maxEntries;
+                this.retentionDays = retentionDays;
+            }
+        }
+
+        /**
+         * JSON wire format of the audit logging settings.
+         */
+        private static final class LoggingSettings {
+            Boolean enabled;
+            String logFile;
+            Boolean logAttempts;
+            Integer rateLimitSeconds;
+
+            LoggingSettings() {
+            }
+
+            LoggingSettings(boolean enabled, String logFile, boolean logAttempts,
+                            int rateLimitSeconds) {
+                this.enabled = enabled;
+                this.logFile = logFile;
+                this.logAttempts = logAttempts;
+                this.rateLimitSeconds = rateLimitSeconds;
+            }
+        }
+
+        /**
+         * JSON wire format of the lock-state broadcast settings.
+         */
+        private static final class BroadcastSettings {
+            Boolean enabled;
+            Boolean useActionbar;
+            Boolean notifyAll;
+
+            BroadcastSettings() {
+            }
+
+            BroadcastSettings(boolean enabled, boolean useActionbar, boolean notifyAll) {
+                this.enabled = enabled;
+                this.useActionbar = useActionbar;
+                this.notifyAll = notifyAll;
+            }
+        }
+
+        /**
+         * JSON wire format of the denial-sound settings.
+         */
+        private static final class SoundEffectSettings {
+            Boolean enabled;
+            String sound;
+            Float volume;
+            Float pitch;
+
+            SoundEffectSettings() {
+            }
+
+            SoundEffectSettings(boolean enabled, String sound, float volume, float pitch) {
+                this.enabled = enabled;
+                this.sound = sound;
+                this.volume = volume;
+                this.pitch = pitch;
+            }
+        }
+
+        /**
+         * JSON wire format of the grace-period settings.
+         */
+        private static final class GracePeriodSettings {
+            Boolean enabled;
+            Integer duration;
+
+            GracePeriodSettings() {
+            }
+
+            GracePeriodSettings(boolean enabled, int duration) {
+                this.enabled = enabled;
+                this.duration = duration;
+            }
+        }
+
+        /**
+         * JSON wire format of the evacuation settings.
+         */
+        private static final class EvacuationSettings {
+            Boolean enabled;
+            Long warningSeconds;
+            String targetWorld;
+            Boolean excludeBypass;
+
+            EvacuationSettings() {
+            }
+
+            EvacuationSettings(boolean enabled, long warningSeconds,
+                               String targetWorld, boolean excludeBypass) {
+                this.enabled = enabled;
+                this.warningSeconds = warningSeconds;
+                this.targetWorld = targetWorld;
+                this.excludeBypass = excludeBypass;
+            }
+        }
+
+        /**
+         * JSON wire format of the join-notification settings.
+         */
+        private static final class JoinNotificationSettings {
+            Boolean enabled;
+
+            JoinNotificationSettings() {
+            }
+
+            JoinNotificationSettings(boolean enabled) {
+                this.enabled = enabled;
             }
         }
     }

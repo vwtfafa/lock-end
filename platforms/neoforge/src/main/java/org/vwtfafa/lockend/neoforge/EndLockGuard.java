@@ -1,21 +1,18 @@
 package org.vwtfafa.lockend.neoforge;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelData;
-import net.minecraft.world.level.portal.TeleportTransition;
-import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import org.vwtfafa.lockend.core.EndDimensionScope;
+import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockBypassChecker;
 import org.vwtfafa.lockend.core.LockStateManager;
+
+import java.util.UUID;
 
 /**
  * Guards the guarded End dimensions against entries while the shared runtime
@@ -30,18 +27,24 @@ import org.vwtfafa.lockend.core.LockStateManager;
  *       happens), so no arrival bounce and no tick scan is needed. Players
  *       are vetoed unless bypassed; non-player entities are vetoed while
  *       {@code blockEntities} is enabled (entities never bypass), and</li>
- *   <li>the restart safety net on {@code ServerStarted} evacuates players
- *       stranded in the End after a boot with a persisted active lock.</li>
+ *   <li>players who already live in the End when the lock becomes active
+ *       are the {@link EndLockEvacuation} service's business (or, when it
+ *       is disabled, they remain, like on Paper); the restart safety net
+ *       re-arms that pass in the mod's {@code ServerStarted} hook.</li>
  * </ul>
+ *
+ * <p>A running grace period delays enforcement: travels into the locked
+ * End arrive with a {@code grace-period-active} notice instead of a veto,
+ * mirroring the Paper plugin. Real denials send the locked message, play
+ * the configured denial sound and report the attempt through
+ * {@link BlockedAttemptReporter} (section 3 parity: stats counter plus a
+ * rate-limited audit-logging line; the NeoForge veto reports the
+ * {@code PRE_TRAVEL} method - Fabric's arrival bounce reports
+ * {@code ARRIVAL}).</p>
  *
  * <p>End gateways would stay inside a single dimension, so they never cross
  * the pre-travel event and are not blocked there; the Paper
  * {@code block-end-gateway} behavior has no NeoForge equivalent.</p>
- *
- * <p>The destination used when a player must be moved out is always the
- * overworld respawn point via a {@link TeleportTransition} with a
- * do-nothing post-teleport handler (no portal sound, no portal ticket),
- * matching the Fabric adapter's verified mechanics.</p>
  *
  * <p>The active rules ({@code bypass}, {@code scope}, {@code blockEntities})
  * are volatile and replaceable at runtime through {@link #applyRules} when
@@ -49,15 +52,26 @@ import org.vwtfafa.lockend.core.LockStateManager;
  */
 final class EndLockGuard {
 
+    /**
+     * Reports a player access attempt blocked by the pre-travel veto
+     * (section 3 parity: stats counter plus a rate-limited audit-logging
+     * line). The mod installs the implementation on boot.
+     */
+    @FunctionalInterface
+    interface BlockedAttemptReporter {
+        void reportBlockedAttempt(String playerName, UUID playerId,
+                                  String originWorld, String method);
+    }
+
     private static final String LOCKED_MESSAGE_PREFIX = "The End is locked: ";
-    private static final Identifier WHITELIST_BYPASS_PERMISSION =
-            Identifier.fromNamespaceAndPath("lock-end", "whitelist.bypass");
 
     private final LockStateManager state;
+    private final GracePeriod gracePeriod;
+    private final SoundEffects soundEffects;
     private volatile LockBypassChecker bypassChecker;
     private volatile EndDimensionScope endScope;
     private volatile boolean blockEntities;
-    private volatile MinecraftServer server;
+    private volatile BlockedAttemptReporter blockedAttemptReporter;
 
     /**
      * Creates the guard around the shared runtime lock state and the
@@ -67,15 +81,22 @@ final class EndLockGuard {
      * @param bypassChecker the configured bypass (whitelist) rules
      * @param endScope      the guarded End dimension scope
      * @param blockEntities {@code true} if non-player entities may not enter
+     * @param gracePeriod   the grace-period window consulted before
+     *                      enforcement
+     * @param soundEffects  the denial-sound player shared by all routes
      */
     EndLockGuard(LockStateManager state,
                  LockBypassChecker bypassChecker,
                  EndDimensionScope endScope,
-                 boolean blockEntities) {
+                 boolean blockEntities,
+                 GracePeriod gracePeriod,
+                 SoundEffects soundEffects) {
         this.state = state;
         this.bypassChecker = bypassChecker;
         this.endScope = endScope;
         this.blockEntities = blockEntities;
+        this.gracePeriod = gracePeriod;
+        this.soundEffects = soundEffects;
     }
 
     /**
@@ -92,24 +113,21 @@ final class EndLockGuard {
     }
 
     /**
-     * Stores the server so evacuation can run between lifecycle events.
+     * Installs the blocked-attempt reporter (called on every vetoed
+     * player travel).
      *
-     * @param currentServer the running server; not {@code null}
+     * @param reporter the reporter; {@code null} disables reporting
      */
-    void attachServer(MinecraftServer currentServer) {
-        this.server = currentServer;
+    void setBlockedAttemptReporter(BlockedAttemptReporter reporter) {
+        this.blockedAttemptReporter = reporter;
     }
 
     /**
-     * Restart safety net: runs once when the level is live, so a boot with a
-     * persisted active lock clears players who were stranded in the End
-     * before the shutdown. Runtime arrivals are vetoed by the pre-travel
-     * event instead.
+     * @param level the level to test
+     * @return {@code true} if the level is inside the guarded End scope
      */
-    void handleServerStarted() {
-        if (state.isLocked()) {
-            evacuate();
-        }
+    boolean isGuarded(Level level) {
+        return endScope.isGuarded(dimensionKey(level));
     }
 
     /**
@@ -117,7 +135,8 @@ final class EndLockGuard {
      * dimension while the lock is active. Players are vetoed without bypass;
      * non-player entities are vetoed while {@code blockEntities} is enabled.
      * Runs on the server thread inside the vanilla travel path, so
-     * cancelling here means the traveler simply does not travel.
+     * cancelling here means the traveler simply does not travel. A running
+     * grace period holds enforcement and announces the window instead.
      *
      * @param event the pre-travel event; cancellation is respected by both
      *              the entity and the player travel paths
@@ -136,9 +155,16 @@ final class EndLockGuard {
             if (canBypass(player, event.getDimension())) {
                 return;
             }
+            if (gracePeriod.isActive()) {
+                player.sendSystemMessage(Component.literal(
+                        LockEndNeoForgeMod.messages().text("grace-period-active")));
+                return;
+            }
             event.setCanceled(true);
             player.sendSystemMessage(Component.literal(
                     LOCKED_MESSAGE_PREFIX + state.getLockReason()));
+            soundEffects.playDenial(player);
+            reportAttempt(player, originKey);
             LockEndNeoForgeMod.LOGGER.info("Blocked {} from entering the locked End",
                     player.getName().getString());
         } else if (blockEntities) {
@@ -148,21 +174,11 @@ final class EndLockGuard {
         }
     }
 
-    /**
-     * Moves every player currently inside a guarded End dimension out.
-     * Idempotent and only invoked while the lock is active (startup recovery
-     * and the lock command).
-     */
-    void evacuate() {
-        MinecraftServer currentServer = server;
-        if (currentServer == null) {
-            return;
-        }
-        for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
-            if (endScope.isGuarded(dimensionKey(player.level()))
-                    && !canBypass(player, player.level().dimension())) {
-                teleportOut(player);
-            }
+    private void reportAttempt(ServerPlayer player, String originKey) {
+        BlockedAttemptReporter reporter = blockedAttemptReporter;
+        if (reporter != null) {
+            reporter.reportBlockedAttempt(player.getName().getString(), player.getUUID(),
+                    originKey, "PRE_TRAVEL");
         }
     }
 
@@ -172,30 +188,6 @@ final class EndLockGuard {
                 player.getUUID(),
                 destination.identifier().toString(),
                 () -> player.permissions().hasPermission(Permissions.COMMANDS_ADMIN));
-    }
-
-    /**
-     * Teleports a player out of the End to the overworld respawn point and
-     * tells them why. No-op while no live server reference exists.
-     *
-     * @param player the player to move
-     */
-    void teleportOut(ServerPlayer player) {
-        MinecraftServer currentServer = server;
-        if (currentServer == null) {
-            return;
-        }
-        ServerLevel overworld = currentServer.overworld();
-        LevelData.RespawnData respawn = overworld.getRespawnData();
-        player.teleport(new TeleportTransition(
-                overworld,
-                new Vec3(respawn.pos().getX() + 0.5, respawn.pos().getY(), respawn.pos().getZ() + 0.5),
-                Vec3.ZERO,
-                respawn.yaw(),
-                respawn.pitch(),
-                TeleportTransition.DO_NOTHING));
-        player.sendSystemMessage(Component.literal(
-                LOCKED_MESSAGE_PREFIX + state.getLockReason()));
     }
 
     private static String dimensionKey(Level level) {

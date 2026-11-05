@@ -4,11 +4,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.level.Level;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -18,14 +20,26 @@ import dev.faststats.neoforge.NeoForgeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockScheduler;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.PersistedSchedule;
 import org.vwtfafa.lockend.core.ScheduleSupport;
+import org.vwtfafa.lockend.core.UndoTracker;
+import org.vwtfafa.lockend.core.audit.AttemptRateLimiter;
+import org.vwtfafa.lockend.core.audit.AuditLogWriter;
+import org.vwtfafa.lockend.core.history.HistoryBuffer;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.messages.ModMessages;
+import org.vwtfafa.lockend.core.stats.LockStatistics;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * NeoForge entrypoint of the Lock-End lock for the End dimension, annotated
@@ -36,17 +50,24 @@ import java.time.LocalDateTime;
  * game-bus hooks:
  *
  * <ul>
- *   <li>{@link RegisterCommandsEvent}: the {@code /endlock} command tree.</li>
+ *   <li>{@link RegisterCommandsEvent}: the {@code /endlock} command tree,
+ *       including undo, stats, the paginated history view and the
+ *       evacuation preview/execute pair.</li>
  *   <li>{@link EntityTravelToDimensionEvent}: cancellable pre-travel veto -
  *       blocking this event stops the dimension transition in both the
  *       entity and the player travel paths (no arrival bounce, no tick
- *       scan).</li>
+ *       scan; residents-at-lock are the evacuation service's business).</li>
  *   <li>{@link ServerTickEvent.Post}: the roughly once-per-second poll of
- *       the shared {@link LockScheduler}.</li>
- *   <li>{@link ServerStartedEvent}: restart safety net - players already
- *       inside the End after a boot with a persisted active lock are
- *       evacuated once.</li>
- *   <li>{@link ServerStoppingEvent}: final state and schedule persistence.</li>
+ *       the shared {@link LockScheduler} together with the debounced
+ *       history flush, the evacuation pass and statistics persistence.</li>
+ *   <li>{@link ServerStartedEvent}: restart safety net - a boot with a
+ *       persisted active lock re-arms the evacuation pass once the world is
+ *       live (the pre-travel veto covers all runtime arrivals).</li>
+ *   <li>{@link PlayerEvent.PlayerLoggedInEvent}: re-arms the waiting
+ *       evacuation pass on a join into the locked End and sends the
+ *       locked-End notice, mirroring the Paper plugin.</li>
+ *   <li>{@link ServerStoppingEvent}: final state, history, statistics,
+ *       schedule and audit-log persistence.</li>
  * </ul>
  *
  * <p>All listeners run on the main server thread; the runtime state is
@@ -54,8 +75,15 @@ import java.time.LocalDateTime;
  * plugin. Scheduled actions persist in
  * {@code config/lock-end.schedule.json} ({@link JsonScheduleRepository}),
  * countdown and preview behavior mirrors the Paper plugin: countdown lines
- * go to admins, the preview broadcasts to everyone. The scheduler wiring is
- * deliberately a copy of the Fabric adapter's behavior.</p>
+ * go to admins, the preview broadcasts to everyone. History lives in
+ * {@code config/lock-end.history.json}, statistics counters in
+ * {@code config/lock-end.stats.json}, message overrides in
+ * {@code config/lock-end-messages.json}, and the audit log under
+ * {@code config/logs/} - all mirroring the Paper plugin's behavior and
+ * schemas. Lock state changes broadcast through the {@code broadcast}
+ * settings, locking optionally starts a grace period, and the
+ * {@link EndLockEvacuation} service moves End residents out with the
+ * Paper-identical warning, preview and execute flow.</p>
  */
 @Mod("lockend")
 public class LockEndNeoForgeMod {
@@ -66,16 +94,35 @@ public class LockEndNeoForgeMod {
     private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
     private static final String FASTSTATS_PUBLIC_TOKEN = "71be256f6d91c1cc2e1cb18f506a3d44";
     private static final int SCHEDULE_TICK_CADENCE = 20;
+    private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String FALLBACK_LOG_FILE = "EndLock.log";
 
-    private final LockStateManager state;
-    private final JsonLockStateRepository repository;
-    private final EndLockGuard guard;
-    private final JsonScheduleRepository scheduleRepository;
-    private final LockScheduler scheduler;
-    private final NeoForgeContext fastStatsContext;
+    private static final ModMessages MESSAGES = new ModMessages();
+
+    private Path configDirectory;
+    private LockStateManager state;
+    private JsonLockStateRepository repository;
     private NeoForgeEndLockConfig config;
+    private EndLockGuard guard;
+    private JsonScheduleRepository scheduleRepository;
+    private LockScheduler scheduler;
+    private NeoForgeContext fastStatsContext;
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
+
+    private LockStatistics stats;
+    private JsonStatsStore statsStore;
+    private long lastStatsRevision;
+    private JsonHistoryStore historyStore;
+    private HistoryBuffer history;
+    private LockHistoryService historyService;
+    private UndoTracker undoTracker;
+    private AuditLogWriter audit;
+    private AttemptRateLimiter attemptRateLimiter;
+    private GracePeriod gracePeriod;
+    private SoundEffects soundEffects;
+    private EndLockEvacuation evacuation;
 
     /**
      * Creates the mod instance, loads configuration and persistence and
@@ -83,14 +130,37 @@ public class LockEndNeoForgeMod {
      * language loader because of {@code @Mod("lockend")}.
      */
     public LockEndNeoForgeMod() {
-        Path configDirectory = FMLPaths.CONFIGDIR.get();
+        configDirectory = FMLPaths.CONFIGDIR.get();
         config = NeoForgeEndLockConfig.load(configDirectory);
         repository = new JsonLockStateRepository(configDirectory);
+
+        JsonMessageOverrides.writeDefaultsIfMissing(configDirectory, MESSAGES);
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
 
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
-        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
+        stats = new LockStatistics(config.statsEnabled());
+        statsStore = new JsonStatsStore(configDirectory);
+        JsonStatsStore.StatsCounts loadedStats = statsStore.load();
+        stats.loadCounts(loadedStats.lockCount(), loadedStats.unlockCount(),
+                loadedStats.blockedCount(), loadedStats.evacuatedCount());
+
+        historyStore = new JsonHistoryStore(configDirectory);
+        rebuildHistoryService();
+
+        undoTracker = new UndoTracker();
+        attemptRateLimiter = new AttemptRateLimiter(config.logRateLimitSeconds());
+        audit = new AuditLogWriter(message -> LOGGER.warn(message));
+        configureAuditLogging();
+
+        gracePeriod = new GracePeriod(Clock.systemDefaultZone());
+        soundEffects = new SoundEffects();
+        soundEffects.loadFrom(config);
+        evacuation = new EndLockEvacuation(this);
+        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(),
+                config.blockEntities(), gracePeriod, soundEffects);
+        guard.setBlockedAttemptReporter(this::reportBlockedAttempt);
         scheduleRepository = new JsonScheduleRepository(configDirectory);
         scheduler = new LockScheduler(new SchedulerCallbacks(), Clock.systemDefaultZone());
         applyScheduleSettings();
@@ -102,6 +172,7 @@ public class LockEndNeoForgeMod {
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
 
         LOGGER.info("EndLock (NeoForge) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
     }
@@ -120,18 +191,54 @@ public class LockEndNeoForgeMod {
     }
 
     /**
+     * @return the shared message registry and renderer for every NeoForge
+     *         adapter class
+     */
+    static ModMessages messages() {
+        return MESSAGES;
+    }
+
+    /**
+     * Rebuilds the history buffer from the store contents and republishes
+     * it; the rotation runs inside {@link HistoryBuffer}'s constructor.
+     */
+    private void rebuildHistoryService() {
+        List<HistoryEntry> stored = historyStore.load();
+        history = new HistoryBuffer(historyStore, stored,
+                config.historyMaxEntries(), config.historyRetentionDays());
+        historyService = new LockHistoryService(configDirectory, history, historyStore);
+    }
+
+    /**
+     * Configures the audit log file. The name is sandboxed into
+     * {@code config/logs/}; a path-traversal attempt falls back to the
+     * default name like the Paper plugin's config validator.
+     */
+    private void configureAuditLogging() {
+        String rawName = config.logFile();
+        if (rawName == null || rawName.isBlank() || rawName.contains("/")
+                || rawName.contains("\\") || rawName.contains("..")) {
+            LOGGER.warn("Unsupported audit log file name '{}'; falling back to {}.",
+                    rawName, FALLBACK_LOG_FILE);
+            rawName = FALLBACK_LOG_FILE;
+        }
+        Path logFile = configDirectory.resolve("logs").resolve(rawName);
+        audit.initialize(config.loggingEnabled() ? logFile : null);
+    }
+
+    /**
      * Registers the {@code /endlock} Brigadier command tree through the
      * verified game-bus command registration event.
      *
      * @param event the command registration event
      */
     private void onRegisterCommands(RegisterCommandsEvent event) {
-        new LockEndCommands(state, repository, guard, this).registerAll(event.getDispatcher());
+        new LockEndCommands(state, this).registerAll(event.getDispatcher());
     }
 
     /**
-     * Veto hook: blocks the pending travel into a locked End before the
-     * transition happens, so no post-arrival cleanup is needed.
+     * Pre-travel veto hook: blocks the pending travel into a locked End
+     * before the transition happens, so no post-arrival cleanup is needed.
      *
      * @param event the pre-travel event
      */
@@ -140,7 +247,9 @@ public class LockEndNeoForgeMod {
     }
 
     /**
-     * Scheduler poll at a one-second cadence (every 20 server ticks).
+     * Roughly once-per-second pass (every 20 server ticks): the scheduler
+     * poll with the debounced persistence of the history buffer, the
+     * evacuation pass and the statistics counters.
      *
      * @param event the post server tick event
      */
@@ -148,20 +257,25 @@ public class LockEndNeoForgeMod {
         scheduleTickOffset = (scheduleTickOffset + 1) % SCHEDULE_TICK_CADENCE;
         if (scheduleTickOffset == 0 && liveServer != null) {
             scheduler.tick(state.isLocked());
+            history.flushIfDirty();
+            evacuation.tickSecond();
+            saveStatsIfChanged();
         }
     }
 
     /**
-     * Lifecycle hook: stores the live server and runs the persisted-lock
-     * restart evacuation.
+     * Lifecycle hook: stores the live server and re-arms the evacuation pass
+     * for a persisted active lock once the world is live (the pre-travel
+     * veto covers every runtime arrival).
      *
      * @param event the server started event
      */
     private void onServerStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
         liveServer = server;
-        guard.attachServer(server);
-        guard.handleServerStarted();
+        if (state.isLocked() && config.evacuationEnabled() && !evacuation.isPending()) {
+            evacuation.schedule();
+        }
         if (fastStatsContext != null) {
             fastStatsContext.ready();
             LOGGER.info("FastStats metrics and error tracking enabled.");
@@ -170,14 +284,18 @@ public class LockEndNeoForgeMod {
 
     /**
      * Lifecycle hook: persists the final state so a persisted lock
-     * re-applies on the next boot (where the restart evacuation clears any
-     * player stranded inside), plus the current runtime schedule.
+     * re-applies on the next boot, plus the runtime schedule, history,
+     * statistics and audit log.
      *
      * @param event the server stopping event
      */
     private void onServerStopping(ServerStoppingEvent event) {
         repository.save(state.getState());
         persistRuntimeSchedule();
+        history.flush();
+        saveStats();
+        evacuation.shutdown();
+        audit.shutdown();
         if (fastStatsContext != null) {
             fastStatsContext.shutdown();
         }
@@ -185,19 +303,248 @@ public class LockEndNeoForgeMod {
     }
 
     /**
+     * Join hook mirroring the Paper plugin's {@code onPlayerJoin}: re-arms
+     * the waiting evacuation pass when a player joins a locked guarded End,
+     * and sends the locked-End notice to every joining player while the
+     * notification setting is enabled.
+     *
+     * @param event the player logged-in event
+     */
+    private void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (state.isLocked() && config.evacuationEnabled()
+                && guard.isGuarded(player.level()) && !evacuation.isPending()) {
+            evacuation.schedule();
+        }
+        if (state.isLocked() && config.joinNotificationsEnabled()) {
+            player.sendSystemMessage(Component.literal(messages().text("join-notification")));
+        }
+    }
+
+    /**
+     * @return {@code true} while the End lock is active
+     */
+    boolean isLocked() {
+        return state.isLocked();
+    }
+
+    /**
+     * @return the shared runtime lock state of this NeoForge installation
+     */
+    public LockStateManager getState() {
+        return state;
+    }
+
+    /**
+     * @return the operational statistics counters
+     */
+    LockStatistics statistics() {
+        return stats;
+    }
+
+    /**
+     * @return the history view (pagination, filters, exports)
+     */
+    LockHistoryService historyService() {
+        return historyService;
+    }
+
+    /**
+     * @return the bounded history buffer (evacuation outcomes are recorded
+     *         here)
+     */
+    HistoryBuffer history() {
+        return history;
+    }
+
+    /**
+     * @return the running server, or {@code null} before startup / after
+     *         shutdown
+     */
+    MinecraftServer liveServer() {
+        return liveServer;
+    }
+
+    /**
+     * @return {@code true} if the level is inside the guarded End scope
+     */
+    boolean isGuarded(Level level) {
+        return guard.isGuarded(level);
+    }
+
+    /**
+     * @return the evacuation service (warnings, preview/execute command)
+     */
+    EndLockEvacuation evacuation() {
+        return evacuation;
+    }
+
+    /**
+     * Central state-change execution mirroring the Paper plugin's
+     * {@code changeLockState}: records the undo target, statistics, audit
+     * log line, history entry and persistence, broadcasts the new state,
+     * then starts (or cancels) the grace period and evacuation services.
+     * The pre-travel veto covers all runtime arrivals, so no residents
+     * snapshot is needed.
+     *
+     * @param lock       the target state
+     * @param action     the trigger identifier for the shared API state
+     * @param actionName the action string recorded in history and audit log
+     * @param actor      display name of the acting identity
+     * @param actorUuid  UUID of the acting player, or {@code null}
+     * @return {@code true} when the state changed
+     */
+    boolean changeLockState(boolean lock, LockAction action, String actionName,
+                            String actor, UUID actorUuid) {
+        boolean previousState = state.isLocked();
+        if (previousState == lock) {
+            return false;
+        }
+        state.updateLocked(lock, action, actor, actorUuid);
+        undoTracker.recordPreviousState(previousState);
+        stats.recordStateChange(lock);
+        saveStatsIfChanged();
+        repository.save(state.getState());
+        broadcastLockState(lock, actor);
+        logAction(actionName, actor);
+        history.addEntry(actor, actorUuid, actionName, actionName, "SUCCESS",
+                null, previousState, lock);
+        if (lock) {
+            startGracePeriodIfEnabled();
+            evacuation.schedule();
+        } else {
+            gracePeriod.cancel();
+            evacuation.cancel();
+        }
+        return true;
+    }
+
+    /**
+     * Broadcasts the lock state change mirroring the Paper plugin's
+     * {@code MessageService.broadcastLockState}: the action bar or chat
+     * variants, admins only when {@code notify-all} is off.
+     *
+     * @param locked     the new state
+     * @param playerName acting identity for the {@code %player%} token
+     */
+    private void broadcastLockState(boolean locked, String playerName) {
+        MinecraftServer server = liveServer;
+        if (!config.broadcastEnabled() || server == null) {
+            return;
+        }
+        boolean notifyAll = config.broadcastNotifyAll();
+        boolean useActionbar = config.broadcastUseActionbar();
+        String componentText = useActionbar
+                ? messages().text(locked ? "actionbar-locked" : "actionbar-unlocked")
+                : messages().text(locked ? "broadcast-locked" : "broadcast-unlocked",
+                        Map.of("%player%", playerName));
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!notifyAll && !player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)) {
+                continue;
+            }
+            if (useActionbar) {
+                player.sendOverlayMessage(Component.literal(componentText));
+            } else {
+                player.sendSystemMessage(Component.literal(componentText));
+            }
+        }
+    }
+
+    /**
+     * Starts the grace period when the config enables it (called right after
+     * a lock becomes active).
+     */
+    private void startGracePeriodIfEnabled() {
+        if (config.gracePeriodEnabled()) {
+            gracePeriod.start(Math.max(0, config.gracePeriodDuration()));
+            LOGGER.info("Grace period started for {} seconds.", config.gracePeriodDuration());
+        }
+    }
+
+    /**
+     * Re-applies the recorded pre-change state, mirroring the Paper plugin's
+     * {@code undoLastAction}.
+     *
+     * @param actor     display name of the acting identity
+     * @param actorUuid UUID of the acting player, or {@code null}
+     * @return {@code true} when a pending undo existed and was executed
+     */
+    boolean undoLastAction(String actor, UUID actorUuid) {
+        Boolean previousState = undoTracker.getLastPreviousState();
+        if (previousState == null) {
+            return false;
+        }
+        boolean changed = changeLockState(previousState, LockAction.UNDO, "UNDO",
+                actor, actorUuid);
+        if (changed) {
+            undoTracker.clearLastPreviousState();
+        }
+        return changed;
+    }
+
+    /**
+     * Logs one state change into the audit log (Paper format:
+     * {@code ACTION - Player: NAME - Status: LOCKED|UNLOCKED}).
+     */
+    private void logAction(String action, String actor) {
+        if (!config.loggingEnabled()) {
+            return;
+        }
+        audit.log(String.format("%s - Player: %s - Status: %s",
+                action, actor, state.isLocked() ? "LOCKED" : "UNLOCKED"));
+    }
+
+    /**
+     * Guards' blocked-attempt hook: counts the attempt unconditionally and
+     * writes the rate-limited audit line (Paper format:
+     * {@code [ts] Attempt - Player: NAME - World: KEY - Method: METHOD
+     * - Status: LOCKED}).
+     */
+    private void reportBlockedAttempt(String playerName, UUID playerId,
+                                      String originWorld, String method) {
+        if (config.logAttempts()
+                && attemptRateLimiter.shouldLog(playerId, System.currentTimeMillis())) {
+            String timestamp = LocalDateTime.now().format(ATTEMPT_LOG_FORMAT);
+            audit.log(String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
+                    timestamp, playerName, originWorld, method));
+        }
+        stats.recordBlockedAttempt();
+    }
+
+    /**
+     * Persists the statistics counters into the JSON store.
+     */
+    private void saveStats() {
+        if (!statsStore.save(new JsonStatsStore.StatsCounts(
+                stats.lockCount(), stats.unlockCount(),
+                stats.blockedCount(), stats.evacuatedCount()))) {
+            LOGGER.warn("Could not persist the Lock-End statistics counters.");
+        }
+    }
+
+    /**
+     * Debounced persistence: writes once per one-second pass when new
+     * events were recorded since the last write.
+     */
+    private void saveStatsIfChanged() {
+        long revision = stats.revision();
+        if (revision != lastStatsRevision) {
+            lastStatsRevision = revision;
+            saveStats();
+        }
+    }
+
+    /**
      * {@code System} is the Paper plugin's actor name for scheduled state
      * changes (no player identity).
      */
     boolean changeStateScheduled(boolean lock) {
-        boolean changed = state.updateLocked(lock,
-                lock ? LockAction.SCHEDULED_LOCK : LockAction.SCHEDULED_UNLOCK, "System", null);
-        if (changed) {
-            repository.save(state.getState());
-            if (lock) {
-                guard.evacuate();
-            }
-        }
-        return changed;
+        return changeLockState(lock,
+                lock ? LockAction.SCHEDULED_LOCK : LockAction.SCHEDULED_UNLOCK,
+                lock ? "SCHEDULED_LOCK" : "SCHEDULED_UNLOCK",
+                "System", null);
     }
 
     /**
@@ -263,29 +610,35 @@ public class LockEndNeoForgeMod {
     }
 
     /**
-     * Builds the schedule status line mirroring the Paper plugin's
-     * {@code schedule-status} message shape.
-     *
-     * @return the status line; never {@code null}
+     * @return the scheduled action name, or {@code -} when none is pending
+     *         (matching the Paper plugin's status line)
      */
-    String scheduleStatusLine() {
-        LocalDateTime target = scheduler.target();
-        if (target == null) {
-            return "No scheduled action.";
-        }
-        String remaining = ScheduleSupport.formatDuration(
-                Math.max(0L, scheduler.remainingSeconds()));
-        return "Action: " + scheduler.action()
-                + " | Target: " + target.format(ScheduleSupport.SCHEDULE_FORMAT)
-                + " | Remaining: " + remaining
-                + " | Paused: " + scheduler.isPaused();
+    String scheduleAction() {
+        return scheduler.target() == null ? "-" : scheduler.action();
     }
 
     /**
-     * @return the shared runtime lock state of this NeoForge installation
+     * @return the formatted schedule target, or the "none" message when no
+     *         action is pending
      */
-    public LockStateManager getState() {
-        return state;
+    String scheduleTargetText() {
+        LocalDateTime target = scheduler.target();
+        return target == null
+                ? messages().text("schedule-none")
+                : target.format(ScheduleSupport.SCHEDULE_FORMAT);
+    }
+
+    /**
+     * @return the remaining time of the schedule, or {@code -} when none is
+     *         pending (matching the Paper plugin's status line)
+     */
+    String scheduleRemainingText() {
+        LocalDateTime target = scheduler.target();
+        if (target == null) {
+            return "-";
+        }
+        return ScheduleSupport.formatDuration(
+                Math.max(0L, scheduler.remainingSeconds()));
     }
 
     /**
@@ -297,8 +650,10 @@ public class LockEndNeoForgeMod {
 
     /**
      * Reloads the settings file and republishes its values to the live
-     * consumers: the lock state reason supplier, the guard rules and the
-     * schedule notification settings.
+     * consumers: the lock state reason supplier, the guard rules, the
+     * schedule notification settings, the message overrides, statistics
+     * recording, the attempt rate limiter, the audit log and the history
+     * buffer sizing.
      *
      * @return {@code null} when the file was read cleanly, otherwise a
      *         human-readable recovery notice (defaults are then active for
@@ -310,7 +665,28 @@ public class LockEndNeoForgeMod {
         state.setReasonSupplier(config::lockReason);
         guard.applyRules(config.bypassChecker(), config.endScope(), config.blockEntities());
         applyScheduleSettings();
+        refreshRuntimeServices();
         return config.parseFailureMessage();
+    }
+
+    /**
+     * Republishes the runtime services from the freshly loaded config.
+     * The history buffer is rebuilt; pending entries are flushed first so
+     * no record is lost by the rebuild.
+     */
+    private void refreshRuntimeServices() {
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
+        stats.setEnabled(config.statsEnabled());
+        attemptRateLimiter.setRateLimitSeconds(config.logRateLimitSeconds());
+        soundEffects.loadFrom(config);
+        history.flush();
+        List<HistoryEntry> retained = history.snapshot();
+        history = new HistoryBuffer(historyStore, retained,
+                config.historyMaxEntries(), config.historyRetentionDays());
+        historyService = new LockHistoryService(configDirectory, history, historyStore);
+        audit.shutdown();
+        audit = new AuditLogWriter(message -> LOGGER.warn(message));
+        configureAuditLogging();
     }
 
     /**
@@ -360,15 +736,13 @@ public class LockEndNeoForgeMod {
     }
 
     /**
-     * The scheduler callbacks, delivered in the server thread context:
-     * executes the due state change through {@link #changeStateScheduled},
-     * sends countdown lines to admins and broadcasts the one-shot preview
-     * to everyone, mirroring the Paper plugin. Deliberately a copy of the
-     * Fabric adapter's callback implementation.
+     * The scheduler callbacks, delivered in the server tick context:
+     * executes the due state change through the central
+     * {@link #changeLockState} path, sends countdown lines to admins and
+     * broadcasts the one-shot preview to everyone, mirroring the Paper
+     * plugin.
      */
     private final class SchedulerCallbacks implements LockScheduler.Callbacks {
-
-        private static final String PREFIX = "[EndLock] ";
 
         @Override
         public void executeScheduled(boolean lock) {
@@ -380,10 +754,6 @@ public class LockEndNeoForgeMod {
             if (!changed) {
                 LOGGER.info("Scheduled {} target state already active; skipped.", lock ? "lock" : "unlock");
             } else {
-                server.getPlayerList().broadcastSystemMessage(Component.literal(lock
-                        ? "The End is now locked! (scheduled) "
-                        + describeReason()
-                        : "The End has been unlocked. (scheduled)"), false);
                 LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
             }
             scheduleRepository.clear();
@@ -402,10 +772,10 @@ public class LockEndNeoForgeMod {
             if (server == null) {
                 return;
             }
-            boolean lock = "lock".equalsIgnoreCase(action);
-            String rendered = PREFIX + "The End will be "
-                    + (lock ? "locked" : "unlocked")
-                    + " in " + ScheduleSupport.formatDuration(remainingSeconds) + ".";
+            String key = "lock".equalsIgnoreCase(action)
+                    ? "countdown-lock-notification" : "countdown-notification";
+            String rendered = messages().text(key,
+                    Map.of("%time%", ScheduleSupport.formatDuration(remainingSeconds)));
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 if (player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)) {
                     player.sendSystemMessage(Component.literal(rendered));
@@ -419,15 +789,10 @@ public class LockEndNeoForgeMod {
             if (server == null) {
                 return;
             }
-            boolean lock = "lock".equalsIgnoreCase(action);
-            server.getPlayerList().broadcastSystemMessage(Component.literal(lock
-                    ? "The End will be locked in " + secondsBefore + " seconds!"
-                    : "The End will be unlocked in " + secondsBefore + " seconds!"), false);
-        }
-
-        private String describeReason() {
-            String reason = state.getLockReason();
-            return reason.isBlank() ? "" : "Reason: " + reason;
+            String key = "lock".equalsIgnoreCase(action) ? "preview-lock" : "preview-unlock";
+            server.getPlayerList().broadcastSystemMessage(Component.literal(
+                    messages().text(key, Map.of("%seconds%", String.valueOf(secondsBefore)))),
+                    false);
         }
     }
 }
