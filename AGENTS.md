@@ -17,11 +17,11 @@ authoritative project instruction document.
 | Product | EndLock - Paper/Folia plugin that locks access to the End dimension |
 | Main class | `org.vwtfafa.lockEnd.LockEnd` |
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
-| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.209-stable` |
+| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.242-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
 | Build | Gradle 9.8.2 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
-| Platforms | Paper 26.3 and Folia 26.3 Build 5 (ALPHA; `folia-supported: true`) |
+| Platforms | Paper 26.3 and Folia 26.3 Build 6 (ALPHA; `folia-supported: true`) |
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
@@ -72,12 +72,9 @@ Rules for future architecture work:
   verifiable.
 - Do not assume Forge is implemented: its adapter is deliberately deferred
   even though Forge 26.3-66.1.3 compatibility was verified.
-- Open follow-up from the retired plan: the compile target is
-  `paperApiVersion=26.3.build.236-stable`, while the CI smoke pins and most
-  docs still say Paper 26.3 Build 209 / Folia Build 5; these pins
-  (CI download URL + SHA-256 plus README/MODRINTH/CHANGELOG claims) are to be
-  realigned together on an explicit go, then re-tested with the Paper/Folia
-  smokes.
+- The previous Paper/Folia pin-alignment follow-up is closed: the compile
+  target and CI smoke now use Paper 26.3 Build 242, and CI pins Folia 26.3
+  Build 6 (ALPHA). README and MODRINTH make no build-specific smoke claims.
 
 ---
 
@@ -153,8 +150,8 @@ Before writing code that uses an unfamiliar, uncertain, or version-sensitive API
 The resolved dependency in the Gradle cache can be inspected without the website:
 
 ```powershell
-$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.209-stable" `
-    -Recurse -Filter "paper-api-26.3.build.209-stable.jar" | Select-Object -First 1
+$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.242-stable" `
+    -Recurse -Filter "paper-api-26.3.build.242-stable.jar" | Select-Object -First 1
 javap -classpath $jar.FullName org.bukkit.entity.Player
 ```
 
@@ -256,7 +253,7 @@ Rules:
 
 ```powershell
 .\gradlew.bat runServer --no-daemon   # Paper 26.3, run/
-.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 5 (ALPHA), run/folia/
+.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 6 (ALPHA), run/folia/
 ```
 
 Place the built jar in the server's `plugins/` folder, start the server, and verify
@@ -267,7 +264,7 @@ at minimum:
 - locking and unlocking the End still blocks/permits travel,
 - reload and shutdown complete without exceptions.
 
-CI pins Paper 26.3 Build 209 and Folia 26.3 Build 5 and runs the same smoke checks.
+CI pins Paper 26.3 Build 242 and Folia 26.3 Build 6 (ALPHA) and runs the same smoke checks.
 Keep both green; Folia support is not theoretical.
 
 ---
