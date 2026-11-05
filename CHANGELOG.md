@@ -2,22 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-
-### Added
-- Opt-in FastStats metrics and context-aware error tracking for Fabric and
-  NeoForge, enabled with the `LOCKEND_FASTSTATS_TOKEN` environment variable.
-
-### Fixed
-- Fabric and NeoForge now cancel a pending lock/unlock timer and clear its
-  persisted schedule as soon as the End already reaches the scheduled state.
-
 ## [4.0.0] - 2026-11-03
 
 Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
 plugin into a monorepo with shared modules and per-platform adapters.
 
+### Fixed
+- Fabric and NeoForge now cancel a pending lock/unlock timer and clear its
+  persisted schedule as soon as the End already reaches the scheduled state.
+
 ### Added
+- Opt-in FastStats metrics and context-aware error tracking for Fabric and
+  NeoForge, enabled with the `LOCKEND_FASTSTATS_TOKEN` environment variable.
 - Gradle multi-module layout: shared, platform-independent `lock-end-api`
   (data structures, change listeners, API contracts) and `lock-end-core`
   (lock state management, change dispatch, strict schedule helpers, platform
