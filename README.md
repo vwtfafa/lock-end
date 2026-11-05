@@ -6,6 +6,9 @@ Paper/Folia plugin, Fabric and NeoForge mods, and a limited vanilla datapack.
 [![FastStats servers](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Dservers)](https://faststats.dev/project/lock-end)
 [![FastStats downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Ddownloads)](https://faststats.dev/project/lock-end)
 [![FastStats online players](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Donline_players)](https://faststats.dev/project/lock-end)
+
+[![FastStats Client chart](https://faststats.dev/embed/32f0e494-2943-4fb5-83c0-34d653ca0dd4?w=400&h=200)](https://faststats.dev/project/lock-end)
+
 [![Client optional](https://img.shields.io/badge/client-optional-green?logo=modrinth)](#platforms)
 [![Server required](https://img.shields.io/badge/server-required-blue?logo=modrinth)](#platforms)
 
