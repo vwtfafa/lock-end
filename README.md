@@ -6,6 +6,8 @@ Paper/Folia plugin, Fabric and NeoForge mods, and a limited vanilla datapack.
 [![FastStats servers](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Dservers)](https://faststats.dev/project/lock-end)
 [![FastStats downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Ddownloads)](https://faststats.dev/project/lock-end)
 [![FastStats online players](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Flock-end%3Fmetric%3Donline_players)](https://faststats.dev/project/lock-end)
+[![Client optional](https://img.shields.io/badge/client-optional-green?logo=modrinth)](#platforms)
+[![Server required](https://img.shields.io/badge/server-required-blue?logo=modrinth)](#platforms)
 
 ## Platforms
 
@@ -44,6 +46,9 @@ reload the world/server.
 
 Paper/Folia targets Minecraft 26.3 and Java 25. Fabric and NeoForge target
 Minecraft 26.3. See the platform notes above for current verification status.
+The client-optional label means clients do not need the mod to join a
+multiplayer server. Fabric is verified in singleplayer; NeoForge client-side
+loading is not yet verified. Multiplayer End locking is enforced server-side.
 
 ## Metrics
 
