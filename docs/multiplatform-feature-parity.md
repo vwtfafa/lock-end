@@ -48,7 +48,12 @@ parity.
   `schedule`/`cancel`/`pause`/`resume` controls (see checklist section 2;
   live scheduling on a running server is still pending a smoke test).
 - [x] Align permission granularity with Paper's per-command permissions.
-- [ ] Align evacuation behavior and options with Paper's configuration.
+- [x] Align evacuation behavior and options with Paper's configuration
+  (enabled/warning/target-world/exclude-bypass sections plus
+  `/endlock evacuate preview|execute` on both mods; note the deliberate mod
+  default `enabled: true` so the previously documented always-evacuate guard
+  behavior survives for existing installations - Paper defaults the whole
+  feature off).
 
 Fabric and NeoForge read the settings from `config/lock-end.json`:
 
@@ -69,9 +74,12 @@ Fabric and NeoForge read the settings from `config/lock-end.json`:
 dimension key or its path without the namespace; empty = vanilla End only)
 and `blockEntities` blocks non-player entities. Whitelist world entries match
 a full dimension key or its path without the namespace. Fabric also supports
-the `lock-end:admin` and `lock-end:reload` command permission nodes (with
-`lock-end:whitelist.bypass` and `lock-end:bypass.world.<namespace>.<path>`
-bypass nodes), each with an operator-level fallback. NeoForge uses Minecraft's
+the `lock-end:admin` and `lock-end:reload` command permission nodes, plus the
+`lock-end:toggle` node for the scheduled opening commands, the
+`lock-end:history` node for the history view and the `lock-end:undo` node for
+undo, and the `lock-end:whitelist.bypass` and
+`lock-end:bypass.world.<namespace>.<path>` bypass nodes, each with an
+operator-level fallback. NeoForge uses Minecraft's
 native admin permission for commands and permission bypasses; its vanilla
 permission system does not provide arbitrary named permission nodes.
 
@@ -161,25 +169,86 @@ latest additions and still need a live confirmation.
 
 ### 3. History and operations
 
-- [ ] Persist bounded lock/unlock history with retention settings.
-- [ ] Add history status and paginated history commands.
-- [ ] Filter history by player/action and export JSON/CSV.
-- [ ] Add undo for the last supported state change.
-- [ ] Add lock, unlock, blocked-attempt, and evacuation statistics.
-- [ ] Add configurable audit logging and attempt rate limiting.
+- [x] Persist bounded lock/unlock history with retention settings on both
+  mods: `config/lock-end.history.json` (Paper export schema, schemaVersion 2)
+  with `history.maxEntries`/`history.retentionDays` in `lock-end.json`
+  (same defaults and "days retention only prunes" rules as Paper), rotated
+  through the shared `HistoryBuffer`.
+- [x] Add history status and paginated history commands: the
+  Paper-style positional surface shortcuts
+  (`history [page] [json|csv|player|action [value] [filterValue]]`) on both
+  mods, funneled through `LockHistoryService` with the Paper page size and
+  invalid-page handling.
+- [x] Filter history by player/action and export JSON/CSV on both mods,
+  writing export files under the config directory like the Paper plugin.
+- [x] Add undo for the last supported state change: `/endlock undo` on both
+  mods restores the recorded pre-change state via the shared `UndoTracker`
+  and records an UNDO history/audit entry without stacking a second undo.
+- [x] Add lock, unlock, blocked-attempt, and evacuation statistics:
+  shared `LockStatistics` counters persisted (revision-debounced) in
+  `config/lock-end.stats.json`, a public `/endlock stats` command, and an
+  `evacuated-count` that the evacuation service increments per moved player.
+  Blocked attempts are counted on every veto/bounce (Fabric arrival bounce,
+  NeoForge pre-travel veto).
+- [x] Add configurable audit logging and attempt rate limiting: shared
+  `AuditLogWriter` under `config/logs/` (name sandboxing with the Paper
+  fallback, Paper line formats `ACTION - Player: ...` and
+  `[ts] Attempt - Player: ... - World: ... - Method: ... - Status: LOCKED`),
+  `logging` config section with per-player attempt rate limiting; attempts
+  report `ARRIVAL` (Fabric) / `PRE_TRAVEL` (NeoForge) as the method.
+
+Live server smoke checks for both mods (history JSON round-trips, stats
+surviving restarts with the counters loaded, `undo` re-locking/unlocking,
+audit file appearing under `config/logs/`) are still open and stay listed
+under section 5.
 
 ### 4. Player-facing behavior
 
-- [ ] Match broadcast settings (enabled, audience, and chat/action-bar style
-  where supported).
-- [ ] Add configurable messages and translations; use the same message keys
-  across platforms where practical.
-- [ ] Add optional join notifications while the End is locked.
-- [ ] Add configurable denial sound effects where supported.
-- [ ] Add grace periods so players can leave safely after a lock.
-- [ ] Add configurable automatic evacuation, warnings, destination, and bypass
-  exclusions.
-- [ ] Add a preview/confirm flow for manual evacuation.
+- [x] Match broadcast settings (enabled, audience, and chat/action-bar style
+  where supported) on both mods: `broadcast` config section with
+  `enabled`/`useActionbar`/`notifyAll` (`sendOverlayMessage` for the action
+  bar on the mods, admins only when `notifyAll` is off, mirroring the Paper
+  message service).
+- [x] Add configurable messages and translations; use the same message keys
+  across platforms: shared `ModMessages` in `lock-end-core` (~51 keys
+  including scheduled/preview/countdown, evacuation, stats, history,
+  `reason-usage`, grace period) with per-mod plain-text overrides in
+  `config/lock-end-messages.json` (seeded once with the built-in defaults on
+  boot, reloaded by `/endlock reload`; MiniMessage is not supported there -
+  plain text only).
+- [x] Add optional join notifications while the End is locked: Fabric uses
+  `ServerPlayConnectionEvents.JOIN`, NeoForge the verified
+  `PlayerEvent.PlayerLoggedInEvent`; both send the `join-notification`
+  message and re-arm the waiting evacuation pass like Paper's
+  `onPlayerJoin`.
+- [x] Add configurable denial sound effects where supported: `soundEffects`
+  config section (enabled/sound/volume/pitch) with the shared `SoundKeys`
+  normalization and one-time invalid-value fallback to `block.anvil.land`;
+  Fabric plays it on the arrival bounce, NeoForge on the pre-travel veto
+  path.
+- [x] Add grace periods so players can leave safely after a lock: shared
+  `GracePeriod` window started on lock when enabled; on Fabric the arrival
+  bounce and tick scan defer to it with a `grace-period-active` notice, on
+  NeoForge the pre-travel veto announces the window instead of cancelling;
+  both allow leaving the End during the window, and unlocking cancels it.
+- [x] Add configurable automatic evacuation, warnings, destination, and
+  bypass exclusions: `evacuation` config section
+  (enabled/warningSeconds/targetWorld/excludeBypass) with the Paper warning
+  countdown on both mods. Note the mods default `enabled: true` (documented
+  above) and, with evacuation enabled, locking schedules the eviction while
+  the Fabric guard keeps a residents-at-lock snapshot; with it disabled,
+  pre-lock residents stay, like on Paper.
+- [x] Add a preview/confirm flow for manual evacuation: `/endlock evacuate
+  preview` (per-requester plan bound for 30 seconds) and
+  `/endlock evacuate execute` (drift re-check, exits `evacuation-preview-
+  changed` on plan drift) on both mods, recording MOVED /
+  SKIPPED_OFFLINE / SKIPPED_LEFT_END / SKIPPED_BYPASS / FAILED outcomes as
+  EVACUATE history entries like Paper.
+
+Live server smoke checks (action-bar broadcast, denial sound audible,
+grace-period window actually letting an End entry through, evacuation
+warnings and preview/execute on real players) are still open and stay
+listed under section 5.
 
 ### 5. Release and parity guardrails
 

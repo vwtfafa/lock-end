@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+Fabric and NeoForge reach Paper parity for the "history and operations"
+(section 3) and "player-facing behavior" (section 4) checklist items of
+`docs/multiplatform-feature-parity.md`. Live server smoke checks on both
+mods are still open and documented there.
+
+### Added
+- Shared `lock-end-core` primitives used by both mods: bounded `HistoryBuffer`
+  with retention and rotation, operational statistics counters
+  (`LockStatistics`), `UndoTracker`, `AuditLogWriter` with per-player attempt
+  rate limiting, `ModMessages` (plain-text message keys mirroring Paper's
+  names), `GracePeriod`, and the `SoundKeys` sound-value normalizer.
+- Fabric and NeoForge mods now persist operational history in
+  `config/lock-end.history.json` (schemaVersion 2, same field names as the
+  Paper export) with `history.maxEntries`/`history.retentionDays`, and
+  statistics counters in `config/lock-end.stats.json`, both debounced to
+  roughly once per second and flushed on shutdown.
+- `/endlock history` on both mods with the Paper positional surface:
+  `[page] [json|csv|player|action [value] [filterValue]]`, paginated view,
+  per-player/action filters and JSON/CSV export files; plus `/endlock stats`
+  (lock/unlock/blocked/evacuated counts) and `/endlock undo` (restores the
+  state from before the last supported change).
+- `/endlock evacuate preview|execute` on both mods mirroring the Paper
+  plugin: side-effect-free per-requester preview bound for 30 seconds,
+  drift re-check on execute, outcome entries
+  (MOVED/SKIPPED_OFFLINE/SKIPPED_LEFT_END/SKIPPED_BYPASS/FAILED) recorded as
+  EVACUATE history rows.
+- Configurable audit logging on both mods: `logging` section
+  (enabled/logFile/logAttempts/rateLimitSeconds) writes the Paper line
+  formats under `config/logs/`; blocked attempts are reported as `ARRIVAL`
+  (Fabric arrival bounce) or `PRE_TRAVEL` (NeoForge pre-travel veto) and
+  always count toward the statistics, while the audit line is rate-limited
+  per player.
+- Player-facing sections in each mod's `lock-end.json`, mirroring Paper's
+  config: `broadcast` (enabled/useActionbar/notifyAll), `soundEffects`
+  (enabled/sound/volume/pitch), `gracePeriod` (enabled/duration),
+  `evacuation` (enabled/warningSeconds/targetWorld/excludeBypass), and
+  `joinNotifications` (locked-End notice on join), plus message overrides in
+  a seeded-once `config/lock-end-messages.json` controlling every
+  player-facing line on each mod.
+- Automatic evacuation on the mods now mirrors the Paper plugin: a warning
+  countdown before the move, a configurable destination world ("minecraft:"
+  style key, blank = overworld), and bypass-player exclusion, with the
+  previously documented always-evacuate guard behavior preserved as the mod
+  default (`evacuation.enabled: true`; the Fabric arrival scan keeps a
+  residents-at-lock snapshot so only later arrivals are bounced when it is
+  disabled).
+- Grace periods on both mods: locking starts the window when enabled, End
+  entries are announced instead of blocked while it runs (and the Fabric
+  tick scan defers), and unlocking cancels it; denial sounds play the
+  configured registry-validated sound, falling back to `block.anvil.land`.
+
+### Changed
+- Scheduled lock/unlock executions on both mods now flow through the same
+  central state-change path as manual commands, so they record audit lines,
+  history entries and statistics identically, and their announcements use
+  the message keys instead of hardcoded text.
+- `/endlock reload` on both mods also republishes the message overrides,
+  statistics recording, attempt rate limiter, denial sound, history sizing
+  and audit log from the re-read config.
+
 ## [4.0.0] - 2026-11-03
 
 Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
