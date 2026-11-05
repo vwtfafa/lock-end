@@ -33,6 +33,7 @@ public final class ModMessages {
             Map.entry("reason-set", "Lock reason set to: %reason%"),
             Map.entry("reason-cleared",
                     "Lock reason cleared; restored default: %reason%"),
+            Map.entry("reason-usage", "Usage: /endlock reason <reason>"),
             // --- reload --- ---------------------------------------------
             Map.entry("reload-success", "Configuration reloaded successfully!"),
             Map.entry("reload-recovered",
@@ -143,6 +144,14 @@ public final class ModMessages {
     );
 
     private volatile Map<String, String> overrides = Map.of();
+
+    /**
+     * @return an immutable copy of the built-in English defaults; platform
+     *         modules use it to seed the writable overrides file
+     */
+    public Map<String, String> defaults() {
+        return Map.copyOf(DEFAULTS);
+    }
 
     /**
      * Replaces the override table (platform modules load it from

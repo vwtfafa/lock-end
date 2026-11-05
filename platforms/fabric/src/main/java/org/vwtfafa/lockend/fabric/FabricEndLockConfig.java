@@ -36,6 +36,15 @@ final class FabricEndLockConfig {
     private static final long DEFAULT_COUNTDOWN_START_BEFORE = 300L;
     private static final boolean DEFAULT_PREVIEW_ENABLED = false;
     private static final long DEFAULT_PREVIEW_SECONDS = 30L;
+    // History, statistics and audit-logging defaults also mirror the Paper
+    // plugin's config.yml.
+    private static final boolean DEFAULT_STATS_ENABLED = true;
+    private static final int DEFAULT_HISTORY_MAX_ENTRIES = 1000;
+    private static final int DEFAULT_HISTORY_RETENTION_DAYS = 30;
+    private static final boolean DEFAULT_LOGGING_ENABLED = true;
+    private static final String DEFAULT_LOG_FILE = "EndLock.log";
+    private static final boolean DEFAULT_LOG_ATTEMPTS = true;
+    private static final int DEFAULT_RATE_LIMIT_SECONDS = 5;
     private static final LockBypassChecker EMPTY_BYPASS_CHECKER =
             new LockBypassChecker(List.of(), List.of(), List.of());
     private static final EndDimensionScope DEFAULT_SCOPE = new EndDimensionScope(List.of());
@@ -50,6 +59,13 @@ final class FabricEndLockConfig {
     private final long countdownStartBeforeSeconds;
     private final boolean previewEnabled;
     private final long previewSeconds;
+    private final boolean statsEnabled;
+    private final int historyMaxEntries;
+    private final int historyRetentionDays;
+    private final boolean loggingEnabled;
+    private final String logFile;
+    private final boolean logAttempts;
+    private final int logRateLimitSeconds;
     private final String parseFailure;
 
     private FabricEndLockConfig(
@@ -63,6 +79,13 @@ final class FabricEndLockConfig {
             long countdownStartBeforeSeconds,
             boolean previewEnabled,
             long previewSeconds,
+            boolean statsEnabled,
+            int historyMaxEntries,
+            int historyRetentionDays,
+            boolean loggingEnabled,
+            String logFile,
+            boolean logAttempts,
+            int logRateLimitSeconds,
             String parseFailure) {
         this.file = file;
         this.lockReason = lockReason;
@@ -74,6 +97,13 @@ final class FabricEndLockConfig {
         this.countdownStartBeforeSeconds = countdownStartBeforeSeconds;
         this.previewEnabled = previewEnabled;
         this.previewSeconds = previewSeconds;
+        this.statsEnabled = statsEnabled;
+        this.historyMaxEntries = historyMaxEntries;
+        this.historyRetentionDays = historyRetentionDays;
+        this.loggingEnabled = loggingEnabled;
+        this.logFile = logFile;
+        this.logAttempts = logAttempts;
+        this.logRateLimitSeconds = logRateLimitSeconds;
         this.parseFailure = parseFailure;
     }
 
@@ -109,6 +139,13 @@ final class FabricEndLockConfig {
                     stored.countdownStartBeforeOrDefault(),
                     stored.previewEnabledOrDefault(),
                     stored.previewSecondsOrDefault(),
+                    stored.statsEnabledOrDefault(),
+                    stored.historyMaxEntriesOrDefault(),
+                    stored.historyRetentionDaysOrDefault(),
+                    stored.loggingEnabledOrDefault(),
+                    stored.logFileOrDefault(),
+                    stored.logAttemptsOrDefault(),
+                    stored.rateLimitSecondsOrDefault(),
                     null);
         } catch (IOException | JsonParseException exception) {
             backupCorruptFile(file, exception);
@@ -132,7 +169,10 @@ final class FabricEndLockConfig {
         FabricEndLockConfig defaults = new FabricEndLockConfig(
                 file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
                 DEFAULT_COUNTDOWN_ENABLED, DEFAULT_COUNTDOWN_INTERVAL, DEFAULT_COUNTDOWN_START_BEFORE,
-                DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS, parseFailure);
+                DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS,
+                DEFAULT_STATS_ENABLED, DEFAULT_HISTORY_MAX_ENTRIES, DEFAULT_HISTORY_RETENTION_DAYS,
+                DEFAULT_LOGGING_ENABLED, DEFAULT_LOG_FILE, DEFAULT_LOG_ATTEMPTS,
+                DEFAULT_RATE_LIMIT_SECONDS, parseFailure);
         defaults.save();
         return defaults;
     }
@@ -211,6 +251,58 @@ final class FabricEndLockConfig {
     }
 
     /**
+     * @return {@code true} if the operational statistics counters record
+     *         events (default like the Paper plugin)
+     */
+    boolean statsEnabled() {
+        return statsEnabled;
+    }
+
+    /**
+     * @return the maximum retained history entries (at least 1)
+     */
+    int historyMaxEntries() {
+        return historyMaxEntries;
+    }
+
+    /**
+     * @return the history retention window in days; non-positive keeps
+     *         entries forever, exactly like the Paper plugin
+     */
+    int historyRetentionDays() {
+        return historyRetentionDays;
+    }
+
+    /**
+     * @return {@code true} if the audit log file is written
+     */
+    boolean loggingEnabled() {
+        return loggingEnabled;
+    }
+
+    /**
+     * @return the audit log file name, created inside
+     *         {@code config/logs/}
+     */
+    String logFile() {
+        return logFile;
+    }
+
+    /**
+     * @return {@code true} if blocked access attempts are logged
+     */
+    boolean logAttempts() {
+        return logAttempts;
+    }
+
+    /**
+     * @return the minimum seconds between two logged attempts per player
+     */
+    int logRateLimitSeconds() {
+        return logRateLimitSeconds;
+    }
+
+    /**
      * @return a human-readable recovery notice when the last load fell back
      *         to defaults, or {@code null} when the file was read cleanly
      */
@@ -259,6 +351,11 @@ final class FabricEndLockConfig {
         stored.countdown = new StoredConfig.CountdownSettings(countdownEnabled,
                 countdownIntervalSeconds, countdownStartBeforeSeconds);
         stored.preview = new StoredConfig.PreviewSettings(previewEnabled, previewSeconds);
+        stored.stats = new StoredConfig.StatsSettings(statsEnabled);
+        stored.history = new StoredConfig.HistorySettings(
+                historyMaxEntries, historyRetentionDays);
+        stored.logging = new StoredConfig.LoggingSettings(
+                loggingEnabled, logFile, logAttempts, logRateLimitSeconds);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -297,6 +394,9 @@ final class FabricEndLockConfig {
         List<String> worldWhitelist;
         CountdownSettings countdown;
         PreviewSettings preview;
+        StatsSettings stats;
+        HistorySettings history;
+        LoggingSettings logging;
 
         String reasonOrDefault() {
             if (lockReason == null || lockReason.isBlank()) {
@@ -353,6 +453,49 @@ final class FabricEndLockConfig {
             return preview.seconds;
         }
 
+        boolean statsEnabledOrDefault() {
+            // The Paper default records stats: a file predating the option
+            // keeps that behavior.
+            return stats == null || stats.enabled == null || stats.enabled;
+        }
+
+        int historyMaxEntriesOrDefault() {
+            if (history == null || history.maxEntries == null || history.maxEntries < 1) {
+                return DEFAULT_HISTORY_MAX_ENTRIES;
+            }
+            return history.maxEntries;
+        }
+
+        int historyRetentionDaysOrDefault() {
+            if (history == null || history.retentionDays == null) {
+                return DEFAULT_HISTORY_RETENTION_DAYS;
+            }
+            // Non-positive values keep entries forever, like the Paper plugin.
+            return history.retentionDays;
+        }
+
+        boolean loggingEnabledOrDefault() {
+            return logging == null || logging.enabled == null || logging.enabled;
+        }
+
+        String logFileOrDefault() {
+            if (logging == null || logging.logFile == null || logging.logFile.isBlank()) {
+                return DEFAULT_LOG_FILE;
+            }
+            return logging.logFile.trim();
+        }
+
+        boolean logAttemptsOrDefault() {
+            return logging == null || logging.logAttempts == null || logging.logAttempts;
+        }
+
+        int rateLimitSecondsOrDefault() {
+            if (logging == null || logging.rateLimitSeconds == null || logging.rateLimitSeconds < 0) {
+                return DEFAULT_RATE_LIMIT_SECONDS;
+            }
+            return logging.rateLimitSeconds;
+        }
+
         private static List<String> listOrEmpty(List<String> values) {
             return values == null ? List.of() : values;
         }
@@ -388,6 +531,57 @@ final class FabricEndLockConfig {
             PreviewSettings(boolean enabled, long seconds) {
                 this.enabled = enabled;
                 this.seconds = seconds;
+            }
+        }
+
+        /**
+         * JSON wire format of the statistics settings.
+         */
+        private static final class StatsSettings {
+            Boolean enabled;
+
+            StatsSettings() {
+            }
+
+            StatsSettings(boolean enabled) {
+                this.enabled = enabled;
+            }
+        }
+
+        /**
+         * JSON wire format of the history retention settings.
+         */
+        private static final class HistorySettings {
+            Integer maxEntries;
+            Integer retentionDays;
+
+            HistorySettings() {
+            }
+
+            HistorySettings(int maxEntries, int retentionDays) {
+                this.maxEntries = maxEntries;
+                this.retentionDays = retentionDays;
+            }
+        }
+
+        /**
+         * JSON wire format of the audit logging settings.
+         */
+        private static final class LoggingSettings {
+            Boolean enabled;
+            String logFile;
+            Boolean logAttempts;
+            Integer rateLimitSeconds;
+
+            LoggingSettings() {
+            }
+
+            LoggingSettings(boolean enabled, String logFile, boolean logAttempts,
+                            int rateLimitSeconds) {
+                this.enabled = enabled;
+                this.logFile = logFile;
+                this.logAttempts = logAttempts;
+                this.rateLimitSeconds = rateLimitSeconds;
             }
         }
     }

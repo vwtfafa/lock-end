@@ -53,6 +53,17 @@ import org.vwtfafa.lockend.core.LockStateManager;
  */
 final class EndLockGuard {
 
+    /**
+     * Reports a player arrival blocked by the lock (section 3 parity: stats
+     * counter plus a rate-limited audit-logging line). The mod installs the
+     * implementation on boot.
+     */
+    @FunctionalInterface
+    interface BlockedAttemptReporter {
+        void reportBlockedAttempt(String playerName, java.util.UUID playerId,
+                                  String originWorld, String method);
+    }
+
     private static final long SCAN_INTERVAL_TICKS = 20L;
     private static final String LOCKED_MESSAGE_PREFIX = "The End is locked: ";
     private static final Identifier WHITELIST_BYPASS_PERMISSION =
@@ -63,6 +74,7 @@ final class EndLockGuard {
     private volatile EndDimensionScope endScope;
     private volatile boolean blockEntities;
     private volatile MinecraftServer server;
+    private volatile BlockedAttemptReporter blockedAttemptReporter;
     private long ticksSinceScan;
 
     /**
@@ -107,6 +119,15 @@ final class EndLockGuard {
     }
 
     /**
+     * Installs the blocked-attempt reporter (called on every bounced arrival).
+     *
+     * @param reporter the reporter; {@code null} disables reporting
+     */
+    void setBlockedAttemptReporter(BlockedAttemptReporter reporter) {
+        this.blockedAttemptReporter = reporter;
+    }
+
+    /**
      * Restart safety net: runs once when the level is live, so a boot with a
      * persisted active lock clears players who were stranded in the End
      * before the shutdown.
@@ -148,6 +169,15 @@ final class EndLockGuard {
         teleportOut(player);
         LockEndFabricMod.LOGGER.info("Bounced {} out of the locked End (arrived from {})",
                 player.getName().getString(), origin.dimension().identifier());
+        reportAttempt(player, origin);
+    }
+
+    private void reportAttempt(ServerPlayer player, ServerLevel origin) {
+        BlockedAttemptReporter reporter = blockedAttemptReporter;
+        if (reporter != null) {
+            reporter.reportBlockedAttempt(player.getName().getString(), player.getUUID(),
+                    origin.dimension().identifier().toString(), "ARRIVAL");
+        }
     }
 
     /**

@@ -20,10 +20,21 @@ import org.vwtfafa.lockend.core.LockScheduler;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.PersistedSchedule;
 import org.vwtfafa.lockend.core.ScheduleSupport;
+import org.vwtfafa.lockend.core.UndoTracker;
+import org.vwtfafa.lockend.core.audit.AttemptRateLimiter;
+import org.vwtfafa.lockend.core.audit.AuditLogWriter;
+import org.vwtfafa.lockend.core.history.HistoryBuffer;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.messages.ModMessages;
+import org.vwtfafa.lockend.core.stats.LockStatistics;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Fabric entrypoint of the Lock-End lock for the End dimension. Owns the
@@ -35,8 +46,8 @@ import java.nio.file.Path;
  *   <li>{@link ServerLifecycleEvents#SERVER_STARTED}: restart safety net -
  *       players already inside the End after a boot with a persisted active
  *       lock are evacuated once.</li>
- *   <li>{@link ServerLifecycleEvents#SERVER_STOPPING}: final state and
- *       schedule persistence.</li>
+ *   <li>{@link ServerLifecycleEvents#SERVER_STOPPING}: final state, history,
+ *       statistics, schedule and audit-log persistence.</li>
  *   <li>{@link ServerEntityLevelChangeEvents#AFTER_PLAYER_CHANGE_LEVEL}:
  *       immediate bounce of a player who just arrived in the End while the
  *       lock is active; non-player entities are bounced the same way through
@@ -47,9 +58,11 @@ import java.nio.file.Path;
  *   <li>{@link ServerTickEvents#END_SERVER_TICK}: throttled scan that
  *       catches players who reached the End by a route the arrival event
  *       could not cover, plus the roughly once-per-second poll of the shared
- *       {@link LockScheduler}.</li>
+ *       {@link LockScheduler} together with the debounced history flush and
+ *       statistics persistence.</li>
  *   <li>{@link CommandRegistrationCallback#EVENT}: the {@code /endlock}
- *       command tree.</li>
+ *       command tree, including undo, stats and the paginated history
+ *       view.</li>
  * </ul>
  *
  * <p>All callbacks run on the main server thread; the runtime state is
@@ -57,7 +70,12 @@ import java.nio.file.Path;
  * plugin. Scheduled actions persist in
  * {@code config/lock-end.schedule.json} ({@link JsonScheduleRepository}),
  * countdown and preview behavior mirrors the Paper plugin: countdown lines
- * go to admins, the preview broadcasts to everyone.</p>
+ * go to admins, the preview broadcasts to everyone. History lives in
+ * {@code config/lock-end.history.json}, statistics counters in
+ * {@code config/lock-end.stats.json}, message overrides in
+ * {@code config/lock-end-messages.json}, and the audit log under
+ * {@code config/logs/} - all mirroring the Paper plugin's behavior and
+ * schemas.</p>
  */
 public class LockEndFabricMod implements ModInitializer {
 
@@ -67,7 +85,13 @@ public class LockEndFabricMod implements ModInitializer {
     private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
     private static final String FASTSTATS_PUBLIC_TOKEN = "71be256f6d91c1cc2e1cb18f506a3d44";
     private static final int SCHEDULE_TICK_CADENCE = 20;
+    private static final DateTimeFormatter ATTEMPT_LOG_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String FALLBACK_LOG_FILE = "EndLock.log";
 
+    private static final ModMessages MESSAGES = new ModMessages();
+
+    private Path configDirectory;
     private LockStateManager state;
     private JsonLockStateRepository repository;
     private FabricEndLockConfig config;
@@ -78,16 +102,44 @@ public class LockEndFabricMod implements ModInitializer {
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
 
+    private LockStatistics stats;
+    private JsonStatsStore statsStore;
+    private long lastStatsRevision;
+    private JsonHistoryStore historyStore;
+    private HistoryBuffer history;
+    private LockHistoryService historyService;
+    private UndoTracker undoTracker;
+    private AuditLogWriter audit;
+    private AttemptRateLimiter attemptRateLimiter;
+
     @Override
     public void onInitialize() {
-        Path configDirectory = FabricLoader.getInstance().getConfigDir();
+        configDirectory = FabricLoader.getInstance().getConfigDir();
         config = FabricEndLockConfig.load(configDirectory);
         repository = new JsonLockStateRepository(configDirectory);
+
+        JsonMessageOverrides.writeDefaultsIfMissing(configDirectory, MESSAGES);
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
 
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
+        stats = new LockStatistics(config.statsEnabled());
+        statsStore = new JsonStatsStore(configDirectory);
+        JsonStatsStore.StatsCounts loadedStats = statsStore.load();
+        stats.loadCounts(loadedStats.lockCount(), loadedStats.unlockCount(),
+                loadedStats.blockedCount(), loadedStats.evacuatedCount());
+
+        historyStore = new JsonHistoryStore(configDirectory);
+        rebuildHistoryService();
+
+        undoTracker = new UndoTracker();
+        attemptRateLimiter = new AttemptRateLimiter(config.logRateLimitSeconds());
+        audit = new AuditLogWriter(message -> LOGGER.warn(message));
+        configureAuditLogging();
+
         guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
+        guard.setBlockedAttemptReporter(this::reportBlockedAttempt);
         scheduleRepository = new JsonScheduleRepository(configDirectory);
         scheduler = new LockScheduler(new SchedulerCallbacks(), Clock.systemDefaultZone());
         applyScheduleSettings();
@@ -99,6 +151,42 @@ public class LockEndFabricMod implements ModInitializer {
         configureFastStats();
 
         LOGGER.info("EndLock (Fabric) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
+    }
+
+    /**
+     * @return the shared message registry and renderer for every Fabric
+     *         adapter class
+     */
+    static ModMessages messages() {
+        return MESSAGES;
+    }
+
+    /**
+     * Rebuilds the history buffer from the store contents and republishes
+     * it; the rotation runs inside {@link HistoryBuffer}'s constructor.
+     */
+    private void rebuildHistoryService() {
+        List<HistoryEntry> stored = historyStore.load();
+        history = new HistoryBuffer(historyStore, stored,
+                config.historyMaxEntries(), config.historyRetentionDays());
+        historyService = new LockHistoryService(configDirectory, history, historyStore);
+    }
+
+    /**
+     * Configures the audit log file. The name is sandboxed into
+     * {@code config/logs/}; a path-traversal attempt falls back to the
+     * default name like the Paper plugin's config validator.
+     */
+    private void configureAuditLogging() {
+        String rawName = config.logFile();
+        if (rawName == null || rawName.isBlank() || rawName.contains("/")
+                || rawName.contains("\\") || rawName.contains("..")) {
+            LOGGER.warn("Unsupported audit log file name '{}'; falling back to {}.",
+                    rawName, FALLBACK_LOG_FILE);
+            rawName = FALLBACK_LOG_FILE;
+        }
+        Path logFile = configDirectory.resolve("logs").resolve(rawName);
+        audit.initialize(config.loggingEnabled() ? logFile : null);
     }
 
     private void configureFastStats() {
@@ -131,6 +219,9 @@ public class LockEndFabricMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             repository.save(state.getState());
             persistRuntimeSchedule();
+            history.flush();
+            saveStats();
+            audit.shutdown();
             if (fastStatsContext != null) {
                 fastStatsContext.shutdown();
             }
@@ -154,12 +245,14 @@ public class LockEndFabricMod implements ModInitializer {
         ServerEntityLevelChangeEvents.AFTER_ENTITY_CHANGE_LEVEL.register(guard::onEntityLevelChange);
         // Throttled scan as the safety net for players who reached the End
         // by a route the arrival events could not cover, plus the scheduler
-        // poll at a one-second cadence.
+        // poll at a one-second cadence with the debounced persistence pass.
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             guard.tick(server);
             scheduleTickOffset = (scheduleTickOffset + 1) % SCHEDULE_TICK_CADENCE;
             if (scheduleTickOffset == 0 && liveServer != null) {
                 scheduler.tick(state.isLocked());
+                history.flushIfDirty();
+                saveStatsIfChanged();
             }
         });
     }
@@ -170,8 +263,142 @@ public class LockEndFabricMod implements ModInitializer {
      */
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) ->
-                new LockEndCommands(state, repository, guard, this)
+                new LockEndCommands(state, this)
                         .registerAll(dispatcher, buildContext, selection));
+    }
+
+    /**
+     * @return {@code true} while the End lock is active
+     */
+    boolean isLocked() {
+        return state.isLocked();
+    }
+
+    /**
+     * @return the shared runtime lock state of this Fabric installation
+     */
+    public LockStateManager getState() {
+        return state;
+    }
+
+    /**
+     * @return the operational statistics counters
+     */
+    LockStatistics statistics() {
+        return stats;
+    }
+
+    /**
+     * @return the history view (pagination, filters, exports)
+     */
+    LockHistoryService historyService() {
+        return historyService;
+    }
+
+    /**
+     * Central state-change execution mirroring the Paper plugin's
+     * {@code changeLockState}: records the undo target, statistics, audit
+     * log line, history entry and persistence, then clears stranded players
+     * when the End gets locked.
+     *
+     * @param lock       the target state
+     * @param action     the trigger identifier for the shared API state
+     * @param actionName the action string recorded in history and audit log
+     * @param actor      display name of the acting identity
+     * @param actorUuid  UUID of the acting player, or {@code null}
+     * @return {@code true} when the state changed
+     */
+    boolean changeLockState(boolean lock, LockAction action, String actionName,
+                            String actor, UUID actorUuid) {
+        boolean previousState = state.isLocked();
+        if (previousState == lock) {
+            return false;
+        }
+        state.updateLocked(lock, action, actor, actorUuid);
+        undoTracker.recordPreviousState(previousState);
+        stats.recordStateChange(lock);
+        saveStatsIfChanged();
+        repository.save(state.getState());
+        logAction(actionName, actor);
+        history.addEntry(actor, actorUuid, actionName, actionName, "SUCCESS",
+                null, previousState, lock);
+        if (lock) {
+            guard.evacuate();
+        }
+        return true;
+    }
+
+    /**
+     * Re-applies the recorded pre-change state, mirroring the Paper plugin's
+     * {@code undoLastAction}.
+     *
+     * @param actor     display name of the acting identity
+     * @param actorUuid UUID of the acting player, or {@code null}
+     * @return {@code true} when a pending undo existed and was executed
+     */
+    boolean undoLastAction(String actor, UUID actorUuid) {
+        Boolean previousState = undoTracker.getLastPreviousState();
+        if (previousState == null) {
+            return false;
+        }
+        boolean changed = changeLockState(previousState, LockAction.UNDO, "UNDO",
+                actor, actorUuid);
+        if (changed) {
+            undoTracker.clearLastPreviousState();
+        }
+        return changed;
+    }
+
+    /**
+     * Logs one state change into the audit log (Paper format:
+     * {@code ACTION - Player: NAME - Status: LOCKED|UNLOCKED}).
+     */
+    private void logAction(String action, String actor) {
+        if (!config.loggingEnabled()) {
+            return;
+        }
+        audit.log(String.format("%s - Player: %s - Status: %s",
+                action, actor, state.isLocked() ? "LOCKED" : "UNLOCKED"));
+    }
+
+    /**
+     * Guards' blocked-attempt hook: counts the attempt unconditionally and
+     * writes the rate-limited audit line (Paper format:
+     * {@code [ts] Attempt - Player: NAME - World: KEY - Method: METHOD
+     * - Status: LOCKED}).
+     */
+    private void reportBlockedAttempt(String playerName, UUID playerId,
+                                      String originWorld, String method) {
+        if (config.logAttempts()
+                && attemptRateLimiter.shouldLog(playerId, System.currentTimeMillis())) {
+            String timestamp = LocalDateTime.now().format(ATTEMPT_LOG_FORMAT);
+            audit.log(String.format("[%s] Attempt - Player: %s - World: %s - Method: %s - Status: LOCKED",
+                    timestamp, playerName, originWorld, method));
+        }
+        stats.recordBlockedAttempt();
+    }
+
+    /**
+     * Persists the statistics counters into the JSON store.
+     */
+    private void saveStats() {
+        if (!statsStore.save(new JsonStatsStore.StatsCounts(
+                stats.lockCount(), stats.unlockCount(),
+                stats.blockedCount(), stats.evacuatedCount()))) {
+            LOGGER.warn("Could not persist the Lock-End statistics counters.");
+        }
+    }
+
+    /**
+     * Debounced persistence: writes once per one-second pass when new
+     * events were recorded since the last write.
+     */
+    private void saveStatsIfChanged() {
+        long revision = stats.revision();
+        if (revision != lastStatsRevision) {
+            lastStatsRevision = revision;
+            saveStats();
+        }
     }
 
     /**
@@ -179,15 +406,10 @@ public class LockEndFabricMod implements ModInitializer {
      * changes (no player identity).
      */
     boolean changeStateScheduled(boolean lock) {
-        boolean changed = state.updateLocked(lock,
-                lock ? LockAction.SCHEDULED_LOCK : LockAction.SCHEDULED_UNLOCK, "System", null);
-        if (changed) {
-            repository.save(state.getState());
-            if (lock) {
-                guard.evacuate();
-            }
-        }
-        return changed;
+        return changeLockState(lock,
+                lock ? LockAction.SCHEDULED_LOCK : LockAction.SCHEDULED_UNLOCK,
+                lock ? "SCHEDULED_LOCK" : "SCHEDULED_UNLOCK",
+                "System", null);
     }
 
     /**
@@ -253,22 +475,35 @@ public class LockEndFabricMod implements ModInitializer {
     }
 
     /**
-     * Builds the schedule status line mirroring the Paper plugin's
-     * {@code schedule-status} message shape.
-     *
-     * @return the status line; never {@code null}
+     * @return the scheduled action name, or {@code -} when none is pending
+     *         (matching the Paper plugin's status line)
      */
-    String scheduleStatusLine() {
+    String scheduleAction() {
+        return scheduler.target() == null ? "-" : scheduler.action();
+    }
+
+    /**
+     * @return the formatted schedule target, or the "none" message when no
+     *         action is pending
+     */
+    String scheduleTargetText() {
+        LocalDateTime target = scheduler.target();
+        return target == null
+                ? messages().text("schedule-none")
+                : target.format(ScheduleSupport.SCHEDULE_FORMAT);
+    }
+
+    /**
+     * @return the remaining time of the schedule, or {@code -} when none is
+     *         pending (matching the Paper plugin's status line)
+     */
+    String scheduleRemainingText() {
         LocalDateTime target = scheduler.target();
         if (target == null) {
-            return "No scheduled action.";
+            return "-";
         }
-        String remaining = ScheduleSupport.formatDuration(
+        return ScheduleSupport.formatDuration(
                 Math.max(0L, scheduler.remainingSeconds()));
-        return "Action: " + scheduler.action()
-                + " | Target: " + target.format(ScheduleSupport.SCHEDULE_FORMAT)
-                + " | Remaining: " + remaining
-                + " | Paused: " + scheduler.isPaused();
     }
 
     /**
@@ -280,8 +515,10 @@ public class LockEndFabricMod implements ModInitializer {
 
     /**
      * Reloads the settings file and republishes its values to the live
-     * consumers: the lock state reason supplier, the guard rules and the
-     * schedule notification settings.
+     * consumers: the lock state reason supplier, the guard rules, the
+     * schedule notification settings, the message overrides, statistics
+     * recording, the attempt rate limiter, the audit log and the history
+     * buffer sizing.
      *
      * @return {@code null} when the file was read cleanly, otherwise a
      *         human-readable recovery notice (defaults are then active for
@@ -293,14 +530,27 @@ public class LockEndFabricMod implements ModInitializer {
         state.setReasonSupplier(config::lockReason);
         guard.applyRules(config.bypassChecker(), config.endScope(), config.blockEntities());
         applyScheduleSettings();
+        refreshRuntimeServices();
         return config.parseFailureMessage();
     }
 
     /**
-     * @return the shared runtime lock state of this Fabric installation
+     * Republishes the runtime services from the freshly loaded config.
+     * The history buffer is rebuilt; pending entries are flushed first so
+     * no record is lost by the rebuild.
      */
-    public LockStateManager getState() {
-        return state;
+    private void refreshRuntimeServices() {
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
+        stats.setEnabled(config.statsEnabled());
+        attemptRateLimiter.setRateLimitSeconds(config.logRateLimitSeconds());
+        history.flush();
+        List<HistoryEntry> retained = history.snapshot();
+        history = new HistoryBuffer(historyStore, retained,
+                config.historyMaxEntries(), config.historyRetentionDays());
+        historyService = new LockHistoryService(configDirectory, history, historyStore);
+        audit.shutdown();
+        audit = new AuditLogWriter(message -> LOGGER.warn(message));
+        configureAuditLogging();
     }
 
     /**
@@ -351,13 +601,12 @@ public class LockEndFabricMod implements ModInitializer {
 
     /**
      * The scheduler callbacks, delivered in the server tick context:
-     * executes the due state change through {@link #changeStateScheduled},
-     * sends countdown lines to admins and broadcasts the one-shot preview
-     * to everyone, mirroring the Paper plugin.
+     * executes the due state change through the central
+     * {@link #changeLockState} path, sends countdown lines to admins and
+     * broadcasts the one-shot preview to everyone, mirroring the Paper
+     * plugin.
      */
     private final class SchedulerCallbacks implements LockScheduler.Callbacks {
-
-        private static final String PREFIX = "[EndLock] ";
 
         @Override
         public void executeScheduled(boolean lock) {
@@ -368,13 +617,13 @@ public class LockEndFabricMod implements ModInitializer {
             boolean changed = changeStateScheduled(lock);
             if (!changed) {
                 LOGGER.info("Scheduled {} target state already active; skipped.", lock ? "lock" : "unlock");
-            } else {
-                server.getPlayerList().broadcastSystemMessage(Component.literal(lock
-                        ? "The End is now locked! (scheduled) "
-                        + describeReason()
-                        : "The End has been unlocked. (scheduled)"), false);
-                LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
+                scheduleRepository.clear();
+                return;
             }
+            server.getPlayerList().broadcastSystemMessage(Component.literal(lock
+                    ? "The End is now locked! (scheduled) " + describeReason()
+                    : "The End has been unlocked. (scheduled)"), false);
+            LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
             scheduleRepository.clear();
         }
 
@@ -391,10 +640,10 @@ public class LockEndFabricMod implements ModInitializer {
             if (server == null) {
                 return;
             }
-            boolean lock = "lock".equalsIgnoreCase(action);
-            String rendered = PREFIX + "The End will be "
-                    + (lock ? "locked" : "unlocked")
-                    + " in " + ScheduleSupport.formatDuration(remainingSeconds) + ".";
+            String key = "lock".equalsIgnoreCase(action)
+                    ? "countdown-lock-notification" : "countdown-notification";
+            String rendered = messages().text(key,
+                    Map.of("%time%", ScheduleSupport.formatDuration(remainingSeconds)));
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 if (player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)) {
                     player.sendSystemMessage(Component.literal(rendered));
@@ -408,10 +657,10 @@ public class LockEndFabricMod implements ModInitializer {
             if (server == null) {
                 return;
             }
-            boolean lock = "lock".equalsIgnoreCase(action);
-            server.getPlayerList().broadcastSystemMessage(Component.literal(lock
-                    ? "The End will be locked in " + secondsBefore + " seconds!"
-                    : "The End will be unlocked in " + secondsBefore + " seconds!"), false);
+            String key = "lock".equalsIgnoreCase(action) ? "preview-lock" : "preview-unlock";
+            server.getPlayerList().broadcastSystemMessage(Component.literal(
+                    messages().text(key, Map.of("%seconds%", String.valueOf(secondsBefore)))),
+                    false);
         }
 
         private String describeReason() {
