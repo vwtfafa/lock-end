@@ -13,8 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 
 /**
  * Asynchronous audit log writer, keeping blocking file I/O off the server
@@ -29,7 +28,7 @@ public final class AuditLogWriter {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final BlockingQueue<String> logQueue = new LinkedBlockingQueue<>();
-    private final Logger logger;
+    private final Consumer<String> warningSink;
     private final ExecutorService executor = Executors.newSingleThreadExecutor(command -> {
         Thread thread = new Thread(command, "EndLock-AuditWriter");
         thread.setDaemon(true);
@@ -40,10 +39,12 @@ public final class AuditLogWriter {
     private volatile boolean started;
 
     /**
-     * Creates the writer around the platform's logger.
+     * Creates the writer around the platform's warning output.
+     *
+     * @param warningSink receives write-failure warnings; not {@code null}
      */
-    public AuditLogWriter(Logger logger) {
-        this.logger = logger;
+    public AuditLogWriter(Consumer<String> warningSink) {
+        this.warningSink = warningSink;
     }
 
     /**
@@ -87,7 +88,7 @@ public final class AuditLogWriter {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
                 if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
-                    logger.warning("Audit log writer did not terminate within the timeout");
+                    warningSink.accept("Audit log writer did not terminate within the timeout");
                 }
             }
         } catch (InterruptedException exception) {
@@ -121,7 +122,7 @@ public final class AuditLogWriter {
         try {
             write(message, target);
         } catch (IOException | UncheckedIOException exception) {
-            logger.log(Level.SEVERE, "Error writing to the audit log file: "
+            warningSink.accept("Error writing to the audit log file: "
                     + exception.getMessage());
         }
     }
