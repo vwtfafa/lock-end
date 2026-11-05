@@ -210,7 +210,7 @@ under section 5.
   bar on the mods, admins only when `notifyAll` is off, mirroring the Paper
   message service).
 - [x] Add configurable messages and translations; use the same message keys
-  across platforms: shared `ModMessages` in `lock-end-core` (~51 keys
+  across platforms: shared `ModMessages` in `lock-end-core` (72 keys
   including scheduled/preview/countdown, evacuation, stats, history,
   `reason-usage`, grace period) with per-mod plain-text overrides in
   `config/lock-end-messages.json` (seeded once with the built-in defaults on
