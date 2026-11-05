@@ -13,8 +13,13 @@ import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
 import net.fabricmc.fabric.api.permission.v1.PermissionContextOwner;
 import org.vwtfafa.lockend.core.EndDimensionScope;
+import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockBypassChecker;
 import org.vwtfafa.lockend.core.LockStateManager;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Guards the guarded End dimensions against entries while the shared runtime
@@ -26,15 +31,16 @@ import org.vwtfafa.lockend.core.LockStateManager;
  *   <li>an immediate bounce in
  *       {@code ServerEntityLevelChangeEvents#AFTER_PLAYER_CHANGE_LEVEL} when
  *       a player arrives in a guarded End dimension while the lock is
- *       active,</li>
+ *       active (a running grace period is announced instead of enforced),</li>
  *   <li>an immediate bounce in
  *       {@code ServerEntityLevelChangeEvents#AFTER_ENTITY_CHANGE_LEVEL} for
  *       non-player entities when {@code blockEntities} is enabled (entities
  *       never bypass), and</li>
  *   <li>a throttled scan on {@code ServerTickEvents#END_SERVER_TICK} that
- *       catches players who reached the End through a route the arrival
- *       events cannot observe (including players logged back in after a
- *       restart with a persisted lock).</li>
+ *       only catches players who entered afterwards: the residents recorded
+ *       when the lock became active (or at boot with a persisted lock) stay
+ *       in place - moving them out is the mod's evacuation service business
+ *       (or, when it is disabled, they remain, like on Paper).</li>
  * </ul>
  *
  * <p>All bounces teleport to the overworld respawn point via a
@@ -70,11 +76,14 @@ final class EndLockGuard {
             Identifier.fromNamespaceAndPath("lock-end", "whitelist.bypass");
 
     private final LockStateManager state;
+    private final GracePeriod gracePeriod;
+    private final SoundEffects soundEffects;
     private volatile LockBypassChecker bypassChecker;
     private volatile EndDimensionScope endScope;
     private volatile boolean blockEntities;
     private volatile MinecraftServer server;
     private volatile BlockedAttemptReporter blockedAttemptReporter;
+    private volatile Set<UUID> residentsAtLock = Set.of();
     private long ticksSinceScan;
 
     /**
@@ -85,15 +94,22 @@ final class EndLockGuard {
      * @param bypassChecker the configured bypass (whitelist) rules
      * @param endScope      the guarded End dimension scope
      * @param blockEntities {@code true} if non-player entities may not enter
+     * @param gracePeriod   the grace-period window consulted before
+     *                      enforcement
+     * @param soundEffects  the denial-sound player shared by all routes
      */
     EndLockGuard(LockStateManager state,
                  LockBypassChecker bypassChecker,
                  EndDimensionScope endScope,
-                 boolean blockEntities) {
+                 boolean blockEntities,
+                 GracePeriod gracePeriod,
+                 SoundEffects soundEffects) {
         this.state = state;
         this.bypassChecker = bypassChecker;
         this.endScope = endScope;
         this.blockEntities = blockEntities;
+        this.gracePeriod = gracePeriod;
+        this.soundEffects = soundEffects;
     }
 
     /**
@@ -128,30 +144,77 @@ final class EndLockGuard {
     }
 
     /**
-     * Restart safety net: runs once when the level is live, so a boot with a
-     * persisted active lock clears players who were stranded in the End
-     * before the shutdown.
+     * Restart handover: records who currently lives in the guarded End so
+     * the arrival scan only bounces players who entered afterwards. The
+     * regular evacuation pass decides whether those residents are moved out.
      */
     void handleServerStarted() {
-        if (state.isLocked()) {
-            evacuate();
-        }
+        captureResidents();
     }
 
     /**
-     * Periodic scan callback; invoked on every server tick.
+     * Snapshots the players currently inside guarded End dimensions as
+     * residents; while the lock is active only new arrivals are bounced by
+     * the tick scan (residents are the evacuation service's business).
+     */
+    void captureResidents() {
+        MinecraftServer currentServer = server;
+        if (currentServer == null) {
+            return;
+        }
+        Set<UUID> residents = new HashSet<>();
+        for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
+            if (endScope.isGuarded(dimensionKey(player.level()))) {
+                residents.add(player.getUUID());
+            }
+        }
+        residentsAtLock = Set.copyOf(residents);
+        LockEndFabricMod.LOGGER.debug("Recorded {} End residents for the active lock.", residents.size());
+    }
+
+    /**
+     * Clears the residents snapshot (used when the End unlocks again).
+     */
+    void clearResidents() {
+        residentsAtLock = Set.of();
+    }
+
+    /**
+     * @param level the level to test
+     * @return {@code true} if the level is inside the guarded End scope
+     */
+    boolean isGuarded(Level level) {
+        return endScope.isGuarded(dimensionKey(level));
+    }
+
+    /**
+     * Periodic arrival-scan callback; invoked on every server tick. Players
+     * who were already inside the End when the lock became active are not
+     * evicted here (enforcement is the evacuation service's business); this
+     * scan only catches players who arrived by a route the level-change
+     * events could not observe.
      *
      * @param currentServer the running server
      */
     void tick(MinecraftServer currentServer) {
-        if (!state.isLocked()) {
+        if (!state.isLocked() || gracePeriod.isActive()) {
             return;
         }
         if (++ticksSinceScan < SCAN_INTERVAL_TICKS) {
             return;
         }
         ticksSinceScan = 0;
-        evacuate();
+        Set<UUID> residents = residentsAtLock;
+        for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
+            if (residents.contains(player.getUUID())
+                    || !endScope.isGuarded(dimensionKey(player.level()))
+                    || canBypass(player, player.level())) {
+                continue;
+            }
+            LockEndFabricMod.LOGGER.info("Bounced {} out of the locked End (late arrival scan)",
+                    player.getName().getString());
+            bounceArrival(player);
+        }
     }
 
     /**
@@ -166,9 +229,14 @@ final class EndLockGuard {
         if (!state.isLocked() || !isEntryAttempt(origin, destination) || canBypass(player, destination)) {
             return;
         }
-        teleportOut(player);
+        if (gracePeriod.isActive()) {
+            player.sendSystemMessage(Component.literal(
+                    LockEndFabricMod.messages().text("grace-period-active")));
+            return;
+        }
         LockEndFabricMod.LOGGER.info("Bounced {} out of the locked End (arrived from {})",
                 player.getName().getString(), origin.dimension().identifier());
+        bounceArrival(player);
         reportAttempt(player, origin);
     }
 
@@ -199,22 +267,6 @@ final class EndLockGuard {
         bounceEntity(moved);
     }
 
-    /**
-     * Moves every player currently inside a guarded End dimension out.
-     * Idempotent; the tick gate keeps this a no-op while the End is unlocked.
-     */
-    void evacuate() {
-        MinecraftServer currentServer = server;
-        if (currentServer == null) {
-            return;
-        }
-        for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
-            if (endScope.isGuarded(dimensionKey(player.level())) && !canBypass(player, player.level())) {
-                teleportOut(player);
-            }
-        }
-    }
-
     private boolean canBypass(ServerPlayer player, ServerLevel destination) {
         String worldKey = destination.dimension().identifier().toString();
         Identifier worldPermission = Identifier.fromNamespaceAndPath(
@@ -227,6 +279,18 @@ final class EndLockGuard {
                 () -> permissionOwner.checkPermission(worldPermission, PermissionLevel.ADMINS)
                         || permissionOwner.checkPermission(
                                 WHITELIST_BYPASS_PERMISSION, PermissionLevel.ADMINS));
+    }
+
+    /**
+     * Bounces one arrival back to the safe destination: teleports the
+     * player to the overworld respawn point, plays the denial sound and
+     * sends the locked message with the current reason.
+     *
+     * @param player the arriving player
+     */
+    private void bounceArrival(ServerPlayer player) {
+        teleportOut(player);
+        soundEffects.playDenial(player);
     }
 
     private void teleportOut(ServerPlayer player) {

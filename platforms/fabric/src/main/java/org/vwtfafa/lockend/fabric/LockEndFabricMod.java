@@ -5,7 +5,9 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +18,7 @@ import dev.faststats.fabric.FabricContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockScheduler;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.PersistedSchedule;
@@ -75,7 +78,10 @@ import java.util.UUID;
  * {@code config/lock-end.stats.json}, message overrides in
  * {@code config/lock-end-messages.json}, and the audit log under
  * {@code config/logs/} - all mirroring the Paper plugin's behavior and
- * schemas.</p>
+ * schemas. Lock state changes broadcast through the {@code broadcast}
+ * settings, locking optionally starts a grace period, and the
+ * {@link EndLockEvacuation} service moves End residents out with the
+ * Paper-identical warning, preview and execute flow.</p>
  */
 public class LockEndFabricMod implements ModInitializer {
 
@@ -111,6 +117,9 @@ public class LockEndFabricMod implements ModInitializer {
     private UndoTracker undoTracker;
     private AuditLogWriter audit;
     private AttemptRateLimiter attemptRateLimiter;
+    private GracePeriod gracePeriod;
+    private SoundEffects soundEffects;
+    private EndLockEvacuation evacuation;
 
     @Override
     public void onInitialize() {
@@ -138,7 +147,12 @@ public class LockEndFabricMod implements ModInitializer {
         audit = new AuditLogWriter(message -> LOGGER.warn(message));
         configureAuditLogging();
 
-        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(), config.blockEntities());
+        gracePeriod = new GracePeriod(Clock.systemDefaultZone());
+        soundEffects = new SoundEffects();
+        soundEffects.loadFrom(config);
+        evacuation = new EndLockEvacuation(this);
+        guard = new EndLockGuard(state, config.bypassChecker(), config.endScope(),
+                config.blockEntities(), gracePeriod, soundEffects);
         guard.setBlockedAttemptReporter(this::reportBlockedAttempt);
         scheduleRepository = new JsonScheduleRepository(configDirectory);
         scheduler = new LockScheduler(new SchedulerCallbacks(), Clock.systemDefaultZone());
@@ -147,6 +161,7 @@ public class LockEndFabricMod implements ModInitializer {
 
         registerLifecycleHooks();
         registerDimensionHooks();
+        registerJoinHook();
         registerCommands();
         configureFastStats();
 
@@ -211,6 +226,12 @@ public class LockEndFabricMod implements ModInitializer {
             liveServer = server;
             guard.attachServer(server);
             guard.handleServerStarted();
+            // Boot safety net for a persisted active lock: schedule the
+            // evacuation pass the same way the Paper plugin re-arms it on
+            // a join into the locked End.
+            if (state.isLocked() && config.evacuationEnabled() && !evacuation.isPending()) {
+                evacuation.schedule();
+            }
             if (fastStatsContext != null) {
                 fastStatsContext.ready();
                 LOGGER.info("FastStats metrics and error tracking enabled.");
@@ -221,6 +242,7 @@ public class LockEndFabricMod implements ModInitializer {
             persistRuntimeSchedule();
             history.flush();
             saveStats();
+            evacuation.shutdown();
             audit.shutdown();
             if (fastStatsContext != null) {
                 fastStatsContext.shutdown();
@@ -252,7 +274,27 @@ public class LockEndFabricMod implements ModInitializer {
             if (scheduleTickOffset == 0 && liveServer != null) {
                 scheduler.tick(state.isLocked());
                 history.flushIfDirty();
+                evacuation.tickSecond();
                 saveStatsIfChanged();
+            }
+        });
+    }
+
+    /**
+     * Installs the join notification hook mirroring the Paper plugin's
+     * {@code onPlayerJoin}: re-arms the waiting evacuation pass when a
+     * player joins a locked guarded End, and sends the locked-End notice to
+     * every joining player while the notification setting is enabled.
+     */
+    private void registerJoinHook() {
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayer player = handler.getPlayer();
+            if (state.isLocked() && config.evacuationEnabled()
+                    && guard.isGuarded(player.level()) && !evacuation.isPending()) {
+                evacuation.schedule();
+            }
+            if (state.isLocked() && config.joinNotificationsEnabled()) {
+                player.sendSystemMessage(Component.literal(messages().text("join-notification")));
             }
         });
     }
@@ -296,10 +338,41 @@ public class LockEndFabricMod implements ModInitializer {
     }
 
     /**
+     * @return the bounded history buffer (evacuation outcomes are recorded
+     *         here)
+     */
+    HistoryBuffer history() {
+        return history;
+    }
+
+    /**
+     * @return the running server, or {@code null} before startup / after
+     *         shutdown
+     */
+    MinecraftServer liveServer() {
+        return liveServer;
+    }
+
+    /**
+     * @return {@code true} if the level is inside the guarded End scope
+     */
+    boolean isGuarded(Level level) {
+        return guard.isGuarded(level);
+    }
+
+    /**
+     * @return the evacuation service (warnings, preview/execute command)
+     */
+    EndLockEvacuation evacuation() {
+        return evacuation;
+    }
+
+    /**
      * Central state-change execution mirroring the Paper plugin's
      * {@code changeLockState}: records the undo target, statistics, audit
-     * log line, history entry and persistence, then clears stranded players
-     * when the End gets locked.
+     * log line, history entry and persistence, broadcasts the new state,
+     * snapshots End residents, then starts (or cancels) the grace period
+     * and evacuation services.
      *
      * @param lock       the target state
      * @param action     the trigger identifier for the shared API state
@@ -319,13 +392,62 @@ public class LockEndFabricMod implements ModInitializer {
         stats.recordStateChange(lock);
         saveStatsIfChanged();
         repository.save(state.getState());
+        broadcastLockState(lock, actor);
         logAction(actionName, actor);
         history.addEntry(actor, actorUuid, actionName, actionName, "SUCCESS",
                 null, previousState, lock);
         if (lock) {
-            guard.evacuate();
+            guard.captureResidents();
+            startGracePeriodIfEnabled();
+            evacuation.schedule();
+        } else {
+            guard.clearResidents();
+            gracePeriod.cancel();
+            evacuation.cancel();
         }
         return true;
+    }
+
+    /**
+     * Broadcasts the lock state change mirroring the Paper plugin's
+     * {@code MessageService.broadcastLockState}: the action bar or chat
+     * variants, admins only when {@code notify-all} is off.
+     *
+     * @param locked     the new state
+     * @param playerName acting identity for the {@code %player%} token
+     */
+    private void broadcastLockState(boolean locked, String playerName) {
+        MinecraftServer server = liveServer;
+        if (!config.broadcastEnabled() || server == null) {
+            return;
+        }
+        boolean notifyAll = config.broadcastNotifyAll();
+        boolean useActionbar = config.broadcastUseActionbar();
+        String componentText = useActionbar
+                ? messages().text(locked ? "actionbar-locked" : "actionbar-unlocked")
+                : messages().text(locked ? "broadcast-locked" : "broadcast-unlocked",
+                        Map.of("%player%", playerName));
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!notifyAll && !player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)) {
+                continue;
+            }
+            if (useActionbar) {
+                player.sendOverlayMessage(Component.literal(componentText));
+            } else {
+                player.sendSystemMessage(Component.literal(componentText));
+            }
+        }
+    }
+
+    /**
+     * Starts the grace period when the config enables it (called right after
+     * a lock becomes active).
+     */
+    private void startGracePeriodIfEnabled() {
+        if (config.gracePeriodEnabled()) {
+            gracePeriod.start(Math.max(0, config.gracePeriodDuration()));
+            LOGGER.info("Grace period started for {} seconds.", config.gracePeriodDuration());
+        }
     }
 
     /**
@@ -543,6 +665,7 @@ public class LockEndFabricMod implements ModInitializer {
         MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
         stats.setEnabled(config.statsEnabled());
         attemptRateLimiter.setRateLimitSeconds(config.logRateLimitSeconds());
+        soundEffects.loadFrom(config);
         history.flush();
         List<HistoryEntry> retained = history.snapshot();
         history = new HistoryBuffer(historyStore, retained,
@@ -617,13 +740,9 @@ public class LockEndFabricMod implements ModInitializer {
             boolean changed = changeStateScheduled(lock);
             if (!changed) {
                 LOGGER.info("Scheduled {} target state already active; skipped.", lock ? "lock" : "unlock");
-                scheduleRepository.clear();
-                return;
+            } else {
+                LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
             }
-            server.getPlayerList().broadcastSystemMessage(Component.literal(lock
-                    ? "The End is now locked! (scheduled) " + describeReason()
-                    : "The End has been unlocked. (scheduled)"), false);
-            LOGGER.info("Scheduled {} executed.", lock ? "lock" : "unlock");
             scheduleRepository.clear();
         }
 
@@ -661,11 +780,6 @@ public class LockEndFabricMod implements ModInitializer {
             server.getPlayerList().broadcastSystemMessage(Component.literal(
                     messages().text(key, Map.of("%seconds%", String.valueOf(secondsBefore)))),
                     false);
-        }
-
-        private String describeReason() {
-            String reason = state.getLockReason();
-            return reason.isBlank() ? "" : "Reason: " + reason;
         }
     }
 }

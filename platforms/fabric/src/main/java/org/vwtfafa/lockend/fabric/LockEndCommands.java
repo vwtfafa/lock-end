@@ -36,10 +36,10 @@ import java.util.function.Predicate;
 /**
  * The Fabric side of the Lock-End command surface, matching the Paper
  * per-node permission style: {@code /endlock lock|unlock|reason set|reason
- * clear|schedule status|schedule clear|cancel|pause|resume|undo} require the
- * {@code lock-end:admin} node style with per-command nodes for
- * {@code history} ({@code lock-end:history}) and {@code undo}
- * ({@code lock-end:undo}), {@code /endlock reload} requires
+ * clear|schedule status|schedule clear|cancel|pause|resume|undo|evacuate
+ * preview|evacuate execute} require the {@code lock-end:admin} node style
+ * with per-command nodes for {@code history} ({@code lock-end:history}) and
+ * {@code undo} ({@code lock-end:undo}), {@code /endlock reload} requires
  * {@code lock-end:reload}, the scheduled opening commands
  * {@code /endlock unlockin|unlockat|lockin|lockat} require the
  * {@code lock-end:toggle} node (the Paper plugin's {@code endlock.toggle}
@@ -125,6 +125,12 @@ final class LockEndCommands {
                         .requires(requires(ADMIN_PERMISSION_NODE))
                         .then(Commands.literal("status").executes(this::executeScheduleStatus))
                         .then(Commands.literal("clear").executes(this::executeScheduleClear)))
+                .then(Commands.literal("evacuate")
+                        .requires(requires(ADMIN_PERMISSION_NODE))
+                        .then(Commands.literal("preview")
+                                .executes(this::executeEvacuationPreview))
+                        .then(Commands.literal("execute")
+                                .executes(this::executeEvacuationExecute)))
                 .then(Commands.literal("cancel")
                         .requires(requires(ADMIN_PERMISSION_NODE))
                         .executes(this::executeCancelSchedule))
@@ -413,6 +419,28 @@ final class LockEndCommands {
         }
         mod.resumeSchedule();
         source.sendSuccess(() -> Component.literal(messages().text("schedule-resumed")), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    // --- Evacuation ----------------------------------------------------
+
+    /**
+     * Shows the side-effect-free evacuation preview, mirroring the Paper
+     * plugin's preview/execute pair.
+     */
+    private int executeEvacuationPreview(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        mod.evacuation().showPreview(source, source.getTextName(), actorUuid(source));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /**
+     * Executes a previously shown preview (30-second validity, drift
+     * re-check), mirroring the Paper plugin.
+     */
+    private int executeEvacuationExecute(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        mod.evacuation().executePreview(source, source.getTextName(), actorUuid(source));
         return Command.SINGLE_SUCCESS;
     }
 

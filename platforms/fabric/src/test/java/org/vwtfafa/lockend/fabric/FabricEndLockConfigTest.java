@@ -36,6 +36,63 @@ class FabricEndLockConfigTest {
     }
 
     @Test
+    void playerSectionsBootWithPaperDefaultsAndEvacuationOn() throws IOException {
+        FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
+
+        assertTrue(config.broadcastEnabled());
+        assertTrue(config.broadcastUseActionbar());
+        assertTrue(config.broadcastNotifyAll());
+        assertFalse(config.soundEffectsEnabled());
+        assertEquals("BLOCK_ANVIL_LAND", config.soundEffectSound());
+        assertEquals(1.0f, config.soundEffectVolume());
+        assertEquals(1.0f, config.soundEffectPitch());
+        assertFalse(config.gracePeriodEnabled());
+        assertEquals(10, config.gracePeriodDuration());
+        // The mods default to evacuating so the previous always-evacuate
+        // guard behavior survives the parity change.
+        assertTrue(config.evacuationEnabled());
+        assertEquals(10L, config.evacuationWarningSeconds());
+        assertEquals("", config.evacuationTargetWorld());
+        assertTrue(config.evacuationExcludeBypass());
+        assertFalse(config.joinNotificationsEnabled());
+        String json = Files.readString(tempDir.resolve("lock-end.json"));
+        assertTrue(json.contains("\"broadcast\""));
+        assertTrue(json.contains("\"soundEffects\""));
+        assertTrue(json.contains("\"gracePeriod\""));
+        assertTrue(json.contains("\"evacuation\""));
+        assertTrue(json.contains("\"joinNotifications\""));
+    }
+
+    @Test
+    void playerSectionEditsArePickedUp() throws IOException {
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "broadcast": {"enabled": false, "useActionbar": false, "notifyAll": false},
+                  "soundEffects": {"enabled": true, "sound": "minecraft:block.note_block.pling", "volume": 2.0, "pitch": 0.5},
+                  "gracePeriod": {"enabled": true, "duration": 45},
+                  "evacuation": {"enabled": false, "warningSeconds": 30, "targetWorld": "", "excludeBypass": true},
+                  "joinNotifications": {"enabled": true}
+                }
+                """);
+
+        FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
+
+        assertFalse(config.broadcastEnabled());
+        assertFalse(config.broadcastUseActionbar());
+        assertFalse(config.broadcastNotifyAll());
+        assertTrue(config.soundEffectsEnabled());
+        assertEquals("minecraft:block.note_block.pling", config.soundEffectSound());
+        assertEquals(2.0f, config.soundEffectVolume());
+        assertEquals(0.5f, config.soundEffectPitch());
+        assertTrue(config.gracePeriodEnabled());
+        assertEquals(45, config.gracePeriodDuration());
+        assertFalse(config.evacuationEnabled());
+        assertEquals(30L, config.evacuationWarningSeconds());
+        assertTrue(config.joinNotificationsEnabled());
+    }
+
+    @Test
     void countdownAndPreviewBootWithPaperDefaults() throws IOException {
         FabricEndLockConfig config = FabricEndLockConfig.load(tempDir);
 
