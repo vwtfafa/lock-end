@@ -14,8 +14,9 @@ import java.util.Locale;
  *   <li>one pending action (supported action name plus absolute target),</li>
  *   <li>pause holds the execution without moving the target; resuming
  *       executes an already-lapsed target immediately,</li>
- *   <li>a due action is skipped when its target lock state is already
- *       active, and the pending action is cleared either way,</li>
+ *   <li>a pending action is cleared as soon as its target lock state becomes
+ *       active, and the due action is skipped if its target state is already
+ *       active when it is reached,</li>
  *   <li>restore rules for persisted data: a future target resumes counting,
  *       a lapsed persisted target is cleared instead of being executed on
  *       boot, and an unsupported action never coerces to unlock,</li>
@@ -46,6 +47,12 @@ public final class LockScheduler {
          * @param lock {@code true} to lock the End
          */
         void executeScheduled(boolean lock);
+
+        /**
+         * Clears persisted schedule data when the target state is reached
+         * before the scheduled time.
+         */
+        void discardScheduled();
 
         /**
          * Periodic countdown notification for the pending action.
@@ -246,15 +253,22 @@ public final class LockScheduler {
 
     /**
      * Polls due execution and notifications. Call from the server tick
-     * context roughly once per second. The due action is only executed when
-     * the current lock state does not already match the scheduled target
-     * state; the pending action is cleared either way.
+     * context roughly once per second. The pending action is discarded
+     * immediately when the current lock state matches its target, rather
+     * than continuing its countdown until the scheduled time.
      *
      * @param currentLocked whether the End is currently locked
      */
     public void tick(boolean currentLocked) {
         LocalDateTime capturedTarget = target;
         if (capturedTarget == null) {
+            return;
+        }
+        String capturedAction = action;
+        boolean targetLocked = "lock".equalsIgnoreCase(capturedAction);
+        if (currentLocked == targetLocked) {
+            callbacks.discardScheduled();
+            clearState();
             return;
         }
         long remaining = ScheduleSupport.remainingSeconds(

@@ -72,9 +72,35 @@ class LockSchedulerTest {
     void tickingBeforeTheTargetDoesNothing() {
         scheduleUnlockInMinutes(5);
 
-        scheduler.tick(false);
+        scheduler.tick(true);
 
         assertTrue(scheduler.hasAction());
+        assertEquals(List.of(), callbacks.executions);
+    }
+
+    @Test
+    void clearsPendingLockAsSoonAsEndBecomesLocked() {
+        scheduler.setCountdownSettings(true, 299, 10);
+        scheduler.schedule("lock", LocalDateTime.of(2026, 11, 5, 12, 5));
+
+        scheduler.tick(false);
+        scheduler.tick(true);
+
+        assertFalse(scheduler.hasAction());
+        assertEquals(1, callbacks.discardedSchedules);
+        assertEquals(List.of(), callbacks.countdowns);
+        assertEquals(List.of(), callbacks.executions);
+    }
+
+    @Test
+    void clearsPendingUnlockAsSoonAsEndBecomesUnlocked() {
+        scheduler.schedule("unlock", LocalDateTime.of(2026, 11, 5, 12, 5));
+
+        scheduler.tick(true);
+        scheduler.tick(false);
+
+        assertFalse(scheduler.hasAction());
+        assertEquals(1, callbacks.discardedSchedules);
         assertEquals(List.of(), callbacks.executions);
     }
 
@@ -99,9 +125,9 @@ class LockSchedulerTest {
     void aClockShiftBackwardsKeepsTheSchedulePending() {
         scheduleUnlockInMinutes(30);
 
-        scheduler.tick(false);
+        scheduler.tick(true);
         clock.rewind(LocalDateTime.of(2026, 11, 5, 11, 0));
-        scheduler.tick(false);
+        scheduler.tick(true);
 
         assertTrue(scheduler.hasAction(), "target still in the future after the shift back");
         assertEquals(List.of(), callbacks.executions);
@@ -135,16 +161,16 @@ class LockSchedulerTest {
     void pauseHoldsExecutionWithoutMovingTheTarget() {
         scheduleUnlockInMinutes(2);
         clock.advance(LocalDateTime.of(2026, 11, 5, 12, 1));
-        scheduler.tick(false);
+        scheduler.tick(true);
         scheduler.pause();
-        scheduler.tick(false);
+        scheduler.tick(true);
 
         assertTrue(scheduler.isPaused());
         assertTrue(scheduler.hasAction(), "target does not move while paused");
         assertEquals(List.of(), callbacks.executions);
 
         clock.advance(LocalDateTime.of(2026, 11, 5, 13, 0));
-        scheduler.tick(false);
+        scheduler.tick(true);
         assertEquals(List.of(), callbacks.executions, "paused schedules do not execute");
         assertTrue(scheduler.remainingSeconds() == 0, "time keeps passing while paused");
     }
@@ -237,7 +263,7 @@ class LockSchedulerTest {
         // interval bucket changes, not on every tick.
         LocalDateTime baseTime = LocalDateTime.of(2026, 11, 5, 12, 0, 30);
         clock.advance(baseTime);
-        scheduler.tick(false);
+        scheduler.tick(true);
         long remainingAtStart = scheduler.remainingSeconds();
         assertEquals(570, remainingAtStart);
         assertEquals(List.of(570L), callbacks.countdowns);
@@ -245,7 +271,7 @@ class LockSchedulerTest {
         callbacks.countdowns.clear();
         for (int second = 1; second <= 120; second++) {
             clock.advance(baseTime.plusSeconds(second));
-            scheduler.tick(false);
+            scheduler.tick(true);
         }
 
         // Announced once per 60s interval: at remaining 539 and then 479.
@@ -257,7 +283,7 @@ class LockSchedulerTest {
         scheduler.setCountdownSettings(true, 300, 10);
         scheduleUnlockInMinutes(30);
 
-        scheduler.tick(false);
+        scheduler.tick(true);
 
         assertTrue(callbacks.countdowns.isEmpty());
     }
@@ -268,8 +294,8 @@ class LockSchedulerTest {
         scheduleUnlockInMinutes(2);
 
         clock.advance(LocalDateTime.of(2026, 11, 5, 12, 1));
-        scheduler.tick(false);
-        scheduler.tick(false);
+        scheduler.tick(true);
+        scheduler.tick(true);
 
         assertTrue(callbacks.countdowns.isEmpty());
     }
@@ -305,7 +331,7 @@ class LockSchedulerTest {
         scheduler.setPreviewSettings(true, 30);
         scheduleUnlockInMinutes(10);
 
-        scheduler.tick(false);
+        scheduler.tick(true);
 
         assertTrue(callbacks.previews.isEmpty());
     }
@@ -360,10 +386,16 @@ class LockSchedulerTest {
         private final List<Long> countdowns = new ArrayList<>();
         private final List<String> previews = new ArrayList<>();
         private final List<Long> previewWindows = new ArrayList<>();
+        private int discardedSchedules;
 
         @Override
         public void executeScheduled(boolean lock) {
             executions.add(lock);
+        }
+
+        @Override
+        public void discardScheduled() {
+            discardedSchedules++;
         }
 
         @Override

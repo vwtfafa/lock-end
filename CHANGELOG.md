@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Fabric and NeoForge now cancel a pending lock/unlock timer and clear its
+  persisted schedule as soon as the End already reaches the scheduled state.
+
 ## [4.0.0] - 2026-11-03
 
 Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only

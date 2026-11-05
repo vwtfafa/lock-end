@@ -352,6 +352,13 @@ public class LockEndFabricMod implements ModInitializer {
         }
 
         @Override
+        public void discardScheduled() {
+            scheduleRepository.clear();
+            LOGGER.info("Scheduled {} cleared because the End already reached that state.",
+                    scheduler.action());
+        }
+
+        @Override
         public void announceCountdown(String action, long remainingSeconds) {
             MinecraftServer server = liveServer;
             if (server == null) {
