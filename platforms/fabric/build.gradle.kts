@@ -12,9 +12,14 @@ plugins {
 val fabricMinecraftVersion = providers.gradleProperty("fabricMinecraftVersion").get()
 val fabricLoaderVersion = providers.gradleProperty("fabricLoaderVersion").get()
 val fabricApiVersion = providers.gradleProperty("fabricApiVersion").get()
+val fastStatsVersion = providers.gradleProperty("fastStatsVersion").get()
+val fastStatsMinecraftVersion = providers.gradleProperty("fastStatsMinecraftVersion").get()
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://repo.faststats.dev/releases")
+    }
 }
 
 val sharedModules by configurations.creating {
@@ -29,6 +34,8 @@ dependencies {
     // against meta.fabricmc.net/v2/versions/yarn/26.3 and the example mod).
     implementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    implementation("dev.faststats.metrics:fabric:$fastStatsVersion+mc$fastStatsMinecraftVersion")
+    include("dev.faststats.metrics:fabric:$fastStatsVersion+mc$fastStatsMinecraftVersion")
 
     // Shared Lock-End modules (also merged into the distribution jar below).
     implementation(project(":lock-end-api"))
@@ -45,7 +52,21 @@ tasks {
         archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
 
+        dependsOn("jar")
         configurations = listOf(sharedModules)
+        filesMatching("fabric.mod.json") {
+            filter { line: String ->
+                line.replace(
+                    "\"jars\": []",
+                    "\"jars\": [{\"file\": \"META-INF/jars/fabric-$fastStatsVersion+mc$fastStatsMinecraftVersion.jar\"}]"
+                )
+            }
+        }
+        from({
+            zipTree(project.tasks.named("jar").get().outputs.files.singleFile)
+        }) {
+            include("META-INF/jars/**")
+        }
     }
 
     // Loom 1.19 for Minecraft 26.3 needs no remapping at all (vanilla is

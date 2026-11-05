@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Opt-in FastStats metrics and context-aware error tracking for Fabric and
+  NeoForge, enabled with the `LOCKEND_FASTSTATS_TOKEN` environment variable.
+
 ### Fixed
 - Fabric and NeoForge now cancel a pending lock/unlock timer and clear its
   persisted schedule as soon as the End already reaches the scheduled state.

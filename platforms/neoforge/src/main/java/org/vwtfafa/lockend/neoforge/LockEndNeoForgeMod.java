@@ -12,6 +12,9 @@ import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import dev.faststats.ErrorTracker;
+import dev.faststats.Metrics;
+import dev.faststats.neoforge.NeoForgeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
@@ -60,6 +63,7 @@ public class LockEndNeoForgeMod {
     /** Logger shared by all NeoForge adapter classes (package-visible). */
     static final Logger LOGGER = LoggerFactory.getLogger("lock-end");
 
+    private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
     private static final int SCHEDULE_TICK_CADENCE = 20;
 
     private final LockStateManager state;
@@ -67,6 +71,7 @@ public class LockEndNeoForgeMod {
     private final EndLockGuard guard;
     private final JsonScheduleRepository scheduleRepository;
     private final LockScheduler scheduler;
+    private final NeoForgeContext fastStatsContext;
     private NeoForgeEndLockConfig config;
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
@@ -89,6 +94,7 @@ public class LockEndNeoForgeMod {
         scheduler = new LockScheduler(new SchedulerCallbacks(), Clock.systemDefaultZone());
         applyScheduleSettings();
         restorePersistedSchedule();
+        fastStatsContext = createFastStatsContext();
 
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onTravelToDimension);
@@ -97,6 +103,20 @@ public class LockEndNeoForgeMod {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
 
         LOGGER.info("EndLock (NeoForge) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
+    }
+
+    private NeoForgeContext createFastStatsContext() {
+        String token = System.getenv(FASTSTATS_TOKEN_ENV);
+        if (token == null || token.isBlank()) {
+            LOGGER.info("FastStats disabled; set {} to enable metrics and error tracking.", FASTSTATS_TOKEN_ENV);
+            return null;
+        }
+
+        ErrorTracker errorTracker = ErrorTracker.contextAware();
+        return new NeoForgeContext.Factory("lockend", token)
+                .errorTrackerService(errorTracker)
+                .metrics(Metrics.Factory::create)
+                .create();
     }
 
     /**
@@ -142,6 +162,10 @@ public class LockEndNeoForgeMod {
         liveServer = server;
         guard.attachServer(server);
         guard.handleServerStarted();
+        if (fastStatsContext != null) {
+            fastStatsContext.ready();
+            LOGGER.info("FastStats metrics and error tracking enabled.");
+        }
     }
 
     /**
@@ -154,6 +178,9 @@ public class LockEndNeoForgeMod {
     private void onServerStopping(ServerStoppingEvent event) {
         repository.save(state.getState());
         persistRuntimeSchedule();
+        if (fastStatsContext != null) {
+            fastStatsContext.shutdown();
+        }
         liveServer = null;
     }
 

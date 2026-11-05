@@ -10,6 +10,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
+import dev.faststats.ErrorTracker;
+import dev.faststats.Metrics;
+import dev.faststats.fabric.FabricContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
@@ -61,6 +64,7 @@ public class LockEndFabricMod implements ModInitializer {
     /** Logger shared by all Fabric adapter classes (package-visible). */
     static final Logger LOGGER = LoggerFactory.getLogger("lock-end");
 
+    private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
     private static final int SCHEDULE_TICK_CADENCE = 20;
 
     private LockStateManager state;
@@ -69,6 +73,7 @@ public class LockEndFabricMod implements ModInitializer {
     private EndLockGuard guard;
     private JsonScheduleRepository scheduleRepository;
     private LockScheduler scheduler;
+    private FabricContext fastStatsContext;
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
 
@@ -90,8 +95,23 @@ public class LockEndFabricMod implements ModInitializer {
         registerLifecycleHooks();
         registerDimensionHooks();
         registerCommands();
+        configureFastStats();
 
         LOGGER.info("EndLock (Fabric) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
+    }
+
+    private void configureFastStats() {
+        String token = System.getenv(FASTSTATS_TOKEN_ENV);
+        if (token == null || token.isBlank()) {
+            LOGGER.info("FastStats disabled; set {} to enable metrics and error tracking.", FASTSTATS_TOKEN_ENV);
+            return;
+        }
+
+        ErrorTracker errorTracker = ErrorTracker.contextAware();
+        fastStatsContext = new FabricContext.Factory("lock-end", token)
+                .errorTrackerService(errorTracker)
+                .metrics(Metrics.Factory::create)
+                .create();
     }
 
     /**
@@ -103,10 +123,17 @@ public class LockEndFabricMod implements ModInitializer {
             liveServer = server;
             guard.attachServer(server);
             guard.handleServerStarted();
+            if (fastStatsContext != null) {
+                fastStatsContext.ready();
+                LOGGER.info("FastStats metrics and error tracking enabled.");
+            }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             repository.save(state.getState());
             persistRuntimeSchedule();
+            if (fastStatsContext != null) {
+                fastStatsContext.shutdown();
+            }
             liveServer = null;
         });
     }

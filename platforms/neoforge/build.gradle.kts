@@ -9,9 +9,14 @@ plugins {
 // The NeoForge version itself comes from gradle.properties (verified against
 // maven.neoforged.net before bumping).
 val neoForgeVersion = providers.gradleProperty("neoForgeVersion").get()
+val fastStatsVersion = providers.gradleProperty("fastStatsVersion").get()
+val fastStatsMinecraftVersion = providers.gradleProperty("fastStatsMinecraftVersion").get()
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://repo.faststats.dev/releases")
+    }
 }
 
 val sharedModules by configurations.creating {
@@ -22,6 +27,8 @@ val sharedModules by configurations.creating {
 dependencies {
     implementation(project(":lock-end-api"))
     implementation(project(":lock-end-core"))
+    implementation("dev.faststats.metrics:neoforge:$fastStatsVersion+mc$fastStatsMinecraftVersion")
+    jarJar("dev.faststats.metrics:neoforge:$fastStatsVersion+mc$fastStatsMinecraftVersion")
     sharedModules(project(":lock-end-api"))
     sharedModules(project(":lock-end-core"))
 
@@ -52,7 +59,13 @@ tasks {
         archiveVersion.set(project.version.toString())
         archiveClassifier.set("")
 
+        dependsOn("jar")
         configurations = listOf(sharedModules)
+        from({
+            zipTree(project.tasks.named("jar").get().outputs.files.singleFile)
+        }) {
+            include("META-INF/jarjar/**")
+        }
     }
 
     // ModDevGradle registers no remapping tasks (NeoForge uses the official
