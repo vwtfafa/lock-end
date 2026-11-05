@@ -13,8 +13,9 @@ plugin into a monorepo with shared modules and per-platform adapters.
 
 ### Added
 - FastStats metrics and context-aware error tracking enabled by default for
-  Fabric and NeoForge with the project's public token; `LOCKEND_FASTSTATS_TOKEN`
-  can override it.
+  Paper/Folia, Fabric and NeoForge with the project's public token;
+  `LOCKEND_FASTSTATS_TOKEN` can override it. Paper/Folia retains bStats in
+  parallel for the first releases.
 - Gradle multi-module layout: shared, platform-independent `lock-end-api`
   (data structures, change listeners, API contracts) and `lock-end-core`
   (lock state management, change dispatch, strict schedule helpers, platform

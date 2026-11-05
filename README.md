@@ -44,17 +44,17 @@ state. The release workflow attaches one downloadable artifact per platform:
 `lock-end-neoforge-4.0.0.jar`, and `lock-end-datapack-4.0.0.zip`.
 Forge support is confirmed compatible but deliberately deferred.
 
-## FastStats for Fabric and NeoForge
+## FastStats and bStats
 
-The Fabric and NeoForge mods send FastStats metrics and context-aware uncaught
-error reports using the project's public FastStats token, which is bundled
-with the mods. Set `LOCKEND_FASTSTATS_TOKEN` in the server environment to
-override it. FastStats reports may include runtime/platform details and error
-messages or stack traces. This does not change the Paper plugin's existing
-bStats integration. GitHub Actions passes the optional
-`LOCKEND_FASTSTATS_TOKEN` repository secret to its short-lived Fabric and
-NeoForge smoke servers as an override; release jars contain only the public
-project token.
+All EndLock platforms send FastStats metrics and context-aware uncaught error
+reports using the project's public FastStats token, bundled with each artifact.
+Set `LOCKEND_FASTSTATS_TOKEN` in the server environment to override it.
+FastStats reports may include runtime/platform details and error messages or
+stack traces. Paper/Folia also retains its existing bStats integration for the
+first releases; bStats can be disabled globally via
+`plugins/bStats/config.json`. GitHub Actions passes the optional
+`LOCKEND_FASTSTATS_TOKEN` repository secret to its short-lived smoke servers as
+an override; release artifacts contain only the public project token.
 
 ## What's new in 3.1
 

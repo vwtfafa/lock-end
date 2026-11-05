@@ -39,9 +39,9 @@ SOFTWARE.
 
 ## FastStats
 
-- Component: FastStats Java SDK (`dev.faststats.metrics:fabric`,
-  `dev.faststats.metrics:neoforge`)
-- Version: 0.31.0 (Minecraft 26.3 artifacts)
+- Component: FastStats Java SDK (`dev.faststats.metrics:bukkit`,
+  `dev.faststats.metrics:fabric`, `dev.faststats.metrics:neoforge`)
+- Version: 0.31.0 (Bukkit plus Minecraft 26.3 artifacts)
 - License: MIT
 - Project: <https://github.com/faststats-dev/faststats-java>
 

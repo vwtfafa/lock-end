@@ -1,6 +1,9 @@
 package org.vwtfafa.lockEnd;
 
 import com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent;
+import dev.faststats.ErrorTracker;
+import dev.faststats.Metrics;
+import dev.faststats.bukkit.BukkitContext;
 import net.kyori.adventure.text.Component;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
@@ -56,6 +59,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * evacuation, logging and commands together.
  */
 public final class LockEnd extends JavaPlugin implements Listener {
+    private static final String FASTSTATS_TOKEN_ENV = "LOCKEND_FASTSTATS_TOKEN";
+    private static final String FASTSTATS_PUBLIC_TOKEN = "71be256f6d91c1cc2e1cb18f506a3d44";
+
     /**
      * Strict schedule format: impossible dates like 2026-02-30 are rejected
      * instead of being silently rounded to the end of the month. Delegates to
@@ -87,6 +93,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private final AtomicBoolean statsFlushQueued = new AtomicBoolean();
     private volatile boolean shuttingDown;
     private PaperScheduler paperScheduler;
+    private BukkitContext fastStatsContext;
 
     // Cached chart/report settings so async consumers never touch the config.
     private volatile String languageTag = "en";
@@ -181,13 +188,32 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // Initialize bStats metrics. Opt-out is handled globally via the
         // bStats plugin config (plugins/bStats/config.json), not here.
         new MetricsManager(this);
+        configureFastStats();
 
         getLogger().info("EndLock v" + getPluginMeta().getVersion() + " enabled (Paper 26.3+)");
+    }
+
+    private void configureFastStats() {
+        String token = System.getenv(FASTSTATS_TOKEN_ENV);
+        if (token == null || token.isBlank()) {
+            token = FASTSTATS_PUBLIC_TOKEN;
+        }
+
+        ErrorTracker errorTracker = ErrorTracker.contextAware();
+        fastStatsContext = new BukkitContext.Factory(this, token)
+                .errorTrackerService(errorTracker)
+                .metrics(Metrics.Factory::create)
+                .create();
+        fastStatsContext.ready();
+        getLogger().info("FastStats metrics and error tracking enabled.");
     }
 
     @Override
     public void onDisable() {
         shuttingDown = true;
+        if (fastStatsContext != null) {
+            fastStatsContext.shutdown();
+        }
         if (historyCommand != null) {
             historyCommand.flush();
         }

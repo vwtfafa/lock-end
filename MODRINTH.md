@@ -22,7 +22,7 @@ Perfect for survival servers, SMPs, events, or progression-based gameplay.
 * 🚨 Optional evacuation: warn and move players out of the End after locking
 * 🔔 Optional join notifications for locked state
 * 📝 Logging with history tracking
-* 📊 bStats integration for anonymous usage statistics
+* 📊 FastStats metrics and context-aware error tracking on all platforms; Paper/Folia also retains bStats for the first releases
 * ⬆️ Update checker with clickable links for Ops
 * 🌍 8 languages: EN, DE, FR, ES, IT, RU, ZH, JA
 ---

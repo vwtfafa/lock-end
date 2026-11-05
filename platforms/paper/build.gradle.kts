@@ -5,6 +5,7 @@ plugins {
 }
 
 val paperApiVersion = providers.gradleProperty("paperApiVersion").get()
+val fastStatsVersion = providers.gradleProperty("fastStatsVersion").get()
 
 repositories {
     mavenCentral()
@@ -16,12 +17,16 @@ repositories {
         name = "placeholderapi"
         url = uri("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     }
+    maven {
+        url = uri("https://repo.faststats.dev/releases")
+    }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:$paperApiVersion")
     compileOnly("me.clip:placeholderapi:2.12.3")
     implementation("org.bstats:bstats-bukkit:3.2.1")
+    implementation("dev.faststats.metrics:bukkit:$fastStatsVersion")
     implementation(project(":lock-end-core"))
     // Adventure (components, MiniMessage) is provided by paper-api at runtime
     testImplementation("io.papermc.paper:paper-api:$paperApiVersion")
@@ -45,10 +50,12 @@ tasks {
         configurations = listOf(project.configurations.runtimeClasspath.get())
 
         dependencies {
-            // Only merge bStats and the shared Lock-End modules into the final
-            // jar; everything else stays a (compileOnly) platform dependency
+            // Only merge bStats, FastStats and the shared Lock-End modules into
+            // the final jar; everything else stays a platform dependency
             exclude {
-                it.moduleGroup != "org.bstats" && !it.moduleGroup.startsWith("org.vwtfafa")
+                it.moduleGroup != "org.bstats"
+                        && it.moduleGroup != "dev.faststats.metrics"
+                        && !it.moduleGroup.startsWith("org.vwtfafa")
             }
         }
 
