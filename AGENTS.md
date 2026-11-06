@@ -351,7 +351,7 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
    schedules, messages, grace periods, and evacuation).
 5. Keep compatibility claims limited to verified paths. The current open
    player-path tests and optional-dependency smoke test are listed in the
-   roadmap and prototype report.
+   roadmap.
 
 ### Changing versions or dependencies
 

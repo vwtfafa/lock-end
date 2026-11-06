@@ -190,8 +190,8 @@ mods are still open and documented there.
 - Clarified global Folia event dispatch, the partial-failure event contract, optional dependency classloading, and the unsupported EndLock hot-reload case.
 
 ### Verified
-- Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype; see `docs/3.1-prototype-verification.md`.
-- Documented limitation: player-driven paths on Folia still need manual verification with a live player (`docs/3.1-prototype-verification.md` §4).
+- Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype.
+- Documented limitation: player-driven paths on Folia still need manual verification with a live player.
 
 ## [3.0.2] - 2026-10-26
 
