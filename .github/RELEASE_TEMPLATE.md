@@ -25,23 +25,30 @@
 | `/endlock test` | Test if portal blocking works | `endlock.admin` |
 | `/endlock schedule status` | Show active scheduled action | `endlock.admin` |
 | `/endlock schedule clear` | Clear the active schedule | `endlock.admin` |
+| `/endlock reason <text>` | Set a lock reason (broadcast with announcements) | `endlock.admin` |
+| `/endlock cancel` | Cancel the pending scheduled action | `endlock.admin` |
+| `/endlock evacuate preview` / `execute` | Preview or eject players currently in the End | `endlock.admin` |
 | `/endlock history` | View recent lock/unlock history | `endlock.history` |
 | `/endlock history <page> [player\|action <value>]` | Filter history by player or action | `endlock.history` |
+| `/endlock history [json\|csv] ...` | Export history as JSON or CSV download | `endlock.history` |
 | `/endlock undo` | Undo the last lock/unlock action | `endlock.undo` |
 | `/endlock validateconfig` | Validate configuration file | `endlock.validate` |
+| `/endlock reload` | Reload configuration without restart | `endlock.reload` |
 | `/endlock pause` | Pause scheduled timers | `endlock.admin` |
 | `/endlock resume` | Resume paused scheduled timers | `endlock.admin` |
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Short alias for `/endlock` (mobile-friendly) | `endlock.toggle` |
 
-Commands `/endlock lock`, `/endlock unlock`, and `/endlock status` (the subset
-command surface) also exist on the Fabric and NeoForge mods; the vanilla
-datapack offers the same three as `/function lockend:lock|unlock|status` plus
-`/function lockend:set_spawn`.
+On the Fabric and NeoForge mods the `/endlock` command tree provides the same
+full surface (lock/unlock with schedules, reason, schedule, evacuate, cancel,
+pause/resume, history with export, undo, status/stats, reload); the vanilla
+datapack offers the limited in-game functions `/function
+lockend:lock|unlock|status` plus `/function lockend:set_spawn` and
+`/function lockend:evacuate`.
 
 ### 🔌 Integrations
 
-- **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
+- **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_unlocks%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
 - **MiniMessage** — Full RGB & gradient message support
 
 ### 🔧 Configuration
@@ -54,7 +61,7 @@ datapack offers the same three as `/function lockend:lock|unlock|status` plus
 - Scheduled unlocks
 - Join notifications
 - Update checker with clickable chat link
-- bStats metrics
+- Metrics (bStats + FastStats)
 - Integration toggles (PAPI, MiniMessage)
 
 The Fabric and NeoForge mods ship their own lightweight configuration in
@@ -68,7 +75,7 @@ the datapack is configured purely in-game (see the datapack README).
 | **Paper** | @PAPER@+ | ✅ Recommended production baseline |
 | **Purpur** | @PAPER@+ | ✅ Works |
 | **Folia** | @PAPER@+ | ✅ Supported (console-verified on alpha builds) |
-| **Fabric** | Loader 0.20.1+, Minecraft 26.3, Fabric API 0.165.0+ | ✅ Supported (in-game verified) |
+| **Fabric** | Loader 0.20.1+, Minecraft 26.3, Fabric API 0.165.2+ | ✅ Supported (in-game verified) |
 | **NeoForge** | 26.3.0.101+ | ✅ Supported |
 | **Vanilla datapack** | Minecraft 26.3 | ⚠️ Limited subset |
 
