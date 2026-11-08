@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.15.0")
 }
 
 val packDir = layout.projectDirectory.dir("src/main/pack")

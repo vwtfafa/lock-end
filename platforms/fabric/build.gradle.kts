@@ -43,7 +43,7 @@ dependencies {
     sharedModules(project(":lock-end-api"))
     sharedModules(project(":lock-end-core"))
 
-    testImplementation("com.google.code.gson:gson:2.11.0")
+    testImplementation("com.google.code.gson:gson:2.15.0")
 }
 
 tasks {
