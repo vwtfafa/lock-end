@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [4.0.0] - 2026-11-03
+## [4.0.0] - 2026-11-08
 
 Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
 plugin into a monorepo with shared modules and per-platform adapters.
@@ -148,6 +148,14 @@ mods are still open and documented there.
 - `/endlock reload` on both mods also republishes the message overrides,
   statistics recording, attempt rate limiter, denial sound, history sizing
   and audit log from the re-read config.
+- Updated build tooling and dependencies: Gradle wrapper 9.9.0 (current
+  stable), Checkstyle 14.4.0 (existing ruleset passes unchanged), SpotBugs
+  4.10.5, Gson 2.15.0 (Fabric/NeoForge tests and the datapack validator),
+  and Fabric API 0.165.2+26.3 (latest published for Minecraft 26.3 at
+  release time; shadow, run-paper, Loom, ModDevGradle, foojay-resolver,
+  JUnit, the SpotBugs plugin, bStats, PlaceholderAPI, FastStats, the
+  NeoForge version, the Fabric loader version, and the pinned Paper API
+  were already at their latest matching versions).
 - Bumped the project version to 4.0.0.
 - The release pipeline reads the version from `gradle.properties`
   (`lockEndVersion`) and replaced the old root `build.gradle.kts` source.
