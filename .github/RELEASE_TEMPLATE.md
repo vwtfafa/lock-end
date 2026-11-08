@@ -39,34 +39,14 @@
 | `/lock` | Alias for `/endlock` | `endlock.toggle` |
 | `/el` | Short alias for `/endlock` (mobile-friendly) | `endlock.toggle` |
 
-On the Fabric and NeoForge mods the `/endlock` command tree provides the same
-full surface (lock/unlock with schedules, reason, schedule, evacuate, cancel,
-pause/resume, history with export, undo, status/stats, reload); the vanilla
-datapack offers the limited in-game functions `/function
-lockend:lock|unlock|status` plus `/function lockend:set_spawn` and
-`/function lockend:evacuate`.
+All three platforms expose the same `/endlock` command tree; the vanilla
+datapack instead provides the in-game functions `/function
+lockend:lock|unlock|status|evacuate` plus `/function lockend:set_spawn`.
 
 ### 🔌 Integrations
 
 - **PlaceholderAPI** — `%lockend_status%`, `%lockend_remaining%`, `%lockend_remaining_seconds%`, `%lockend_unlock_at%`, `%lockend_target_time%`, `%lockend_lock_reason%`, `%lockend_reason%`, `%lockend_blocked_count%`, `%lockend_unlock_count%`, `%lockend_unlocks%`, `%lockend_evacuated%`, `%lockend_schedule_action%`, `%lockend_schedule_active%`
 - **MiniMessage** — Full RGB & gradient message support
-
-### 🔧 Configuration
-
-`plugins/EndLock/config.yml` (Paper/Folia):
-
-- Lock state, language (8 languages)
-- Broadcast notifications (actionbar or chat, scope)
-- Event logging with JSON export
-- Scheduled unlocks
-- Join notifications
-- Update checker with clickable chat link
-- Metrics (bStats + FastStats)
-- Integration toggles (PAPI, MiniMessage)
-
-The Fabric and NeoForge mods ship their own lightweight configuration in
-`config/lock-end.json` (lock state persists in `config/lock-end.state.json`);
-the datapack is configured purely in-game (see the datapack README).
 
 ### 🧱 Compatibility
 
