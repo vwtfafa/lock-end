@@ -2,17 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
 
 ## [4.0.0] - 2026-11-08
 
 Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
 plugin into a monorepo with shared modules and per-platform adapters.
 
-Fabric and NeoForge reach Paper parity for the "history and operations"
-(section 3) and "player-facing behavior" (section 4) checklist items of
-`docs/multiplatform-feature-parity.md`. Live server smoke checks on both
-mods are still open and documented there.
+Fabric and NeoForge reach Paper parity for history/operations and
+player-facing behavior (see the checklist status and verification notes
+below); the pre-4.0 feature-parity roadmap doc was retired with this
+release. In-game checks with real players on both mods remain noted in
+### Verified.
 
 ### Fixed
 - Fabric and NeoForge now cancel a pending lock/unlock timer and clear its

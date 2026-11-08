@@ -20,8 +20,7 @@ Paper/Folia plugin, Fabric and NeoForge mods, and a limited vanilla datapack.
 
 Forge is not currently supported. The datapack cannot prevent travel before it
 happens; use a mod or plugin for stronger enforcement. See the
-[datapack notes](datapack/README.md) and
-[feature-parity roadmap](docs/multiplatform-feature-parity.md).
+[datapack notes](datapack/README.md) for the vanilla limitations.
 
 ## Features
 
