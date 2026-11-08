@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "Lock-End: lock access to the End dimension, vanilla datapack subset.",
+    "min_format": 121,
+    "max_format": 121
+  }
+}

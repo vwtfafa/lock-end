@@ -1,0 +1,438 @@
+package org.vwtfafa.lockEnd;
+
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.vwtfafa.lockend.core.ScheduleSupport;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Owns the scheduled lock/unlock action: persistence, countdown, preview
+ * notifications and execution.
+ */
+public class ScheduleManager {
+    private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;
+    private final LockEnd plugin;
+    private final PreviewNotificationManager previewManager;
+    // Volatile because bStats reads the pending action from an async thread.
+    private volatile LocalDateTime scheduledUnlockTime;
+    private volatile String scheduledAction = "unlock";
+    private volatile boolean schedulePaused;
+    private ScheduledTask checkTask;
+    private ScheduledTask countdownTask;
+
+    public ScheduleManager(LockEnd plugin) {
+        this.plugin = plugin;
+        this.previewManager = new PreviewNotificationManager(plugin);
+    }
+
+    /**
+     * Loads the persisted schedule from config without arming any tasks.
+     */
+    public void loadFromConfig() {
+        scheduledUnlockTime = null;
+        schedulePaused = plugin.getConfig().getBoolean("schedule.paused", false);
+        String rawAction = plugin.getConfig().getString("scheduled-unlock.action", "unlock");
+        if (rawAction == null || rawAction.isBlank()) {
+            rawAction = "unlock";
+        }
+        scheduledAction = rawAction.toLowerCase(Locale.ROOT);
+        if (!isSupportedAction(scheduledAction)) {
+            plugin.getLogger().warning("Invalid scheduled-unlock.action '" + rawAction
+                    + "'; must be 'lock' or 'unlock'. Disabling schedule.");
+            scheduledAction = "unlock";
+            if (plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
+                disableInvalidSchedule();
+            } else {
+                // Keep the disabled schedule's other settings intact.
+                plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+                plugin.saveConfig();
+            }
+            return;
+        }
+        if (!plugin.getConfig().getBoolean("scheduled-unlock.enabled", false)) {
+            return;
+        }
+        String persistedDate = plugin.getConfig().getString("scheduled-unlock.target-datetime", "");
+        if (persistedDate != null && !persistedDate.isBlank()) {
+            scheduledUnlockTime = parseScheduleTime(persistedDate);
+            if (scheduledUnlockTime == null) {
+                plugin.getLogger().warning("Invalid scheduled-unlock.target-datetime '"
+                        + persistedDate + "'; ignoring persisted schedule.");
+            }
+        }
+        boolean fromPersisted = scheduledUnlockTime != null;
+        if (scheduledUnlockTime == null) {
+            String mode = plugin.getConfig().getString("scheduled-unlock.mode", "days");
+            if (mode == null) {
+                mode = "days";
+            }
+            if ("datetime".equalsIgnoreCase(mode)) {
+                LocalDateTime parsed = parseScheduleTime(plugin.getConfig().getString("scheduled-unlock.datetime", ""));
+                if (parsed == null) {
+                    plugin.getLogger().warning("Invalid scheduled-unlock.datetime; disabling schedule.");
+                    disableInvalidSchedule();
+                    return;
+                }
+                if (parsed.isBefore(LocalDateTime.now())) {
+                    plugin.getLogger().warning("Scheduled " + scheduledAction + " target " + parsed.format(LockEnd.SCHEDULE_FORMAT)
+                            + " is in the past; clearing schedule instead of executing on boot.");
+                    disableInvalidSchedule();
+                    return;
+                }
+                scheduledUnlockTime = parsed;
+                persistScheduledUnlockTime();
+            } else if ("days".equalsIgnoreCase(mode)) {
+                int days = plugin.getConfig().getInt("scheduled-unlock.days", 7);
+                if (days <= 0) {
+                    plugin.getLogger().warning("Invalid scheduled-unlock.days '" + days
+                            + "'; must be positive. Disabling schedule.");
+                    disableInvalidSchedule();
+                    return;
+                }
+                scheduledUnlockTime = LocalDateTime.now().plusDays(days);
+                persistScheduledUnlockTime();
+            } else {
+                plugin.getLogger().warning("Invalid scheduled-unlock.mode '" + mode
+                        + "'; must be 'days' or 'datetime'. Disabling schedule.");
+                disableInvalidSchedule();
+                return;
+            }
+        }
+        if (!fromPersisted && scheduledUnlockTime != null && scheduledUnlockTime.isBefore(LocalDateTime.now())) {
+            plugin.getLogger().warning("Scheduled " + scheduledAction + " target is in the past; clearing schedule.");
+            disableInvalidSchedule();
+        }
+    }
+
+    /**
+     * Reloads the schedule after a config reload: cancels all tasks,
+     * re-reads state and re-arms any pending action.
+     */
+    public void reload() {
+        cancelAll();
+        schedulePaused = plugin.getConfig().getBoolean("schedule.paused", false);
+        loadFromConfig();
+        arm();
+    }
+
+    /**
+     * Arms preview, countdown and due-check tasks for the pending action.
+     */
+    public void arm() {
+        // Drop tasks from the previous action before arming the new one;
+        // otherwise switching lock <-> unlock leaves a stale preview alive.
+        cancelCheck();
+        cancelCountdown();
+        previewManager.cancelAll();
+        if (scheduledUnlockTime == null || schedulePaused) {
+            return;
+        }
+        if (scheduledAction.equals("lock")) {
+            previewManager.schedulePreviewLock(scheduledUnlockTime);
+        } else {
+            previewManager.schedulePreviewUnlock(scheduledUnlockTime);
+        }
+        scheduleCountdown();
+        scheduleDueCheck();
+    }
+
+    /**
+     * Schedules an unlock in the given number of days and persists the schedule.
+     */
+    public void scheduleUnlockInDays(int days) {
+        setPending(LocalDateTime.now().plusDays(days), "unlock");
+        plugin.getConfig().set("scheduled-unlock.enabled", true);
+        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+        plugin.getConfig().set("scheduled-unlock.mode", "days");
+        plugin.getConfig().set("scheduled-unlock.days", days);
+        persistScheduledUnlockTime();
+        arm();
+    }
+
+    /**
+     * Schedules an unlock at an absolute point in time and persists the schedule.
+     */
+    public void scheduleUnlockAt(LocalDateTime time) {
+        setPending(time, "unlock");
+        plugin.getConfig().set("scheduled-unlock.enabled", true);
+        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+        plugin.getConfig().set("scheduled-unlock.mode", "datetime");
+        plugin.getConfig().set("scheduled-unlock.datetime", time.format(LockEnd.SCHEDULE_FORMAT));
+        persistScheduledUnlockTime();
+        arm();
+    }
+
+    /**
+     * Schedules a lock in the given number of minutes and persists the schedule.
+     */
+    public void scheduleLockInMinutes(int minutes) {
+        setPending(LocalDateTime.now().plusMinutes(minutes), "lock");
+        saveScheduledAction();
+        arm();
+    }
+
+    /**
+     * Schedules a lock at an absolute point in time and persists the schedule.
+     */
+    public void scheduleLockAt(LocalDateTime time) {
+        setPending(time, "lock");
+        saveScheduledAction();
+        arm();
+    }
+
+    public void pause() {
+        schedulePaused = true;
+        plugin.getConfig().set("schedule.paused", true);
+        plugin.saveConfig();
+        cancelCheck();
+        cancelCountdown();
+        previewManager.cancelAll();
+        plugin.getLogger().info("Schedule paused by System");
+    }
+
+    public void resume() {
+        schedulePaused = false;
+        plugin.getConfig().set("schedule.paused", false);
+        plugin.saveConfig();
+        arm();
+        plugin.getLogger().info("Schedule resumed by System");
+    }
+
+    public boolean isPaused() {
+        return schedulePaused;
+    }
+
+    public boolean hasAction() {
+        return scheduledUnlockTime != null;
+    }
+
+    public LocalDateTime getTime() {
+        return scheduledUnlockTime;
+    }
+
+    public String getAction() {
+        return scheduledAction;
+    }
+
+    public long getRemainingSeconds() {
+        return remainingSeconds(scheduledUnlockTime, ZonedDateTime.now(ZoneId.systemDefault()));
+    }
+
+    /**
+     * Remaining whole seconds for the pending action; delegates to the shared
+     * core so every platform computes identically.
+     */
+    static long remainingSeconds(LocalDateTime target, ZonedDateTime now) {
+        return ScheduleSupport.remainingSeconds(target, now);
+    }
+
+    /**
+     * Real time until the pending action, computed against the system zone so
+     * DST transitions do not shift the effective duration.
+     */
+    private static Duration remainingTime(LocalDateTime target) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        return Duration.between(now, target.atZone(now.getZone()));
+    }
+
+    /**
+     * Clears the pending action and cancels every related task.
+     */
+    public void clear() {
+        scheduledUnlockTime = null;
+        scheduledAction = "unlock";
+        plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+        plugin.getConfig().set("scheduled-unlock.target-datetime", null);
+        plugin.saveConfig();
+        cancelAll();
+    }
+
+    /**
+     * Re-arms the pending action after a manual unlock so a scheduled lock
+     * still executes later. A paused schedule stays paused; arm() restarts
+     * preview, countdown and due-check tasks cleanly.
+     */
+    public void handleUnlocked() {
+        arm();
+    }
+
+    /**
+     * Cancels check/countdown tasks and all preview notifications.
+     */
+    public void cancelAll() {
+        cancelCheck();
+        cancelCountdown();
+        previewManager.cancelAll();
+    }
+
+    /**
+     * Builds the localized schedule status line for commands and placeholders.
+     */
+    public Component buildStatusMessage() {
+        LocalDateTime target = scheduledUnlockTime;
+        String action = scheduledAction;
+        Component targetText = target == null
+                ? plugin.message("schedule-none", Map.of())
+                : Component.text(target.format(LockEnd.SCHEDULE_FORMAT));
+        String remaining = target == null
+                ? "-"
+                : formatDuration(remainingSeconds(target, ZonedDateTime.now(ZoneId.systemDefault())));
+        return plugin.message("schedule-status", Map.of(
+                "%action%", target == null ? "-" : action,
+                "%remaining%", remaining,
+                "%paused%", String.valueOf(schedulePaused)),
+                Map.of("%target%", targetText));
+    }
+
+    private void setPending(LocalDateTime time, String action) {
+        scheduledUnlockTime = time;
+        scheduledAction = action;
+    }
+
+    private void disableInvalidSchedule() {
+        scheduledUnlockTime = null;
+        plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.action", "unlock");
+        plugin.getConfig().set("scheduled-unlock.mode", null);
+        plugin.getConfig().set("scheduled-unlock.days", null);
+        plugin.getConfig().set("scheduled-unlock.datetime", null);
+        plugin.getConfig().set("scheduled-unlock.target-datetime", null);
+        plugin.saveConfig();
+    }
+
+    static void persistScheduledAction(FileConfiguration config, LocalDateTime target, String action) {
+        if (config == null || target == null || action == null || action.isBlank()) {
+            return;
+        }
+        config.set("scheduled-unlock.enabled", true);
+        config.set("scheduled-unlock.action", action);
+        config.set("scheduled-unlock.mode", "datetime");
+        config.set("scheduled-unlock.datetime", target.format(LockEnd.SCHEDULE_FORMAT));
+        config.set("scheduled-unlock.target-datetime", target.format(LockEnd.SCHEDULE_FORMAT));
+    }
+
+    /**
+     * Only explicit lock and unlock actions are supported. Unknown values must
+     * never be coerced to unlock, because a typo in the config would then open
+     * a locked End instead of keeping it closed. Shared decision rule from the
+     * core so every platform keeps the same behavior.
+     */
+    public static boolean isSupportedAction(String action) {
+        return ScheduleSupport.isSupportedAction(action);
+    }
+
+    /**
+     * Parses a schedule time in the shared strict schedule format; delegates
+     * to the core.
+     */
+    static LocalDateTime parseScheduleTime(String value) {
+        return ScheduleSupport.parseScheduleTime(value);
+    }
+
+    private void persistScheduledUnlockTime() {
+        if (scheduledUnlockTime != null) {
+            plugin.getConfig().set("scheduled-unlock.target-datetime", scheduledUnlockTime.format(LockEnd.SCHEDULE_FORMAT));
+            plugin.saveConfig();
+        }
+    }
+
+    private void saveScheduledAction() {
+        persistScheduledAction(plugin.getConfig(), scheduledUnlockTime, scheduledAction);
+        plugin.saveConfig();
+    }
+
+    private void scheduleDueCheck() {
+        LocalDateTime target = scheduledUnlockTime;
+        if (target == null || schedulePaused) {
+            return;
+        }
+        long remainingMillis = remainingTime(target).toMillis();
+        if (remainingMillis <= 0) {
+            executeDueAction();
+            return;
+        }
+
+        long remainingTicks = Math.max(1L, (remainingMillis + 49L) / 50L);
+        long delay = Math.min(remainingTicks, SCHEDULE_RECHECK_TICKS);
+        checkTask = plugin.getPaperScheduler().runGlobalLater(() -> {
+            checkTask = null;
+            scheduleDueCheck();
+        }, delay);
+    }
+
+    private void executeDueAction() {
+        boolean targetLocked = scheduledAction.equals("lock");
+        if (plugin.isLocked() != targetLocked) {
+            plugin.changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT));
+            plugin.getLogger().info("Scheduled " + scheduledAction + " executed.");
+        }
+        scheduledUnlockTime = null;
+        scheduledAction = "unlock";
+        plugin.getConfig().set("scheduled-unlock.enabled", false);
+        plugin.getConfig().set("scheduled-unlock.action", scheduledAction);
+        plugin.getConfig().set("scheduled-unlock.target-datetime", null);
+        plugin.saveConfig();
+        // Stop the countdown and any pending previews; the action is done.
+        cancelCountdown();
+        previewManager.cancelAll();
+    }
+
+    private void scheduleCountdown() {
+        if (!plugin.getConfig().getBoolean("scheduled-unlock.countdown.enabled", false)) {
+            return;
+        }
+        long startBefore = plugin.getConfig().getLong("scheduled-unlock.countdown.start-before", 300);
+        long interval = Math.max(1, plugin.getConfig().getLong("scheduled-unlock.countdown.interval", 10));
+        countdownTask = plugin.getPaperScheduler().runGlobalRepeating(() -> {
+            LocalDateTime target = scheduledUnlockTime;
+            if (target == null || schedulePaused) {
+                return;
+            }
+            long remaining = remainingTime(target).getSeconds();
+            if (remaining < 0 || remaining > startBefore) {
+                return;
+            }
+            String messageKey = scheduledAction.equals("lock") ? "countdown-lock-notification" : "countdown-notification";
+            Component rendered = plugin.message(messageKey, Map.of("%time%", formatDuration(remaining)));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                plugin.getPaperScheduler().executeEntity(player, () -> {
+                    if (player.hasPermission("endlock.admin")) {
+                        player.sendMessage(rendered);
+                    }
+                }, () -> {});
+            }
+        }, 1L, interval * 20L);
+    }
+
+    private void cancelCountdown() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+    }
+
+    private void cancelCheck() {
+        if (checkTask != null) {
+            checkTask.cancel();
+            checkTask = null;
+        }
+    }
+
+    /**
+     * Formats a duration as a compact human readable string; delegates to
+     * the core so every platform formats identically.
+     */
+    public static String formatDuration(long seconds) {
+        return ScheduleSupport.formatDuration(seconds);
+    }
+}

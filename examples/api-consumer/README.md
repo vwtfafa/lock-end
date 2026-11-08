@@ -1,10 +1,9 @@
-# EndLockApiConsumer – 3.1 API Consumer Prototype
+# EndLockApiConsumer â€“ 3.1 API Consumer Prototype
 
 > **Verification:** This project is the live-tested reference consumer for the
 > 3.1 API. Service lookup, event dispatch, and console/undo/scheduled paths
 > were tested on Paper 26.3 and Folia 26.3 Build 5 ALPHA. Player-driven Folia
-> paths still require testing with live players. See the
-> [prototype report](../../docs/3.1-prototype-verification.md).
+> paths still require testing with live players.
 >
 > **Integration guide:** For dependency setup, service lookup, event
 > observation, Paper/Folia threading, and a complete example, see the
@@ -12,9 +11,7 @@
 
 This standalone mini-project builds the `EndLockApiConsumer` 0.1.0 plugin. It
 is not part of the main EndLock build. It demonstrates the consumer pattern
-defined in the [API contract](../../docs/3.1-api-contract.md) and tests the
-prototype scenarios described in the
-[feasibility notes](../../docs/3.1-api-feasibility.md).
+defined in the [API contract](../../docs/3.1-api-contract.md).
 
 ## What it verifies
 
@@ -50,7 +47,7 @@ Build the main project first so its 3.1 release JAR is present:
 
 ```powershell
 .\gradlew.bat jar --no-daemon
-# -> build\libs\lock-end-3.1.0.jar
+# -> build\libs\lock-end-4.0.0.jar
 ```
 
 The consumer uses `..\..\build\libs\lock-end-*.jar` as a `compileOnly`
@@ -78,6 +75,3 @@ The standalone JAR is written to
 3. Confirm that repeating a lock command while already locked does not
    produce another event.
 4. The prototype shuts down the server after four minutes.
-
-For the scenarios actually run and their limits, see the
-[live verification report](../../docs/3.1-prototype-verification.md).

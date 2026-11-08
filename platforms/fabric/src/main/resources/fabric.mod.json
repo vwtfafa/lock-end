@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "lock-end",
+  "version": "${version}",
+  "name": "Lock-End (Fabric)",
+  "description": "Server-side lock for the End dimension. Lock, unlock and schedule access to the End with a shared core across platforms.",
+  "authors": [
+    "vwtfafa"
+  ],
+  "contact": {
+    "sources": "https://github.com/vwtfafa/lock-end"
+  },
+  "license": "MIT",
+  "jars": [],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "org.vwtfafa.lockend.fabric.LockEndFabricMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25"
+  }
+}

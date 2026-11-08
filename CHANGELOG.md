@@ -2,6 +2,184 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [4.0.0] - 2026-11-08
+
+Lock-End 4.0 is the multiplatform release: Lock-End grows from a Paper-only
+plugin into a monorepo with shared modules and per-platform adapters.
+
+Fabric and NeoForge reach Paper parity for history/operations and
+player-facing behavior (see the checklist status and verification notes
+below); the pre-4.0 feature-parity roadmap doc was retired with this
+release. In-game checks with real players on both mods remain noted in
+### Verified.
+
+### Fixed
+- Fabric and NeoForge now cancel a pending lock/unlock timer and clear its
+  persisted schedule as soon as the End already reaches the scheduled state.
+
+### Added
+- FastStats metrics and context-aware error tracking enabled by default for
+  Paper/Folia, Fabric and NeoForge with the project's public token;
+  `LOCKEND_FASTSTATS_TOKEN` can override it. Paper/Folia retains bStats in
+  parallel for the first releases.
+- Gradle multi-module layout: shared, platform-independent `lock-end-api`
+  (data structures, change listeners, API contracts) and `lock-end-core`
+  (lock state management, change dispatch, strict schedule helpers, platform
+  contracts). The Paper plugin is connected to both; the existing 3.1 API
+  surface, `examples/api-consumer`, and all Paper behaviors remain unchanged
+  (`docs/api/shared-api.md`).
+- **Fabric mod** (`platforms/fabric`): server-side Lock-End for Fabric Loader
+  with Fabric API on Minecraft 26.3 (official Mojang mappings, `environment: *`
+  so singleplayer works). Arrival-bounce guard plus a tick-scan End guard,
+  `/endlock lock|unlock|status` commands, JSON state persistence in the config
+  directory; shared API and core are merged into the distributable
+  `lock-end-fabric-<version>.jar`.
+- **NeoForge mod** (`platforms/neoforge`): independent adapter for NeoForge
+  26.3.0.101 (ModDevGradle 2). Dimension transit into the locked End is vetoed
+  pre-travel via the cancellable `EntityTravelToDimensionEvent`; `/endlock
+  lock|unlock|status` commands; JSON state persistence. Mod id is `lockend`
+  (FML strict ids do not allow hyphens; Fabric and Paper keep `lock-end`).
+- Fabric and NeoForge now share player-name, UUID, and dimension bypass
+  configuration with permission bypasses, and their distributable jars bundle
+  only Lock-End shared modules (not Minecraft/loader classes).
+- `/endlock reason set <reason>` and `/endlock reason clear` on Fabric and
+  NeoForge: update the lock reason at runtime, persist it to
+  `config/lock-end.json`, and restore the built-in default on clear (Paper
+  parity for the `reason` command step).
+- Scheduled lock/unlock actions on Fabric and NeoForge (Paper-parity
+  section 2 of the multiplatform feature plan): `/endlock unlockin <days|
+  duration>`, `/endlock unlockat <date> <time>`, `/endlock lockin <minutes|
+  duration>`, `/endlock lockat <date> <time>` plus `/endlock schedule
+  status|clear`, `cancel`, `pause`, and `resume`. The schedule persists in
+  `config/lock-end.schedule.json` and restores safely on boot: a future
+  target resumes counting, a lapsed target is cleared (never executed after
+  a restart), and an unsupported action name never coerces to `unlock`.
+  Countdown announcements (admins; Paper defaults: 10 s interval inside a
+  300 s window) and the one-shot preview (broadcast, off by default) are
+  configured in `lock-end.json` and republished on `/endlock reload`; both
+  skip when the current state already matches the scheduled target state.
+  Fabric gates `unlockin`/`unlockat`/`lockin`/`lockat` behind the new
+  `lock-end:toggle` node like Paper's `endlock.toggle`; NeoForge uses the
+  vanilla admin level.
+- `/endlock reload` on Fabric and NeoForge rereads `config/lock-end.json`
+  live and republishes the settings to the lock state and guards; corrupt
+  files are backed up as `lock-end.json.corrupt`, rebuilt with defaults, and
+  the recovery is reported in the command feedback.
+- New mod settings mirroring Paper's `end` scope: `endWorlds` adds guarded
+  End dimensions next to `minecraft:the_end` (full `namespace:path` key or
+  bare path), and `blockEntities` (default `true`) blocks non-player
+  entities from entering the guarded End (arrival bounce on Fabric,
+  pre-travel veto on NeoForge; entities never bypass).
+- Mod commands now use per-subcommand permission gates like Paper: Fabric
+  exposes the `lock-end:admin` and `lock-end:reload` nodes (operator-level
+  fallback, status public); NeoForge gates the same commands on the vanilla
+  admin level because its permission system has no arbitrary named nodes.
+- Shared core split for the mod guards: `EndDimensionScope` decides guarded
+  dimensions and entry attempts with the Paper `EndAccessGate` semantics
+  (leaving and inner-End travel are never blocks), documented for the
+  datapack-style key matching.
+- **Vanilla datapack** (`datapack`): deliberately limited implementation for
+  servers without a mod loader. Op-controlled `lockend:lock|unlock|status|
+  set_spawn` functions, `evacuate`/`evacuate_player` guard wired to the
+  `minecraft:tick` tag, lock state in the persistent `lockend_state`
+  scoreboard (survives restarts, including stranded-player eviction).
+  Dimension filtering uses a `minecraft:location_check` predicate because
+  MC 26.3 selectors have no dimension option. Shipped with a structural
+  `PackValidator` (`validatePack` build task: pack.mcmeta, function tags,
+  references, reachability) and a reproducible
+  `lock-end-datapack-<version>.zip` distribution; limitations documented in
+  `datapack/README.md`.
+- CI: the quality workflow validates the datapack and builds the shared API
+  javadoc, dedicated boot smoke jobs run the Fabric and NeoForge dev servers
+  (only for pushes to the master/beta branches), the release workflow ships
+  one artifact per platform, and every quality run uploads the release
+  artifacts plus the API javadoc as workflow artifacts.
+- Shared `lock-end-core` primitives used by both mods: bounded `HistoryBuffer`
+  with retention and rotation, operational statistics counters
+  (`LockStatistics`), `UndoTracker`, `AuditLogWriter` with per-player attempt
+  rate limiting, `ModMessages` (plain-text message keys mirroring Paper's
+  names), `GracePeriod`, and the `SoundKeys` sound-value normalizer.
+- Fabric and NeoForge mods now persist operational history in
+  `config/lock-end.history.json` (schemaVersion 2, same field names as the
+  Paper export) with `history.maxEntries`/`history.retentionDays`, and
+  statistics counters in `config/lock-end.stats.json`, both debounced to
+  roughly once per second and flushed on shutdown.
+- `/endlock history` on both mods with the Paper positional surface:
+  `[page] [json|csv|player|action [value] [filterValue]]`, paginated view,
+  per-player/action filters and JSON/CSV export files; plus `/endlock stats`
+  (lock/unlock/blocked/evacuated counts) and `/endlock undo` (restores the
+  state from before the last supported change).
+- `/endlock evacuate preview|execute` on both mods mirroring the Paper
+  plugin: side-effect-free per-requester preview bound for 30 seconds,
+  drift re-check on execute, outcome entries
+  (MOVED/SKIPPED_OFFLINE/SKIPPED_LEFT_END/SKIPPED_BYPASS/FAILED) recorded as
+  EVACUATE history rows.
+- Configurable audit logging on both mods: `logging` section
+  (enabled/logFile/logAttempts/rateLimitSeconds) writes the Paper line
+  formats under `config/logs/`; blocked attempts are reported as `ARRIVAL`
+  (Fabric arrival bounce) or `PRE_TRAVEL` (NeoForge pre-travel veto) and
+  always count toward the statistics, while the audit line is rate-limited
+  per player.
+- Player-facing sections in each mod's `lock-end.json`, mirroring Paper's
+  config: `broadcast` (enabled/useActionbar/notifyAll), `soundEffects`
+  (enabled/sound/volume/pitch), `gracePeriod` (enabled/duration),
+  `evacuation` (enabled/warningSeconds/targetWorld/excludeBypass), and
+  `joinNotifications` (locked-End notice on join), plus message overrides in
+  a seeded-once `config/lock-end-messages.json` controlling every
+  player-facing line on each mod.
+- Automatic evacuation on the mods now mirrors the Paper plugin: a warning
+  countdown before the move, a configurable destination world ("minecraft:"
+  style key, blank = overworld), and bypass-player exclusion, with the
+  previously documented always-evacuate guard behavior preserved as the mod
+  default (`evacuation.enabled: true`; the Fabric arrival scan keeps a
+  residents-at-lock snapshot so only later arrivals are bounced when it is
+  disabled).
+- Grace periods on both mods: locking starts the window when enabled, End
+  entries are announced instead of blocked while it runs (and the Fabric
+  tick scan defers), and unlocking cancels it; denial sounds play the
+  configured registry-validated sound, falling back to `block.anvil.land`.
+
+### Changed
+- Scheduled lock/unlock executions on both mods now flow through the same
+  central state-change path as manual commands, so they record audit lines,
+  history entries and statistics identically, and their announcements use
+  the message keys instead of hardcoded text.
+- `/endlock reload` on both mods also republishes the message overrides,
+  statistics recording, attempt rate limiter, denial sound, history sizing
+  and audit log from the re-read config.
+- Updated build tooling and dependencies: Gradle wrapper 9.9.0 (current
+  stable), Checkstyle 14.4.0 (existing ruleset passes unchanged), SpotBugs
+  4.10.5, Gson 2.15.0 (Fabric/NeoForge tests and the datapack validator),
+  and Fabric API 0.165.2+26.3 (latest published for Minecraft 26.3 at
+  release time; shadow, run-paper, Loom, ModDevGradle, foojay-resolver,
+  JUnit, the SpotBugs plugin, bStats, PlaceholderAPI, FastStats, the
+  NeoForge version, the Fabric loader version, and the pinned Paper API
+  were already at their latest matching versions).
+- Bumped the project version to 4.0.0.
+- The release pipeline reads the version from `gradle.properties`
+  (`lockEndVersion`) and replaced the old root `build.gradle.kts` source.
+
+### Docs
+- README documents the full platform matrix (Paper/Folia, Fabric, NeoForge,
+  Forge, datapack) with one artifact per platform.
+- Retired the migration plan document `feature/multiplatform-core.md`; the
+  surviving architecture record lives in `AGENTS.md`, and the remaining
+  open follow-ups are listed there.
+- Release template and Modrinth page describe the per-platform artifacts and
+  their installation paths.
+
+### Verified
+- Fabric: in-game by the user on MC 26.3 singleplayer (Fabric API
+  0.165.0+26.3): mod loads, commands work, End access is bounced; a
+  dedicated-server CI smoke runs for main-line pushes.
+- NeoForge: dev-dedicated-server smoke (`:platforms:neoforge:runServer`,
+  `Done`, clean shutdown, state persisted); in-game verification pending.
+- Datapack: the built zip loads on an MC 26.3 dev server without any
+  datapack/function error; in-game vanilla verification is still pending.
+- Forge: compatibility confirmed (Forge 26.3-66.1.3 exists), the adapter is
+  deliberately deferred.
+
 ## [3.1.0] - 2026-11-01
 
 ### Added
@@ -20,8 +198,8 @@ All notable changes to this project will be documented in this file.
 - Clarified global Folia event dispatch, the partial-failure event contract, optional dependency classloading, and the unsupported EndLock hot-reload case.
 
 ### Verified
-- Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype; see `docs/3.1-prototype-verification.md`.
-- Documented limitation: player-driven paths on Folia still need manual verification with a live player (`docs/3.1-prototype-verification.md` §4).
+- Service lifecycle, event dispatch, and the console/undo/scheduled paths were live tested on Paper 26.3 and Folia 26.3 Build 5 (ALPHA) via the consumer prototype.
+- Documented limitation: player-driven paths on Folia still need manual verification with a live player.
 
 ## [3.0.2] - 2026-10-26
 

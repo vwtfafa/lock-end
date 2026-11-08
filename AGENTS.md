@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Working agreement for AI coding agents (OpenCode, Claude Code, Codex, ...) in this
-repository. It records how we work on EndLock. `build.gradle.kts`, `plugin.yml` and
+repository. It records how we work on EndLock. `gradle.properties`, `plugin.yml` and
 CI are the source of truth for versions and commands; if this file disagrees with
 them, the build files win and this file should be corrected.
 
@@ -17,21 +17,64 @@ authoritative project instruction document.
 | Product | EndLock - Paper/Folia plugin that locks access to the End dimension |
 | Main class | `org.vwtfafa.lockEnd.LockEnd` |
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
-| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.209-stable` |
+| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.242-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
 | Build | Gradle 9.8.2 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
-| Platforms | Paper 26.3 and Folia 26.3 Build 5 (ALPHA; `folia-supported: true`) |
+| Platforms | Paper 26.3 and Folia 26.3 Build 6 (ALPHA; `folia-supported: true`) |
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
+| Current direction | Multiplatform monorepo (Lock-End 4.0.0): Paper/Folia plugin as the production baseline, plus Fabric, NeoForge and vanilla-datapack adapters; Forge deliberately deferred |
 
-The version in `build.gradle.kts` (`paperApiVersion`) is authoritative. Do not
-"remember" a version from documentation or old notes; read the build file.
+The versions in `gradle.properties` (`lockEndVersion`, `paperApiVersion`) are
+authoritative. Do not
+"remember" a version from documentation or old notes; read the properties file.
 
 The EndLock 3.1 API and release scope are documented in
 [ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
 paths remain subject to the verification limits documented there.
+
+### Architecture direction
+
+The repository is a multi-platform monorepo as of the 4.0.0 release. `lock-end-api`
+(shared, plain-Java surface) and `lock-end-core` (shared logic: runtime lock
+state via `LockStateManager`, change dispatch, strict schedule helpers,
+platform contracts) exist without platform dependencies, the Paper plugin
+lives in `platforms/paper/` connected to the shared core (state, persistence
+via `ConfigLockStateRepository`, scheduling helpers, shared 4.x API service
+registration), `platforms/fabric/` is an initial independent Fabric
+mod adapter (Loom 1.19-SNAPSHOT, Mojang-name vanilla for MC 26.3, JSON
+persistence in the config dir, arrival-bounce plus tick-scan End guard,
+`/endlock lock|unlock|status`), `platforms/neoforge/` is the NeoForge
+adapter (NeoForge 26.3.0.101, ModDevGradle 2, mod id `lockend`, pre-travel
+veto via the cancellable `EntityTravelToDimensionEvent`), and `datapack/`
+is a deliberately limited vanilla implementation (op-called `lockend:*`
+functions, persistent `lockend_state` scoreboard, `location_check`
+predicate; see `datapack/README.md` for the feature limits). Legacy
+commands, events, history, messaging
+and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain unchanged. Forge
+is verified compatible but deliberately deferred; the Paper/Folia plugin and
+the Paper behaviors remain the production baseline that all platform
+abstractions preserve.
+
+The original migration plan `feature/multiplatform-core.md` was retired after
+the 4.0.0 migration was completed; this architecture section is the surviving
+record of its decisions. The existing Paper implementation remains the baseline
+that all platform abstractions must preserve.
+
+Rules for future architecture work:
+
+- Keep Paper/Folia behavior working as the baseline implementation.
+- Prefer shared domain logic over copy-pasted platform code.
+- Keep platform-specific dependencies out of shared modules.
+- Introduce platform abstraction only when new work is incremental and
+  verifiable.
+- Do not assume Forge is implemented: its adapter is deliberately deferred
+  even though Forge 26.3-66.1.3 compatibility was verified.
+- The previous Paper/Folia pin-alignment follow-up is closed: the compile
+  target and CI smoke now use Paper 26.3 Build 242, and CI pins Folia 26.3
+  Build 6 (ALPHA). README and MODRINTH make no build-specific smoke claims.
 
 ---
 
@@ -107,8 +150,8 @@ Before writing code that uses an unfamiliar, uncertain, or version-sensitive API
 The resolved dependency in the Gradle cache can be inspected without the website:
 
 ```powershell
-$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.209-stable" `
-    -Recurse -Filter "paper-api-26.3.build.209-stable.jar" | Select-Object -First 1
+$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.242-stable" `
+    -Recurse -Filter "paper-api-26.3.build.242-stable.jar" | Select-Object -First 1
 javap -classpath $jar.FullName org.bukkit.entity.Player
 ```
 
@@ -159,8 +202,9 @@ document why the deprecated API is the only option.
 
 ## 5. Text, messages, and translations
 
-- All bundled language files live in `src/main/resources/lang/messages_<code>.yml`
-  and use **MiniMessage only**. Never use `§` there.
+- All bundled language files live in
+  `platforms/paper/src/main/resources/lang/messages_<code>.yml` and use
+  **MiniMessage only**. Never use `§` there.
 - Supported languages: `de`, `en`, `es`, `fr`, `it`, `ja`, `ru`, `zh`.
 - `en` is the reference file. Every key must exist in **all eight** files;
   `LanguageKeyParityTest` fails otherwise.
@@ -192,7 +236,7 @@ Use the wrapper. On Windows use `gradlew.bat`; on Linux/CI use `./gradlew`.
 .\gradlew.bat checkstyleMain spotbugsMain --no-daemon
 
 # Output jar
-# build/libs/lock-end-<version>.jar (shadowJar is the distributable)
+# platforms/paper/build/libs/lock-end-<version>.jar (shadowJar is the distributable)
 ```
 
 Rules:
@@ -209,7 +253,7 @@ Rules:
 
 ```powershell
 .\gradlew.bat runServer --no-daemon   # Paper 26.3, run/
-.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 5 (ALPHA), run/folia/
+.\gradlew.bat runFolia --no-daemon    # Folia 26.3 Build 6 (ALPHA), run/folia/
 ```
 
 Place the built jar in the server's `plugins/` folder, start the server, and verify
@@ -220,7 +264,7 @@ at minimum:
 - locking and unlocking the End still blocks/permits travel,
 - reload and shutdown complete without exceptions.
 
-CI pins Paper 26.3 Build 209 and Folia 26.3 Build 5 and runs the same smoke checks.
+CI pins Paper 26.3 Build 242 and Folia 26.3 Build 6 (ALPHA) and runs the same smoke checks.
 Keep both green; Folia support is not theoretical.
 
 ---
@@ -307,16 +351,18 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
    schedules, messages, grace periods, and evacuation).
 5. Keep compatibility claims limited to verified paths. The current open
    player-path tests and optional-dependency smoke test are listed in the
-   roadmap and prototype report.
+   roadmap.
 
 ### Changing versions or dependencies
 
 Only when explicitly requested. Update **all** of these together:
 
-- `paperApiVersion` / plugin versions in `build.gradle.kts`,
-- `api-version` and `minecraftVersion` in `plugin.yml` / `build.gradle.kts`,
+- `lockEndVersion`, `paperApiVersion` and the loader/dependency versions in
+  `gradle.properties`,
+- `api-version` and `minecraftVersion` in `plugin.yml` / the paper build script,
 - CI smoke-test download URLs and SHA-256 hashes in `.github/workflows/code-quality.yml`,
-- `README.md`, `MODRINTH.md`, `CHANGELOG.md`, and `version` in `build.gradle.kts`.
+- `README.md`, `MODRINTH.md`, and `CHANGELOG.md`, plus the jar-name examples in
+  `docs/3.1-integration-guide.md` and `examples/api-consumer/README.md`.
 
 Then run `gradlew build` and both smoke tests locally if possible.
 
@@ -357,12 +403,20 @@ as a "translation" without noting it.
 
 | Path | Purpose |
 |---|---|
-| `build.gradle.kts` | Versions, dependencies, quality gates, server tasks |
-| `src/main/resources/plugin.yml` | Plugin metadata, permissions, `api-version` |
-| `src/main/resources/config.yml` | Default configuration |
-| `src/main/resources/lang/` | Eight MiniMessage language files |
-| `src/main/java/org/vwtfafa/lockEnd/util/PaperScheduler.java` | Folia-safe scheduling |
-| `src/main/java/org/vwtfafa/lockEnd/MessageService.java` | Message lookup and rendering |
-| `src/main/java/org/vwtfafa/lockEnd/commands/` | Brigadier command tree and history/undo |
+| `gradle.properties` | Central versions: project version, Java, Paper API, tools |
+| `settings.gradle.kts` | Module includes for the multi-module monorepo |
+| `lock-end-api/` | Shared, platform-independent API module (plain Java) |
+| `lock-end-core/` | Shared core: state management, dispatch, schedule helpers, platform contracts |
+| `docs/api/shared-api.md` | Shared API contract and Paper compatibility rules |
+| `buildSrc/` | Shared `lockend.java-conventions` Gradle plugin |
+| `config/checkstyle/checkstyle.xml` | Checkstyle rules shared by all Java modules |
+| `config/spotbugs/spotbugs.xml` | SpotBugs filter shared by all Java modules |
+| `platforms/paper/build.gradle.kts` | Paper module build (versions come from `gradle.properties`) |
+| `platforms/paper/src/main/resources/plugin.yml` | Plugin metadata, permissions, `api-version` |
+| `platforms/paper/src/main/resources/config.yml` | Default configuration |
+| `platforms/paper/src/main/resources/lang/` | Eight MiniMessage language files |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/util/PaperScheduler.java` | Folia-safe scheduling |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/MessageService.java` | Message lookup and rendering |
+| `platforms/paper/src/main/java/org/vwtfafa/lockEnd/commands/` | Brigadier command tree and history/undo |
 | `.github/workflows/code-quality.yml` | CI build + Paper/Folia smoke tests |
 | `.claude/skills/` | Local helper skills (`run-lock-end`, `i18n-sync`); gitignored |

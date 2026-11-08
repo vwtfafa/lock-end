@@ -1,0 +1,54 @@
+# NeoForge mod descriptor for Lock-End. The overall format is standard TOML
+# (v0.5.0); mandatory/optional fields follow neoforge.mods.toml as shipped by
+# the MDK-26.3-ModDevGradle template. modLoader and loaderVersion are omitted
+# on purpose: the 26.3 MDK template leaves them out because javafml ships as
+# the default language loader.
+license="MIT"
+
+## A URL to refer people to when problems occur with this mod
+issueTrackerURL="https://github.com/vwtfafa/lock-end/issues"
+
+[[mods]]
+
+## The modid of the mod. FML 12 (NeoForge 26.3) validates mod ids against a
+## strict lowercase pattern (lowercase letters, digits, underscores and
+## separated dots, 2-64 chars - hyphens are rejected; the runServer smoke
+## test fails with an InvalidModFileException for the "lock-end" id), so
+## unlike the Fabric/Paper ids the NeoForge id is "lockend". Note that it
+## mirrors the java package org.vwtfafa.lockend.
+modId="lockend"
+
+## The version number of the mod (expanded by processResources)
+version="${version}"
+
+## A display name for the mod
+displayName="Lock-End (NeoForge)"
+
+## The authors of the mod
+authors="vwtfafa"
+
+## A URL for the homepage, displayed in the mod UI
+displayURL="https://github.com/vwtfafa/lock-end"
+
+description='''
+Server-side lock for the End dimension. Lock, unlock and schedule access to
+the End with a shared core across platforms.
+'''
+
+## Lock-End depends on NeoForge 26.3 (the toolchain version we compiled
+## against, keeping the -dev runtime with every newer build of the same
+## Minecraft release).
+[[dependencies.lockend]]
+    modId="neoforge"
+    type="required"
+    versionRange="[26.3.0.101,)"
+    ordering="NONE"
+    side="BOTH"
+
+## Lock-End only targets Minecraft 26.3; other releases get their own builds.
+[[dependencies.lockend]]
+    modId="minecraft"
+    type="required"
+    versionRange="[26.3]"
+    ordering="NONE"
+    side="BOTH"
