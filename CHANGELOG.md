@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - Unreleased
+
+### Fixed
+- Fabric and NeoForge continue the remaining lock-state change or shutdown
+  work when saving the lock state fails, while logging the persistence error.
 
 ## [4.0.0] - 2026-11-08
 

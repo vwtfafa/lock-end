@@ -33,6 +33,7 @@ import org.vwtfafa.lockend.core.history.HistoryEntry;
 import org.vwtfafa.lockend.core.messages.ModMessages;
 import org.vwtfafa.lockend.core.stats.LockStatistics;
 
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -290,7 +291,7 @@ public class LockEndNeoForgeMod {
      * @param event the server stopping event
      */
     private void onServerStopping(ServerStoppingEvent event) {
-        repository.save(state.getState());
+        persistLockState();
         persistRuntimeSchedule();
         history.flush();
         saveStats();
@@ -406,7 +407,7 @@ public class LockEndNeoForgeMod {
         undoTracker.recordPreviousState(previousState);
         stats.recordStateChange(lock);
         saveStatsIfChanged();
-        repository.save(state.getState());
+        persistLockState();
         broadcastLockState(lock, actor);
         logAction(actionName, actor);
         history.addEntry(actor, actorUuid, actionName, actionName, "SUCCESS",
@@ -419,6 +420,14 @@ public class LockEndNeoForgeMod {
             evacuation.cancel();
         }
         return true;
+    }
+
+    private void persistLockState() {
+        try {
+            repository.save(state.getState());
+        } catch (UncheckedIOException exception) {
+            LOGGER.warn("Could not persist the Lock-End lock state; it may not survive a restart.", exception);
+        }
     }
 
     /**

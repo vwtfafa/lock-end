@@ -31,6 +31,7 @@ import org.vwtfafa.lockend.core.history.HistoryEntry;
 import org.vwtfafa.lockend.core.messages.ModMessages;
 import org.vwtfafa.lockend.core.stats.LockStatistics;
 
+import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -238,7 +239,7 @@ public class LockEndFabricMod implements ModInitializer {
             }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            repository.save(state.getState());
+            persistLockState();
             persistRuntimeSchedule();
             history.flush();
             saveStats();
@@ -391,7 +392,7 @@ public class LockEndFabricMod implements ModInitializer {
         undoTracker.recordPreviousState(previousState);
         stats.recordStateChange(lock);
         saveStatsIfChanged();
-        repository.save(state.getState());
+        persistLockState();
         broadcastLockState(lock, actor);
         logAction(actionName, actor);
         history.addEntry(actor, actorUuid, actionName, actionName, "SUCCESS",
@@ -406,6 +407,14 @@ public class LockEndFabricMod implements ModInitializer {
             evacuation.cancel();
         }
         return true;
+    }
+
+    private void persistLockState() {
+        try {
+            repository.save(state.getState());
+        } catch (UncheckedIOException exception) {
+            LOGGER.warn("Could not persist the Lock-End lock state; it may not survive a restart.", exception);
+        }
     }
 
     /**
