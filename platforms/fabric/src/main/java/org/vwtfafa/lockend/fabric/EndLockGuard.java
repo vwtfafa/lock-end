@@ -214,6 +214,7 @@ final class EndLockGuard {
             LockEndFabricMod.LOGGER.info("Bounced {} out of the locked End (late arrival scan)",
                     player.getName().getString());
             bounceArrival(player);
+            reportAttempt(player, "unknown", "LATE_SCAN");
         }
     }
 
@@ -237,14 +238,14 @@ final class EndLockGuard {
         LockEndFabricMod.LOGGER.info("Bounced {} out of the locked End (arrived from {})",
                 player.getName().getString(), origin.dimension().identifier());
         bounceArrival(player);
-        reportAttempt(player, origin);
+        reportAttempt(player, origin.dimension().identifier().toString(), "ARRIVAL");
     }
 
-    private void reportAttempt(ServerPlayer player, ServerLevel origin) {
+    private void reportAttempt(ServerPlayer player, String originWorld, String method) {
         BlockedAttemptReporter reporter = blockedAttemptReporter;
         if (reporter != null) {
             reporter.reportBlockedAttempt(player.getName().getString(), player.getUUID(),
-                    origin.dimension().identifier().toString(), "ARRIVAL");
+                    originWorld, method);
         }
     }
 

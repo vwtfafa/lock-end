@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Fabric and NeoForge continue the remaining lock-state change or shutdown
   work when saving the lock state fails, while logging the persistence error.
+- Fabric's late-arrival safety scan now records blocked attempts in statistics
+  and audit logging, marking the origin as unknown when it cannot be inferred.
 
 ## [4.0.0] - 2026-11-08
 
