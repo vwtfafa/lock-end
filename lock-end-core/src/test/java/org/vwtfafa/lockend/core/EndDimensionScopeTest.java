@@ -76,6 +76,9 @@ class EndDimensionScopeTest {
 
     @Test
     void nullOriginCountsAsUnguarded() {
+        // Fabric's late-arrival tick scan cannot recover a real origin world,
+        // so audit lines use the literal "unknown". Scope checks still treat a
+        // missing/null origin as unguarded for entry detection.
         assertTrue(DEFAULT.isEntryAttempt(null, "minecraft:the_end"));
         assertFalse(DEFAULT.isEntryAttempt(null, "minecraft:overworld"));
     }

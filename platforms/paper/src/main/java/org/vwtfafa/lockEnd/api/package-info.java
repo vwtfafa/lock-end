@@ -16,12 +16,14 @@
  * A missing service (EndLock absent or disabled) is a normal state.</p>
  *
  * <p><strong>Folia rules:</strong> the event dispatches synchronously on the
- * tick context of the triggering action (Paper main thread; Folia entity
- * region for player commands, global region for console and scheduled due
- * actions - never an async thread). Handlers must only read the payload; any
- * world or player mutation must run through the Region/Entity/Global
- * schedulers. See docs/3.1-api-contract.md (sections 5 and 7) for the
- * authoritative contract.</p>
+ * tick context of the triggering action (Paper main thread; Folia
+ * <strong>global</strong> region for player and console command mutations via
+ * {@code EndLockCommand}/{@code executeGlobal}, and for scheduled due
+ * actions - never an async thread and not the entity region for player
+ * commands). Handlers must only read the payload; any world or player
+ * mutation must run through the Region/Entity/Global schedulers. See
+ * docs/3.1-api-contract.md (sections 5 and 7) for the authoritative
+ * contract.</p>
  */
 @NullMarked
 package org.vwtfafa.lockEnd.api;

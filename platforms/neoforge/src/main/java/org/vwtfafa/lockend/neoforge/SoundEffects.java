@@ -3,6 +3,7 @@ package org.vwtfafa.lockend.neoforge;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
+import org.vwtfafa.lockend.core.config.ModEndLockConfig;
 import org.vwtfafa.lockend.core.sound.SoundKeys;
 
 /**
@@ -31,7 +32,7 @@ final class SoundEffects {
      *
      * @param config the freshly loaded settings
      */
-    void loadFrom(NeoForgeEndLockConfig config) {
+    void loadFrom(ModEndLockConfig config) {
         enabled = config.soundEffectsEnabled();
         volume = config.soundEffectVolume();
         pitch = config.soundEffectPitch();

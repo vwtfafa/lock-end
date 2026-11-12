@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.json;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -14,10 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the NeoForge schedule persistence contract: missing or corrupt
+ * Verifies the shared JSON schedule persistence contract: missing or corrupt
  * data never schedules anything on boot, and schedule round-trips survive
- * process boundaries (file-based). Deliberately a copy of the Fabric
- * adapter's test behavior.
+ * process boundaries (file-based).
  */
 class JsonScheduleRepositoryTest {
 

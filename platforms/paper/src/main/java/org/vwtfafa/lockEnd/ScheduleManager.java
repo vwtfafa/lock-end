@@ -15,8 +15,13 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Owns the scheduled lock/unlock action: persistence, countdown, preview
- * notifications and execution.
+ * Paper-specific scheduled lock/unlock owner: persistence in {@code config.yml},
+ * countdown, preview notifications and execution through the Folia-safe
+ * {@link org.vwtfafa.lockEnd.util.PaperScheduler}.
+ *
+ * <p>Fabric and NeoForge use the shared {@code LockScheduler} instead.
+ * Unifying Paper onto {@code LockScheduler} is deferred; this class remains
+ * the production Paper/Folia schedule path.</p>
  */
 public class ScheduleManager {
     private static final long SCHEDULE_RECHECK_TICKS = 20L * 60L;

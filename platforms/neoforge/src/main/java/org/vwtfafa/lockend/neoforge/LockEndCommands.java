@@ -30,26 +30,25 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * The NeoForge side of the Lock-End command surface, matching the Paper
- * per-node permission structure: {@code /endlock lock|unlock|reason set|
- * reason clear|schedule status|schedule clear|cancel|pause|resume|evacuate
- * preview|evacuate execute} require the game admin operator level, the
- * scheduled opening commands {@code /endlock unlockin|unlockat|lockin|
- * lockat} also require the operator level (the Paper plugin's
- * {@code endlock.toggle} default cannot be split further because
- * NeoForge's vanilla permission system has no arbitrary named permissions
- * nodes), {@code /endlock undo}, {@code /endlock history} and
- * {@code /endlock reload} collapse into the same operator level, and
- * {@code /endlock status|stats} are public.
+ * per-node permission style via NeoForge {@link LockEndPermissions}:
+ * {@code /endlock lock|unlock|reason set|reason clear|schedule status|
+ * schedule clear|cancel|pause|resume|evacuate preview|evacuate execute}
+ * require {@code lockend.admin}; the scheduled opening commands
+ * {@code /endlock unlockin|unlockat|lockin|lockat} require
+ * {@code lockend.toggle}; {@code /endlock undo} requires
+ * {@code lockend.undo}; {@code /endlock history} requires
+ * {@code lockend.history}; {@code /endlock reload} requires
+ * {@code lockend.reload}; and {@code /endlock status|stats} are public.
+ * Defaults fall back to the vanilla admin/op permission; console sources
+ * always pass the command predicates.
  *
  * <p>Player-facing feedback resolves through the shared message keys, so a
  * {@code config/lock-end-messages.json} override file controls every line
  * this class sends.</p>
  *
- * <p>The tree is registered through the game-bus {@code RegisterCommandsEvent}
- * using the vanilla 26.3 permission check
- * {@code Commands.hasPermission(Commands.LEVEL_ADMINS)}. Deliberately a copy
- * of the Fabric adapter's command surface with the permission checks swapped
- * to the vanilla operator level.</p>
+ * <p>The tree is registered through the game-bus {@code RegisterCommandsEvent}.
+ * Deliberately a copy of the Fabric adapter's command surface with the
+ * permission checks mapped onto NeoForge named permission nodes.</p>
  */
 final class LockEndCommands {
 
@@ -74,11 +73,9 @@ final class LockEndCommands {
     }
 
     /**
-     * Registers the {@code /endlock} tree onto the given dispatcher. The
-     * permission gate uses {@code Commands.hasPermission} on the vanilla 26.3
-     * permission system ({@code CommandSourceStack} is a
-     * {@code PermissionSetSupplier}); {@code status} and {@code stats} stay
-     * public.
+     * Registers the {@code /endlock} tree onto the given dispatcher. Named
+     * NeoForge permission nodes gate the mutating branches; {@code status}
+     * and {@code stats} stay public.
      *
      * @param dispatcher the command dispatcher supplied by the registration
      *                   event
@@ -87,53 +84,53 @@ final class LockEndCommands {
         dispatcher.register(Commands.literal(COMMAND_NAME)
                 .then(Commands.literal("status").executes(this::executeStatus))
                 .then(Commands.literal("stats").executes(this::executeStats))
-                .then(Commands.literal("lock").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("lock").requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .executes(context -> executeChangeLock(context, true)))
-                .then(Commands.literal("unlock").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("unlock").requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .executes(context -> executeChangeLock(context, false)))
                 .then(Commands.literal("reason")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .then(Commands.literal("set")
                                 .then(Commands.argument("reason", StringArgumentType.greedyString())
                                         .executes(this::executeSetReason)))
                         .then(Commands.literal("clear").executes(this::executeClearReason)))
-                .then(Commands.literal("unlockin").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("unlockin").requires(LockEndPermissions.requires(LockEndPermissions.TOGGLE))
                         .then(Commands.argument("value", StringArgumentType.word())
                                 .suggests(LockEndCommands::suggestUnlockDurations)
                                 .executes(this::executeUnlockIn)))
-                .then(Commands.literal("unlockat").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("unlockat").requires(LockEndPermissions.requires(LockEndPermissions.TOGGLE))
                         .then(dateTimeArguments()
                                 .executes(this::executeUnlockAt)))
-                .then(Commands.literal("lockin").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("lockin").requires(LockEndPermissions.requires(LockEndPermissions.TOGGLE))
                         .then(Commands.argument("value", StringArgumentType.word())
                                 .suggests(LockEndCommands::suggestLockDurations)
                                 .executes(this::executeLockIn)))
-                .then(Commands.literal("lockat").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("lockat").requires(LockEndPermissions.requires(LockEndPermissions.TOGGLE))
                         .then(dateTimeArguments()
                                 .executes(this::executeLockAt)))
                 .then(Commands.literal("schedule")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .then(Commands.literal("status").executes(this::executeScheduleStatus))
                         .then(Commands.literal("clear").executes(this::executeScheduleClear)))
                 .then(Commands.literal("evacuate")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .then(Commands.literal("preview")
                                 .executes(this::executeEvacuationPreview))
                         .then(Commands.literal("execute")
                                 .executes(this::executeEvacuationExecute)))
                 .then(Commands.literal("cancel")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .executes(this::executeCancelSchedule))
                 .then(Commands.literal("pause")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .executes(this::executePauseSchedule))
                 .then(Commands.literal("resume")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                        .requires(LockEndPermissions.requires(LockEndPermissions.ADMIN))
                         .executes(this::executeResumeSchedule))
-                .then(Commands.literal("undo").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("undo").requires(LockEndPermissions.requires(LockEndPermissions.UNDO))
                         .executes(this::executeUndo))
                 .then(historyCommand())
-                .then(Commands.literal("reload").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("reload").requires(LockEndPermissions.requires(LockEndPermissions.RELOAD))
                         .executes(this::executeReload)));
     }
 
@@ -452,7 +449,7 @@ final class LockEndCommands {
      */
     private LiteralArgumentBuilder<CommandSourceStack> historyCommand() {
         return LiteralArgumentBuilder.<CommandSourceStack>literal("history")
-                .requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .requires(LockEndPermissions.requires(LockEndPermissions.HISTORY))
                 .executes(this::executeHistoryRoot)
                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                         .suggests(LockEndCommands::suggestPages)

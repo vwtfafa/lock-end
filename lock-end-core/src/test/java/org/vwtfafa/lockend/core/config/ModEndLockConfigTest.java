@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,14 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * human edits are picked up and corrupt files fall back to defaults with a
  * backup instead of failing mod init.
  */
-class NeoForgeEndLockConfigTest {
+class ModEndLockConfigTest {
 
     @TempDir
     Path tempDir;
 
     @Test
     void firstBootWritesDefaults() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
         assertTrue(config.endScope().configuredEnds().isEmpty());
@@ -36,8 +36,65 @@ class NeoForgeEndLockConfigTest {
     }
 
     @Test
+    void playerSectionsBootWithPaperDefaultsAndEvacuationOn() throws IOException {
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
+
+        assertTrue(config.broadcastEnabled());
+        assertTrue(config.broadcastUseActionbar());
+        assertTrue(config.broadcastNotifyAll());
+        assertFalse(config.soundEffectsEnabled());
+        assertEquals("BLOCK_ANVIL_LAND", config.soundEffectSound());
+        assertEquals(1.0f, config.soundEffectVolume());
+        assertEquals(1.0f, config.soundEffectPitch());
+        assertFalse(config.gracePeriodEnabled());
+        assertEquals(10, config.gracePeriodDuration());
+        // The mods default to evacuating so the previous always-evacuate
+        // guard behavior survives the parity change.
+        assertTrue(config.evacuationEnabled());
+        assertEquals(10L, config.evacuationWarningSeconds());
+        assertEquals("", config.evacuationTargetWorld());
+        assertTrue(config.evacuationExcludeBypass());
+        assertFalse(config.joinNotificationsEnabled());
+        String json = Files.readString(tempDir.resolve("lock-end.json"));
+        assertTrue(json.contains("\"broadcast\""));
+        assertTrue(json.contains("\"soundEffects\""));
+        assertTrue(json.contains("\"gracePeriod\""));
+        assertTrue(json.contains("\"evacuation\""));
+        assertTrue(json.contains("\"joinNotifications\""));
+    }
+
+    @Test
+    void playerSectionEditsArePickedUp() throws IOException {
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "broadcast": {"enabled": false, "useActionbar": false, "notifyAll": false},
+                  "soundEffects": {"enabled": true, "sound": "minecraft:block.note_block.pling", "volume": 2.0, "pitch": 0.5},
+                  "gracePeriod": {"enabled": true, "duration": 45},
+                  "evacuation": {"enabled": false, "warningSeconds": 30, "targetWorld": "", "excludeBypass": true},
+                  "joinNotifications": {"enabled": true}
+                }
+                """);
+
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
+
+        assertFalse(config.broadcastEnabled());
+        assertFalse(config.broadcastUseActionbar());
+        assertFalse(config.broadcastNotifyAll());
+        assertTrue(config.soundEffectsEnabled());
+        assertEquals("minecraft:block.note_block.pling", config.soundEffectSound());
+        assertEquals(2.0f, config.soundEffectVolume());
+        assertEquals(0.5f, config.soundEffectPitch());
+        assertTrue(config.gracePeriodEnabled());
+        assertEquals(45, config.gracePeriodDuration());
+        assertFalse(config.evacuationEnabled());
+        assertEquals(30L, config.evacuationWarningSeconds());
+        assertTrue(config.joinNotificationsEnabled());
+    }
+
+    @Test
     void countdownAndPreviewBootWithPaperDefaults() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertTrue(config.countdownEnabled());
         assertEquals(10L, config.countdownIntervalSeconds());
@@ -59,7 +116,7 @@ class NeoForgeEndLockConfigTest {
                 }
                 """);
 
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertFalse(config.countdownEnabled());
         assertEquals(30L, config.countdownIntervalSeconds());
@@ -78,7 +135,7 @@ class NeoForgeEndLockConfigTest {
                 }
                 """);
 
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertEquals(10L, config.countdownIntervalSeconds());
         assertEquals(300L, config.countdownStartBeforeSeconds());
@@ -99,7 +156,7 @@ class NeoForgeEndLockConfigTest {
                 }
                 """);
 
-        NeoForgeEndLockConfig reloaded = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig reloaded = ModEndLockConfig.load(tempDir);
 
         assertEquals("Closed for maintenance", reloaded.lockReason());
         assertEquals(List.of("minecraft:the_end", "custom:maintenance_end"),
@@ -113,7 +170,7 @@ class NeoForgeEndLockConfigTest {
 
     @Test
     void firstBootPersistsEmptyBypassLists() throws IOException {
-        NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig.load(tempDir);
 
         String json = Files.readString(tempDir.resolve("lock-end.json"));
 
@@ -128,17 +185,17 @@ class NeoForgeEndLockConfigTest {
     void blankReasonFallsBackToDefault() throws IOException {
         Files.writeString(tempDir.resolve("lock-end.json"), fileContent("   "));
 
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
     }
 
     @Test
     void setLockReasonUpdatesLiveValueAndPersists() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         config.setLockReason("  Closed for maintenance  ");
-        NeoForgeEndLockConfig reloaded = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig reloaded = ModEndLockConfig.load(tempDir);
 
         assertEquals("Closed for maintenance", config.lockReason());
         assertEquals("Closed for maintenance", reloaded.lockReason());
@@ -146,7 +203,7 @@ class NeoForgeEndLockConfigTest {
 
     @Test
     void setLockReasonRejectsBlankInput() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertThrows(IllegalArgumentException.class, () -> config.setLockReason("   "));
         assertThrows(IllegalArgumentException.class, () -> config.setLockReason(null));
@@ -154,11 +211,11 @@ class NeoForgeEndLockConfigTest {
 
     @Test
     void clearReasonRestoresDefaultAndPersists() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
         config.setLockReason("Event night");
 
         config.clearReason();
-        NeoForgeEndLockConfig reloaded = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig reloaded = ModEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
         assertEquals("Maintenance", reloaded.lockReason());
@@ -169,7 +226,7 @@ class NeoForgeEndLockConfigTest {
         Path file = tempDir.resolve("lock-end.json");
         Files.writeString(file, "],[ not json");
 
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
         assertTrue(Files.exists(tempDir.resolve("lock-end.json.corrupt")));
@@ -179,11 +236,11 @@ class NeoForgeEndLockConfigTest {
 
     @Test
     void reloadPicksUpNewSettingsCleanly() throws IOException {
-        NeoForgeEndLockConfig config = NeoForgeEndLockConfig.load(tempDir);
+        ModEndLockConfig config = ModEndLockConfig.load(tempDir);
         config.setLockReason("Event night");
 
         Files.writeString(tempDir.resolve("lock-end.json"), fileContent("Server event"));
-        NeoForgeEndLockConfig reloaded = config.reload();
+        ModEndLockConfig reloaded = config.reload();
 
         assertEquals("Server event", reloaded.lockReason());
         assertNull(reloaded.parseFailureMessage());

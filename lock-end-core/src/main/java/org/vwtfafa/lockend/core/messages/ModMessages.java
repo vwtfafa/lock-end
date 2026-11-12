@@ -33,7 +33,7 @@ public final class ModMessages {
             Map.entry("reason-set", "Lock reason set to: %reason%"),
             Map.entry("reason-cleared",
                     "Lock reason cleared; restored default: %reason%"),
-            Map.entry("reason-usage", "Usage: /endlock reason <reason>"),
+            Map.entry("reason-usage", "Usage: /endlock reason set <reason>|clear"),
             // --- reload --- ---------------------------------------------
             Map.entry("reload-success", "Configuration reloaded successfully!"),
             Map.entry("reload-recovered",

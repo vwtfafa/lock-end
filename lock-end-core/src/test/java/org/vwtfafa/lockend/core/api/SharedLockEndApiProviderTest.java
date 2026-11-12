@@ -1,4 +1,4 @@
-package org.vwtfafa.lockEnd;
+package org.vwtfafa.lockend.core.api;
 
 import org.junit.jupiter.api.Test;
 import org.vwtfafa.lockend.api.LockAction;
@@ -20,21 +20,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * rule as the legacy provider (suppliers keep the test free of plugin
  * instantiation).
  */
-class SharedEndLockApiProviderTest {
+class SharedLockEndApiProviderTest {
 
     @Test
     void isLockedDelegatesToStateManager() {
         LockStateManager manager = new LockStateManager(true);
-        LockEndApi api = new SharedEndLockApiProvider(manager, () -> "Closed");
+        LockEndApi api = new SharedLockEndApiProvider(manager, () -> "Closed");
         assertTrue(api.isLocked());
 
-        api = new SharedEndLockApiProvider(new LockStateManager(false), () -> "Closed");
+        api = new SharedLockEndApiProvider(new LockStateManager(false), () -> "Closed");
         assertFalse(api.isLocked());
     }
 
     @Test
     void lockReasonIsStripped() {
-        LockEndApi api = new SharedEndLockApiProvider(new LockStateManager(true),
+        LockEndApi api = new SharedLockEndApiProvider(new LockStateManager(true),
                 () -> " <red>§cWartung</red> ");
 
         assertEquals("Wartung", api.getLockReason());
@@ -42,7 +42,7 @@ class SharedEndLockApiProviderTest {
 
     @Test
     void lockReasonNeverNullOnNullSource() {
-        LockEndApi api = new SharedEndLockApiProvider(new LockStateManager(false), () -> null);
+        LockEndApi api = new SharedLockEndApiProvider(new LockStateManager(false), () -> null);
 
         assertEquals("", api.getLockReason());
     }
@@ -50,7 +50,7 @@ class SharedEndLockApiProviderTest {
     @Test
     void getStatePairsStateAndStrippedReason() {
         LockStateManager manager = new LockStateManager(true);
-        LockEndApi api = new SharedEndLockApiProvider(manager, () -> "<red>§cWartung</red>");
+        LockEndApi api = new SharedLockEndApiProvider(manager, () -> "<red>§cWartung</red>");
 
         var snapshot = api.getState();
         assertTrue(snapshot.isLocked());
@@ -60,7 +60,7 @@ class SharedEndLockApiProviderTest {
     @Test
     void listenersAreManagedByTheCoreState() {
         LockStateManager manager = new LockStateManager(true);
-        LockEndApi api = new SharedEndLockApiProvider(manager, () -> "");
+        LockEndApi api = new SharedLockEndApiProvider(manager, () -> "");
         List<LockAction> actions = new ArrayList<>();
         LockStateChangeListener listener = change -> actions.add(change.action());
 

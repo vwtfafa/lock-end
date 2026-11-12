@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.fabric;
+package org.vwtfafa.lockend.core.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -16,16 +16,17 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Fabric persistence of the bounded lock history
+ * Shared persistence of the bounded lock history
  * ({@code config/lock-end.history.json}). The record shape matches the Paper
  * plugin's schema version 2 field for field; a corrupt file is never
  * rewritten (the store switches to read-only, mirroring the Paper store's
  * strict corruption policy).
  */
-final class JsonHistoryStore implements HistoryPersistence {
+public final class JsonHistoryStore implements HistoryPersistence {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
             .disableHtmlEscaping().create();
@@ -42,17 +43,11 @@ final class JsonHistoryStore implements HistoryPersistence {
      * Creates the store around the mod's config directory.
      *
      * @param configDirectory the directory holding the history file
+     * @param logger          log sink for corruption and write failures
      */
-    JsonHistoryStore(Path configDirectory) {
-        this(configDirectory, LockEndFabricMod.LOGGER);
-    }
-
-    /**
-     * Constructor variant with an injectable logger for tests.
-     */
-    JsonHistoryStore(Path configDirectory, Logger logger) {
+    public JsonHistoryStore(Path configDirectory, Logger logger) {
         this.file = configDirectory.resolve(FILE);
-        this.logger = logger;
+        this.logger = Objects.requireNonNull(logger, "logger");
     }
 
     /**
@@ -62,7 +57,7 @@ final class JsonHistoryStore implements HistoryPersistence {
      *
      * @return the entries, oldest first; never {@code null}
      */
-    List<HistoryEntry> load() {
+    public List<HistoryEntry> load() {
         if (!Files.exists(file)) {
             return new ArrayList<>();
         }
@@ -118,7 +113,7 @@ final class JsonHistoryStore implements HistoryPersistence {
     /**
      * @return file-level corruption and fallback state, or {@code AVAILABLE}
      */
-    String status() {
+    public String status() {
         if (!writable) {
             return "READ_ONLY";
         }
@@ -129,7 +124,7 @@ final class JsonHistoryStore implements HistoryPersistence {
      * @return {@code true} if the file should be rewritten at boot (reserved
      *         for schema migrations; the mods only support schema 2)
      */
-    boolean needsRewrite() {
+    public boolean needsRewrite() {
         return needsRewrite;
     }
 

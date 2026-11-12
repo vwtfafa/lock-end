@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.fabric;
+package org.vwtfafa.lockend.core.json;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the Fabric lock state persistence contract: missing or corrupt
+ * Verifies the shared JSON lock state persistence contract: missing or corrupt
  * data never boots the End locked, and state round-trips survive process
  * boundaries (file-based).
  */

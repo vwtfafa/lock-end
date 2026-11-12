@@ -1,28 +1,38 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
+import org.slf4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
- * NeoForge persistence of the operational statistics counters
+ * Shared persistence of the operational statistics counters
  * ({@code config/lock-end.stats.json}), mirroring the Paper plugin's config
  * {@code stats.*} section. Missing or corrupt files boot with zeros.
  */
-final class JsonStatsStore {
+public final class JsonStatsStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
             .disableHtmlEscaping().create();
     private static final Path FILE = Path.of("lock-end.stats.json");
 
     private final Path file;
+    private final Logger logger;
 
     /**
      * Creates the store around the mod's config directory.
+     *
+     * @param configDirectory the directory holding the stats file
+     * @param logger          log sink for read failures
      */
-    JsonStatsStore(Path configDirectory) {
+    public JsonStatsStore(Path configDirectory, Logger logger) {
         this.file = configDirectory.resolve(FILE);
+        this.logger = Objects.requireNonNull(logger, "logger");
     }
 
     /**
@@ -31,13 +41,13 @@ final class JsonStatsStore {
      * @param counts the counters to persist
      * @return {@code true} when the write completed
      */
-    boolean save(StatsCounts counts) {
+    public boolean save(StatsCounts counts) {
         StoredStats stored = new StoredStats();
         stored.lockCount = counts.lockCount();
         stored.unlockCount = counts.unlockCount();
         stored.blockedCount = counts.blockedCount();
         stored.evacuatedCount = counts.evacuatedCount();
-        return JsonFileIO.writeAtomically(file, GSON.toJson(stored), LockEndNeoForgeMod.LOGGER);
+        return JsonFileIO.writeAtomically(file, GSON.toJson(stored), logger);
     }
 
     /**
@@ -45,12 +55,12 @@ final class JsonStatsStore {
      *
      * @return the counters; never {@code null}
      */
-    StatsCounts load() {
+    public StatsCounts load() {
         try {
-            if (!java.nio.file.Files.exists(file)) {
+            if (!Files.exists(file)) {
                 return StatsCounts.EMPTY;
             }
-            String json = java.nio.file.Files.readString(file);
+            String json = Files.readString(file);
             StoredStats stored = GSON.fromJson(json, StoredStats.class);
             if (stored == null) {
                 return StatsCounts.EMPTY;
@@ -58,8 +68,8 @@ final class JsonStatsStore {
             return new StatsCounts(
                     stored.lockCount, stored.unlockCount,
                     stored.blockedCount, stored.evacuatedCount);
-        } catch (java.io.IOException | com.google.gson.JsonParseException exception) {
-            LockEndNeoForgeMod.LOGGER.warn(
+        } catch (IOException | JsonParseException exception) {
+            logger.warn(
                     "lock-end.stats.json could not be read; starting with zero counts", exception);
             return StatsCounts.EMPTY;
         }
@@ -73,8 +83,9 @@ final class JsonStatsStore {
      * @param blockedCount   blocked access attempts
      * @param evacuatedCount players moved out by evacuations
      */
-    record StatsCounts(int lockCount, int unlockCount, int blockedCount, int evacuatedCount) {
-        private static final StatsCounts EMPTY = new StatsCounts(0, 0, 0, 0);
+    public record StatsCounts(int lockCount, int unlockCount, int blockedCount, int evacuatedCount) {
+        /** Zeroed counters used when the file is missing or unreadable. */
+        public static final StatsCounts EMPTY = new StatsCounts(0, 0, 0, 0);
     }
 
     private static final class StoredStats {

@@ -20,16 +20,24 @@ import dev.faststats.neoforge.NeoForgeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.api.LockEndApi;
 import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockScheduler;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.PersistedSchedule;
 import org.vwtfafa.lockend.core.ScheduleSupport;
 import org.vwtfafa.lockend.core.UndoTracker;
+import org.vwtfafa.lockend.core.api.SharedLockEndApiProvider;
 import org.vwtfafa.lockend.core.audit.AttemptRateLimiter;
 import org.vwtfafa.lockend.core.audit.AuditLogWriter;
+import org.vwtfafa.lockend.core.config.ModEndLockConfig;
 import org.vwtfafa.lockend.core.history.HistoryBuffer;
 import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.json.JsonHistoryStore;
+import org.vwtfafa.lockend.core.json.JsonLockStateRepository;
+import org.vwtfafa.lockend.core.json.JsonMessageOverrides;
+import org.vwtfafa.lockend.core.json.JsonScheduleRepository;
+import org.vwtfafa.lockend.core.json.JsonStatsStore;
 import org.vwtfafa.lockend.core.messages.ModMessages;
 import org.vwtfafa.lockend.core.stats.LockStatistics;
 
@@ -101,10 +109,16 @@ public class LockEndNeoForgeMod {
 
     private static final ModMessages MESSAGES = new ModMessages();
 
+    /**
+     * Shared 4.x API surface published after init and cleared on server stop.
+     * Consumers must call {@link #getApi()} only while a server is running.
+     */
+    private static volatile LockEndApi sharedApi;
+
     private Path configDirectory;
     private LockStateManager state;
     private JsonLockStateRepository repository;
-    private NeoForgeEndLockConfig config;
+    private ModEndLockConfig config;
     private EndLockGuard guard;
     private JsonScheduleRepository scheduleRepository;
     private LockScheduler scheduler;
@@ -132,22 +146,22 @@ public class LockEndNeoForgeMod {
      */
     public LockEndNeoForgeMod() {
         configDirectory = FMLPaths.CONFIGDIR.get();
-        config = NeoForgeEndLockConfig.load(configDirectory);
+        config = ModEndLockConfig.load(configDirectory);
         repository = new JsonLockStateRepository(configDirectory);
 
-        JsonMessageOverrides.writeDefaultsIfMissing(configDirectory, MESSAGES);
-        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
+        JsonMessageOverrides.writeDefaultsIfMissing(configDirectory, MESSAGES, LOGGER);
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory, LOGGER));
 
         state = new LockStateManager(false).loadFromPersistence(repository);
         state.setReasonSupplier(config::lockReason);
 
         stats = new LockStatistics(config.statsEnabled());
-        statsStore = new JsonStatsStore(configDirectory);
+        statsStore = new JsonStatsStore(configDirectory, LOGGER);
         JsonStatsStore.StatsCounts loadedStats = statsStore.load();
         stats.loadCounts(loadedStats.lockCount(), loadedStats.unlockCount(),
                 loadedStats.blockedCount(), loadedStats.evacuatedCount());
 
-        historyStore = new JsonHistoryStore(configDirectory);
+        historyStore = new JsonHistoryStore(configDirectory, LOGGER);
         rebuildHistoryService();
 
         undoTracker = new UndoTracker();
@@ -174,8 +188,33 @@ public class LockEndNeoForgeMod {
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(LockEndPermissions::registerNodes);
+        publishSharedApi();
 
         LOGGER.info("EndLock (NeoForge) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
+    }
+
+    /**
+     * Returns the shared 4.x {@link LockEndApi} for this NeoForge installation.
+     *
+     * @return the live API provider
+     * @throws IllegalStateException if called before init or after server stop
+     */
+    public static LockEndApi getApi() {
+        LockEndApi current = sharedApi;
+        if (current == null) {
+            throw new IllegalStateException(
+                    "EndLock NeoForge API is not initialized (mod not ready or server stopped)");
+        }
+        return current;
+    }
+
+    private void publishSharedApi() {
+        sharedApi = new SharedLockEndApiProvider(state, () -> config.lockReason());
+    }
+
+    private static void clearSharedApi() {
+        sharedApi = null;
     }
 
     private NeoForgeContext createFastStatsContext() {
@@ -274,6 +313,10 @@ public class LockEndNeoForgeMod {
     private void onServerStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
         liveServer = server;
+        // Re-publish after a previous server stop cleared the static.
+        if (sharedApi == null) {
+            publishSharedApi();
+        }
         if (state.isLocked() && config.evacuationEnabled() && !evacuation.isPending()) {
             evacuation.schedule();
         }
@@ -301,6 +344,7 @@ public class LockEndNeoForgeMod {
             fastStatsContext.shutdown();
         }
         liveServer = null;
+        clearSharedApi();
     }
 
     /**
@@ -653,7 +697,7 @@ public class LockEndNeoForgeMod {
     /**
      * @return the currently active settings
      */
-    NeoForgeEndLockConfig currentSettings() {
+    ModEndLockConfig currentSettings() {
         return config;
     }
 
@@ -684,7 +728,7 @@ public class LockEndNeoForgeMod {
      * no record is lost by the rebuild.
      */
     private void refreshRuntimeServices() {
-        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory));
+        MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory, LOGGER));
         stats.setEnabled(config.statsEnabled());
         attemptRateLimiter.setRateLimitSeconds(config.logRateLimitSeconds());
         soundEffects.loadFrom(config);

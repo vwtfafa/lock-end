@@ -1,4 +1,4 @@
-package org.vwtfafa.lockEnd;
+package org.vwtfafa.lockend.core.api;
 
 import org.junit.jupiter.api.Test;
 

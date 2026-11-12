@@ -1,5 +1,8 @@
 package org.vwtfafa.lockend.fabric;
 
+import org.vwtfafa.lockend.core.PlayerEvacuationHandler;
+import org.vwtfafa.lockend.core.config.ModEndLockConfig;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -34,7 +37,7 @@ import java.util.UUID;
  * <p>The mods run on the single server thread, so synchronous teleports
  * replace Paper's async scheduler plumbing; the semantics stay identical.</p>
  */
-final class EndLockEvacuation {
+final class EndLockEvacuation implements PlayerEvacuationHandler {
 
     private static final long PREVIEW_VALIDITY_NANOS = Duration.ofSeconds(30).toNanos();
 
@@ -44,6 +47,16 @@ final class EndLockEvacuation {
 
     EndLockEvacuation(LockEndFabricMod mod) {
         this.mod = mod;
+    }
+
+    @Override
+    public void evacuatePlayers() {
+        schedule();
+    }
+
+    @Override
+    public void cancelEvacuation() {
+        cancel();
     }
 
     /**
@@ -56,7 +69,7 @@ final class EndLockEvacuation {
         if (server == null) {
             return;
         }
-        FabricEndLockConfig config = mod.currentSettings();
+        ModEndLockConfig config = mod.currentSettings();
         long warningSeconds = config.evacuationWarningSeconds();
         String warning = LockEndFabricMod.messages().text("evacuation-warning", Map.of(
                 "%seconds%", String.valueOf(warningSeconds)));

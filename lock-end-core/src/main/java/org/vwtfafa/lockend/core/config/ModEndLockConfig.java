@@ -1,10 +1,11 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import org.vwtfafa.lockend.core.EndDimensionScope;
 import org.vwtfafa.lockend.core.LockBypassChecker;
+import org.vwtfafa.lockend.core.json.JsonLockStateRepository;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Reads and writes the NeoForge mod's settings file
+ * Reads and writes the Fabric/NeoForge mod settings file
  * ({@code config/lock-end.json}) holding the human-editable settings. The
  * persisted lock state lives in a separate file owned by
  * {@link JsonLockStateRepository}; the settings file is write-through on
@@ -24,10 +25,8 @@ import java.util.Objects;
  * ({@code endWorlds}; see {@link EndDimensionScope}) and the non-player
  * entity block ({@code blockEntities}). Schedule notification options
  * ({@code countdown}, {@code preview}) mirror the Paper plugin defaults.
- * Deliberately a copy of the Fabric adapter's behavior (platform adapters
- * implement their own persistence first).
  */
-final class NeoForgeEndLockConfig {
+public final class ModEndLockConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String DEFAULT_REASON = "Maintenance";
@@ -86,7 +85,7 @@ final class NeoForgeEndLockConfig {
     private final RuntimeSections sections;
     private final String parseFailure;
 
-    private NeoForgeEndLockConfig(
+    private ModEndLockConfig(
             Path file,
             String lockReason,
             LockBypassChecker bypassChecker,
@@ -137,7 +136,7 @@ final class NeoForgeEndLockConfig {
      * @param configDirectory the directory holding the settings file
      * @return the loaded settings; never {@code null}
      */
-    static NeoForgeEndLockConfig load(Path configDirectory) {
+    public static ModEndLockConfig load(Path configDirectory) {
         Path file = configDirectory.resolve(CONFIG_FILE_NAME);
         if (!Files.exists(file)) {
             return writeDefaults(file, null);
@@ -148,7 +147,7 @@ final class NeoForgeEndLockConfig {
             if (stored == null) {
                 stored = new StoredConfig();
             }
-            return new NeoForgeEndLockConfig(
+            return new ModEndLockConfig(
                     file,
                     stored.reasonOrDefault(),
                     stored.bypassChecker(),
@@ -182,12 +181,12 @@ final class NeoForgeEndLockConfig {
      *
      * @return the freshly loaded settings; never {@code null}
      */
-    NeoForgeEndLockConfig reload() {
+    public ModEndLockConfig reload() {
         return load(file.getParent());
     }
 
-    private static NeoForgeEndLockConfig writeDefaults(Path file, String parseFailure) {
-        NeoForgeEndLockConfig defaults = new NeoForgeEndLockConfig(
+    private static ModEndLockConfig writeDefaults(Path file, String parseFailure) {
+        ModEndLockConfig defaults = new ModEndLockConfig(
                 file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
                 DEFAULT_COUNTDOWN_ENABLED, DEFAULT_COUNTDOWN_INTERVAL, DEFAULT_COUNTDOWN_START_BEFORE,
                 DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS,
@@ -207,21 +206,21 @@ final class NeoForgeEndLockConfig {
     /**
      * @return the configured lock reason; never {@code null}
      */
-    String lockReason() {
+    public String lockReason() {
         return lockReason;
     }
 
     /**
      * @return the configured bypass (whitelist) rules; never {@code null}
      */
-    LockBypassChecker bypassChecker() {
+    public LockBypassChecker bypassChecker() {
         return bypassChecker;
     }
 
     /**
      * @return the configured End dimension scope; never {@code null}
      */
-    EndDimensionScope endScope() {
+    public EndDimensionScope endScope() {
         return endScope;
     }
 
@@ -229,7 +228,7 @@ final class NeoForgeEndLockConfig {
      * @return {@code true} if non-player entities may not enter the guarded
      *         End while the lock is active
      */
-    boolean blockEntities() {
+    public boolean blockEntities() {
         return blockEntities;
     }
 
@@ -237,14 +236,14 @@ final class NeoForgeEndLockConfig {
      * @return {@code true} if periodic countdown announcements run for a
      *         pending scheduled action (default like the Paper plugin)
      */
-    boolean countdownEnabled() {
+    public boolean countdownEnabled() {
         return countdownEnabled;
     }
 
     /**
      * @return the minimum seconds between countdown announcements (at least 1)
      */
-    long countdownIntervalSeconds() {
+    public long countdownIntervalSeconds() {
         return countdownIntervalSeconds;
     }
 
@@ -252,7 +251,7 @@ final class NeoForgeEndLockConfig {
      * @return countdown announcements only run while remaining seconds are at
      *         most this value
      */
-    long countdownStartBeforeSeconds() {
+    public long countdownStartBeforeSeconds() {
         return countdownStartBeforeSeconds;
     }
 
@@ -260,14 +259,14 @@ final class NeoForgeEndLockConfig {
      * @return {@code true} if the one-shot preview notification runs shortly
      *         before a due scheduled action (default off, like Paper)
      */
-    boolean previewEnabled() {
+    public boolean previewEnabled() {
         return previewEnabled;
     }
 
     /**
      * @return the preview notification window in seconds
      */
-    long previewSeconds() {
+    public long previewSeconds() {
         return previewSeconds;
     }
 
@@ -275,14 +274,14 @@ final class NeoForgeEndLockConfig {
      * @return {@code true} if the operational statistics counters record
      *         events (default like the Paper plugin)
      */
-    boolean statsEnabled() {
+    public boolean statsEnabled() {
         return statsEnabled;
     }
 
     /**
      * @return the maximum retained history entries (at least 1)
      */
-    int historyMaxEntries() {
+    public int historyMaxEntries() {
         return historyMaxEntries;
     }
 
@@ -290,14 +289,14 @@ final class NeoForgeEndLockConfig {
      * @return the history retention window in days; non-positive keeps
      *         entries forever, exactly like the Paper plugin
      */
-    int historyRetentionDays() {
+    public int historyRetentionDays() {
         return historyRetentionDays;
     }
 
     /**
      * @return {@code true} if the audit log file is written
      */
-    boolean loggingEnabled() {
+    public boolean loggingEnabled() {
         return loggingEnabled;
     }
 
@@ -305,84 +304,84 @@ final class NeoForgeEndLockConfig {
      * @return the audit log file name, created inside
      *         {@code config/logs/}
      */
-    String logFile() {
+    public String logFile() {
         return logFile;
     }
 
     /**
      * @return {@code true} if blocked access attempts are logged
      */
-    boolean logAttempts() {
+    public boolean logAttempts() {
         return logAttempts;
     }
 
     /**
      * @return the minimum seconds between two logged attempts per player
      */
-    int logRateLimitSeconds() {
+    public int logRateLimitSeconds() {
         return logRateLimitSeconds;
     }
 
     /**
      * @return {@code true} if lock/unlock state changes are broadcast
      */
-    boolean broadcastEnabled() {
+    public boolean broadcastEnabled() {
         return sections.broadcastEnabled();
     }
 
     /**
      * @return {@code true} if broadcasts use the action bar (chat otherwise)
      */
-    boolean broadcastUseActionbar() {
+    public boolean broadcastUseActionbar() {
         return sections.broadcastUseActionbar();
     }
 
     /**
      * @return {@code true} if every player is notified (admins only otherwise)
      */
-    boolean broadcastNotifyAll() {
+    public boolean broadcastNotifyAll() {
         return sections.broadcastNotifyAll();
     }
 
     /**
      * @return {@code true} if access denial plays a sound
      */
-    boolean soundEffectsEnabled() {
+    public boolean soundEffectsEnabled() {
         return sections.soundEffectsEnabled();
     }
 
     /**
      * @return the configured denial sound value (enum style or key)
      */
-    String soundEffectSound() {
+    public String soundEffectSound() {
         return sections.soundEffectSound();
     }
 
     /**
      * @return the denial sound volume (0..2)
      */
-    float soundEffectVolume() {
+    public float soundEffectVolume() {
         return sections.soundEffectVolume();
     }
 
     /**
      * @return the denial sound pitch (0..2)
      */
-    float soundEffectPitch() {
+    public float soundEffectPitch() {
         return sections.soundEffectPitch();
     }
 
     /**
      * @return {@code true} if a grace period delays lock enforcement
      */
-    boolean gracePeriodEnabled() {
+    public boolean gracePeriodEnabled() {
         return sections.gracePeriodEnabled();
     }
 
     /**
      * @return the grace period duration in seconds
      */
-    int gracePeriodDuration() {
+    public int gracePeriodDuration() {
         return sections.gracePeriodDuration();
     }
 
@@ -391,14 +390,14 @@ final class NeoForgeEndLockConfig {
      *         End (true on the mods by default, preserving the previous
      *         always-evacuate guard behavior)
      */
-    boolean evacuationEnabled() {
+    public boolean evacuationEnabled() {
         return sections.evacuationEnabled();
     }
 
     /**
      * @return seconds the evacuation warning is shown before the move
      */
-    long evacuationWarningSeconds() {
+    public long evacuationWarningSeconds() {
         return sections.evacuationWarningSeconds();
     }
 
@@ -406,14 +405,14 @@ final class NeoForgeEndLockConfig {
      * @return the configured evacuation target world key; blank falls back
      *         to the server's overworld
      */
-    String evacuationTargetWorld() {
+    public String evacuationTargetWorld() {
         return sections.evacuationTargetWorld();
     }
 
     /**
      * @return {@code true} if bypassing (whitelisted) players are skipped
      */
-    boolean evacuationExcludeBypass() {
+    public boolean evacuationExcludeBypass() {
         return sections.evacuationExcludeBypass();
     }
 
@@ -421,7 +420,7 @@ final class NeoForgeEndLockConfig {
      * @return {@code true} if players joining while the End is locked get a
      *         notification
      */
-    boolean joinNotificationsEnabled() {
+    public boolean joinNotificationsEnabled() {
         return sections.joinNotificationsEnabled();
     }
 
@@ -429,7 +428,7 @@ final class NeoForgeEndLockConfig {
      * @return a human-readable recovery notice when the last load fell back
      *         to defaults, or {@code null} when the file was read cleanly
      */
-    String parseFailureMessage() {
+    public String parseFailureMessage() {
         return parseFailure;
     }
 
@@ -441,7 +440,7 @@ final class NeoForgeEndLockConfig {
      * @param reason the new reason; must not be {@code null} or blank
      * @throws IllegalArgumentException if the reason is {@code null} or blank
      */
-    void setLockReason(String reason) {
+    public void setLockReason(String reason) {
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("reason must not be blank");
         }
@@ -453,7 +452,7 @@ final class NeoForgeEndLockConfig {
      * Restores the built-in default lock reason and writes the settings file,
      * matching what a fresh default file contains.
      */
-    void clearReason() {
+    public void clearReason() {
         this.lockReason = DEFAULT_REASON;
         save();
     }
@@ -461,7 +460,7 @@ final class NeoForgeEndLockConfig {
     /**
      * Writes the current settings back to disk.
      */
-    void save() {
+    public void save() {
         StoredConfig stored = new StoredConfig();
         stored.lockReason = lockReason;
         stored.endWorlds = endScope.configuredEnds();
@@ -535,7 +534,7 @@ final class NeoForgeEndLockConfig {
      * @param evacuationExcludeBypass bypassing players are skipped
      * @param joinNotificationsEnabled locked-End notice on player join
      */
-    record RuntimeSections(
+    public record RuntimeSections(
             boolean broadcastEnabled,
             boolean broadcastUseActionbar,
             boolean broadcastNotifyAll,

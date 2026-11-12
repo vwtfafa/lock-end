@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.fabric;
+package org.vwtfafa.lockend.core.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,8 +14,8 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 /**
- * Fabric implementation of the shared {@link LockStateRepository} contract,
- * persisting the lock state as a small JSON document in the mod's config
+ * Shared JSON implementation of the {@link LockStateRepository} contract,
+ * persisting the lock state as a small document in the mod's config
  * directory ({@code config/lock-end.state.json}).
  *
  * <p>The master record is the {@code locked} boolean; the snapshot's reason
@@ -25,7 +25,7 @@ import java.util.Objects;
  * lock state changes are rare, so a synchronous small file write is
  * acceptable.</p>
  */
-final class JsonLockStateRepository implements LockStateRepository {
+public final class JsonLockStateRepository implements LockStateRepository {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String STATE_FILE_NAME = "lock-end.state.json";
@@ -39,7 +39,7 @@ final class JsonLockStateRepository implements LockStateRepository {
      *
      * @param baseConfigDirectory the directory holding the state file
      */
-    JsonLockStateRepository(Path baseConfigDirectory) {
+    public JsonLockStateRepository(Path baseConfigDirectory) {
         this.baseConfigDirectory = Objects.requireNonNull(baseConfigDirectory, "baseConfigDirectory");
     }
 

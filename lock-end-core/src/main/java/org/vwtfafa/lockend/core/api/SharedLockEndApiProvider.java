@@ -1,4 +1,4 @@
-package org.vwtfafa.lockEnd;
+package org.vwtfafa.lockend.core.api;
 
 import org.vwtfafa.lockend.api.LockEndApi;
 import org.vwtfafa.lockend.api.LockStateChangeListener;
@@ -8,12 +8,12 @@ import org.vwtfafa.lockend.core.LockStateManager;
 import java.util.function.Supplier;
 
 /**
- * Paper implementation of the shared, platform-independent
- * {@link LockEndApi} (4.x surface). Delegates the runtime state to the
- * shared {@link LockStateManager} and applies the same plain text stripping
- * rule as the legacy 3.1 provider, so both APIs expose identical texts.
+ * Shared, platform-independent implementation of {@link LockEndApi} (4.x
+ * surface). Delegates the runtime state to the shared
+ * {@link LockStateManager} and applies the same plain text stripping rule as
+ * the legacy Paper 3.1 provider, so both APIs expose identical texts.
  */
-final class SharedEndLockApiProvider implements LockEndApi {
+public final class SharedLockEndApiProvider implements LockEndApi {
 
     private final LockStateManager state;
     private final Supplier<String> rawReasonSupplier;
@@ -27,7 +27,7 @@ final class SharedEndLockApiProvider implements LockEndApi {
      *                          the "Maintenance" fallback); plain text
      *                          stripping happens here, never in the supplier
      */
-    SharedEndLockApiProvider(LockStateManager state, Supplier<String> rawReasonSupplier) {
+    public SharedLockEndApiProvider(LockStateManager state, Supplier<String> rawReasonSupplier) {
         this.state = state;
         this.rawReasonSupplier = rawReasonSupplier;
     }

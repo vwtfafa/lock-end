@@ -31,12 +31,13 @@ import org.vwtfafa.lockEnd.commands.LockHistoryCommand;
 import org.vwtfafa.lockEnd.commands.UndoCommand;
 import org.vwtfafa.lockEnd.util.AsyncLogger;
 import org.vwtfafa.lockEnd.util.PaperScheduler;
+import org.vwtfafa.lockend.api.LockAction;
+import org.vwtfafa.lockend.api.LockEndApi;
 import org.vwtfafa.lockend.core.LockActions;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.LockStateRepository;
 import org.vwtfafa.lockend.core.ScheduleSupport;
-import org.vwtfafa.lockend.api.LockAction;
-import org.vwtfafa.lockend.api.LockEndApi;
+import org.vwtfafa.lockend.core.api.SharedLockEndApiProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -272,7 +273,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
 
         // The shared 4.x surface is backed by the same runtime state manager,
         // so both APIs always observe the same state, reason and changes.
-        LockEndApi sharedProvider = new SharedEndLockApiProvider(lockStateManager, this::getLockReason);
+        LockEndApi sharedProvider = new SharedLockEndApiProvider(lockStateManager, this::getLockReason);
         getServer().getServicesManager().register(
                 LockEndApi.class, sharedProvider, this, ServicePriority.Normal);
         sharedApiProvider = sharedProvider;

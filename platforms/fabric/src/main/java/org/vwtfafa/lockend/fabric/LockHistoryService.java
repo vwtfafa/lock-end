@@ -7,6 +7,8 @@ import org.vwtfafa.lockend.core.history.HistoryEntry;
 import org.vwtfafa.lockend.core.history.HistoryExport;
 import org.vwtfafa.lockend.core.history.HistoryFilter;
 import org.vwtfafa.lockend.core.history.HistoryRotation;
+import org.vwtfafa.lockend.core.json.JsonFileIO;
+import org.vwtfafa.lockend.core.json.JsonHistoryStore;
 import org.vwtfafa.lockend.core.messages.ModMessages;
 
 import java.nio.file.Path;

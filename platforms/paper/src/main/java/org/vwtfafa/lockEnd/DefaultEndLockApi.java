@@ -1,6 +1,7 @@
 package org.vwtfafa.lockEnd;
 
 import org.vwtfafa.lockEnd.api.EndLockApi;
+import org.vwtfafa.lockend.core.api.LockReasonSanitizer;
 
 import java.util.function.Supplier;
 

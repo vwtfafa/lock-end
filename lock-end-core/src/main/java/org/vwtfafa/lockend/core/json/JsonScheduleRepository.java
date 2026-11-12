@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.fabric;
+package org.vwtfafa.lockend.core.json;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,15 +14,15 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Fabric persistence of the single pending scheduled action, stored as a
+ * Shared persistence of the single pending scheduled action, stored as a
  * small JSON document in the mod's config directory
  * ({@code config/lock-end.schedule.json}), separate from the settings and
  * lock state files. Missing, unparsable or malformed data is treated as "no
  * schedule"; corrupted files never schedule anything on boot. I/O happens
- * in the tick context of the callers - schedule changes are rare, so a
- * synchronous small file write is acceptable.
+ * in the tick / server-thread context of the callers - schedule changes are
+ * rare, so a synchronous small file write is acceptable.
  */
-final class JsonScheduleRepository {
+public final class JsonScheduleRepository {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String SCHEDULE_FILE_NAME = "lock-end.schedule.json";
@@ -36,7 +36,7 @@ final class JsonScheduleRepository {
      *
      * @param baseConfigDirectory the directory holding the schedule file
      */
-    JsonScheduleRepository(Path baseConfigDirectory) {
+    public JsonScheduleRepository(Path baseConfigDirectory) {
         this.baseConfigDirectory = Objects.requireNonNull(baseConfigDirectory, "baseConfigDirectory");
     }
 
@@ -48,7 +48,7 @@ final class JsonScheduleRepository {
      *
      * @return the persisted schedule; never {@code null}
      */
-    PersistedSchedule load() {
+    public PersistedSchedule load() {
         Path file = scheduleFile();
         if (!Files.exists(file)) {
             return PersistedSchedule.empty();
@@ -77,7 +77,7 @@ final class JsonScheduleRepository {
      *
      * @param schedule the schedule to persist; must not be {@code null}
      */
-    void save(PersistedSchedule schedule) {
+    public void save(PersistedSchedule schedule) {
         if (schedule == null) {
             throw new IllegalArgumentException("schedule must not be null");
         }
@@ -102,7 +102,7 @@ final class JsonScheduleRepository {
     /**
      * Clears the persisted schedule.
      */
-    void clear() {
+    public void clear() {
         save(PersistedSchedule.empty());
     }
 

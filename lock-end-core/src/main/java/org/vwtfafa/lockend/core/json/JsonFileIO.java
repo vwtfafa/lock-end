@@ -1,4 +1,4 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.json;
 
 import org.slf4j.Logger;
 
@@ -11,10 +11,10 @@ import java.nio.file.StandardCopyOption;
 /**
  * Shared atomic file-writing helper for the mod's JSON stores: a temp file
  * in the target directory is filled and moved onto the target (falling back
- * to a plain replace when	atomic moves are unsupported), so a killed server
+ * to a plain replace when atomic moves are unsupported), so a killed server
  * never truncates an existing file.
  */
-final class JsonFileIO {
+public final class JsonFileIO {
 
     private JsonFileIO() {
     }
@@ -27,7 +27,7 @@ final class JsonFileIO {
      * @param logger log sink for failures
      * @return {@code true} when the write completed
      */
-    static boolean writeAtomically(Path target, String text, Logger logger) {
+    public static boolean writeAtomically(Path target, String text, Logger logger) {
         Path temporaryFile = null;
         try {
             Path parent = target.toAbsolutePath().getParent();

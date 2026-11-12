@@ -27,6 +27,15 @@ class ModMessagesTest {
     }
 
     @Test
+    void reasonUsageDocumentsSetAndClear() {
+        ModMessages messages = new ModMessages();
+
+        String usage = messages.text("reason-usage");
+        assertTrue(usage.contains("reason set"), usage);
+        assertTrue(usage.contains("clear"), usage);
+    }
+
+    @Test
     void overridesWinOverDefaults() {
         ModMessages messages = new ModMessages();
         messages.setOverrides(Map.of("status", "Endestatus: %status%"));

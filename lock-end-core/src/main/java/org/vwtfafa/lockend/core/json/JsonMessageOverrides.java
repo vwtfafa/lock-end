@@ -1,8 +1,16 @@
-package org.vwtfafa.lockend.neoforge;
+package org.vwtfafa.lockend.core.json;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
+import com.google.gson.reflect.TypeToken;
+import org.slf4j.Logger;
 import org.vwtfafa.lockend.core.messages.ModMessages;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -13,7 +21,7 @@ import java.util.Map;
  * built-in English defaults so admins discover the keys; a corrupt file
  * falls back to the defaults with a warning instead of failing the boot.
  */
-final class JsonMessageOverrides {
+public final class JsonMessageOverrides {
 
     private static final Path FILE = Path.of("lock-end-messages.json");
 
@@ -23,7 +31,7 @@ final class JsonMessageOverrides {
     /**
      * @return the overrides file name
      */
-    static String fileName() {
+    public static String fileName() {
         return FILE.toString();
     }
 
@@ -33,16 +41,17 @@ final class JsonMessageOverrides {
      *
      * @param configDirectory the mod's config directory
      * @param messages        the renderer providing the default texts
+     * @param logger          log sink for write failures
      */
-    static void writeDefaultsIfMissing(Path configDirectory, ModMessages messages) {
+    public static void writeDefaultsIfMissing(Path configDirectory, ModMessages messages,
+                                              Logger logger) {
         Path file = configDirectory.resolve(FILE);
-        if (java.nio.file.Files.exists(file)) {
+        if (Files.exists(file)) {
             return;
         }
-        com.google.gson.Gson gson = new com.google.gson.GsonBuilder()
+        Gson gson = new GsonBuilder()
                 .setPrettyPrinting().disableHtmlEscaping().create();
-        JsonFileIO.writeAtomically(file, gson.toJson(messages.defaults()),
-                LockEndNeoForgeMod.LOGGER);
+        JsonFileIO.writeAtomically(file, gson.toJson(messages.defaults()), logger);
     }
 
     /**
@@ -50,36 +59,36 @@ final class JsonMessageOverrides {
      * and unreadable files behave identically so rendering keeps working.
      *
      * @param configDirectory the mod's config directory
+     * @param logger          log sink for read failures
      * @return the overrides; never {@code null}
      */
-    static Map<String, String> load(Path configDirectory) {
+    public static Map<String, String> load(Path configDirectory, Logger logger) {
         Path file = configDirectory.resolve(FILE);
-        if (!java.nio.file.Files.exists(file)) {
+        if (!Files.exists(file)) {
             return Map.of();
         }
         try {
-            String json = java.nio.file.Files.readString(file);
+            String json = Files.readString(file);
             Map<String, String> parsed = parse(json);
             if (parsed == null) {
                 return Map.of();
             }
-            Map<String, String> overrides = new java.util.HashMap<>();
+            Map<String, String> overrides = new HashMap<>();
             parsed.forEach((key, value) -> {
                 if (key != null && value != null && !value.isBlank()) {
                     overrides.put(key, value);
                 }
             });
             return Map.copyOf(overrides);
-        } catch (java.io.IOException | com.google.gson.JsonParseException exception) {
-            LockEndNeoForgeMod.LOGGER.warn(
+        } catch (IOException | JsonParseException exception) {
+            logger.warn(
                     "lock-end-messages.json could not be read; using built-in defaults", exception);
             return Map.of();
         }
     }
 
     private static Map<String, String> parse(String json) {
-        com.google.gson.Gson gson = new com.google.gson.Gson();
-        return gson.fromJson(json,
-                new com.google.gson.reflect.TypeToken<Map<String, String>>() { }.getType());
+        Gson gson = new Gson();
+        return gson.fromJson(json, new TypeToken<Map<String, String>>() { }.getType());
     }
 }
