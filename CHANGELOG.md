@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
 - NeoForge named permission nodes under mod id `lockend`
   (`admin`, `reload`, `toggle`, `history`, `undo`) via PermissionAPI, with
   admin/op default resolvers and console-allowed command predicates.
+- Optional Fabric [Mod Menu](https://modrinth.com/mod/modmenu) support:
+  metadata links, icon, and a lightweight info screen (settings stay in
+  `config/lock-end.json` / `/endlock`; Mod Menu is not required).
+- NeoForge Mods-list Config button via `IConfigScreenFactory` opens the same
+  style of info screen; logo shown in the mods list (works with Catalogue).
 
 ### Changed
 - Shared mod JSON persistence and settings (`JsonFileIO`, lock/schedule/

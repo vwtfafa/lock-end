@@ -24,6 +24,7 @@ class NeoForgeModMetadataTest {
             toml = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
         assertTrue(toml.contains("modId=\"lockend\""));
+        assertTrue(toml.contains("logoFile=\"lockend.png\""));
         assertTrue(toml.contains("versionRange=\"[26.3.0.101,)\"")
                 || toml.contains("modId=\"neoforge\""));
     }

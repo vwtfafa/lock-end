@@ -53,6 +53,10 @@ Remaining in-game / live checks (do not treat as already verified):
   read-only plugin API.
 - Fabric and NeoForge expose the shared `LockEndApi`; NeoForge also registers
   named permission nodes (`lockend.admin|reload|toggle|history|undo`).
+- Fabric optionally integrates with [Mod Menu](https://modrinth.com/mod/modmenu)
+  (links, icon, info screen). NeoForge registers a Mods-list Config button
+  for the same info screen. Neither edits `config/lock-end.json` in-game;
+  use `/endlock` / the JSON file. Mod Menu and Catalogue are not required.
 
 Platform commands and capabilities vary. `/endlock lock`, `/endlock unlock`,
 and `/endlock status` are available on the Paper plugin and both mods. The

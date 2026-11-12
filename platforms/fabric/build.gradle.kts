@@ -12,6 +12,7 @@ plugins {
 val fabricMinecraftVersion = providers.gradleProperty("fabricMinecraftVersion").get()
 val fabricLoaderVersion = providers.gradleProperty("fabricLoaderVersion").get()
 val fabricApiVersion = providers.gradleProperty("fabricApiVersion").get()
+val modmenuVersion = providers.gradleProperty("modmenuVersion").get()
 val fastStatsVersion = providers.gradleProperty("fastStatsVersion").get()
 val fastStatsMinecraftVersion = providers.gradleProperty("fastStatsMinecraftVersion").get()
 
@@ -19,6 +20,10 @@ repositories {
     mavenCentral()
     maven {
         url = uri("https://repo.faststats.dev/releases")
+    }
+    maven {
+        name = "Terraformers"
+        url = uri("https://maven.terraformersmc.com/")
     }
 }
 
@@ -36,6 +41,11 @@ dependencies {
     implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     implementation("dev.faststats.metrics:fabric:$fastStatsVersion+mc$fastStatsMinecraftVersion")
     include("dev.faststats.metrics:fabric:$fastStatsVersion+mc$fastStatsMinecraftVersion")
+
+    // Optional Mod Menu API for the info screen entrypoint; never bundled.
+    // Loom 1.19 / MC 26.3 no longer exposes modCompileOnly; compileOnly is
+    // enough because Mod Menu is not remapped into the distributable jar.
+    compileOnly("com.terraformersmc:modmenu:$modmenuVersion")
 
     // Shared Lock-End modules (also merged into the distribution jar below).
     implementation(project(":lock-end-api"))

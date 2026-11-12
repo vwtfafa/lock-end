@@ -24,6 +24,9 @@ version="${version}"
 ## A display name for the mod
 displayName="Lock-End (NeoForge)"
 
+## Logo shown in the NeoForge / Catalogue mods list (jar root resource).
+logoFile="lockend.png"
+
 ## The authors of the mod
 authors="vwtfafa"
 

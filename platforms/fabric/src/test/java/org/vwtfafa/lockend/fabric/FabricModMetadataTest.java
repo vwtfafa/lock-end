@@ -26,5 +26,7 @@ class FabricModMetadataTest {
         }
         assertTrue(json.contains("\"id\": \"lock-end\"") || json.contains("\"id\":\"lock-end\""));
         assertTrue(json.contains("LockEndFabricMod"));
+        assertTrue(json.contains("LockEndModMenuApi"));
+        assertTrue(json.contains("assets/lock-end/icon.png"));
     }
 }
