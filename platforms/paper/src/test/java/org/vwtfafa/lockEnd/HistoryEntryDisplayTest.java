@@ -2,7 +2,8 @@ package org.vwtfafa.lockEnd;
 
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
-import org.vwtfafa.lockEnd.commands.HistoryEntry;
+import org.vwtfafa.lockEnd.commands.HistoryEntryDisplay;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
 
 import java.time.Instant;
 import java.util.Map;
@@ -45,7 +46,8 @@ class HistoryEntryDisplayTest {
                         + "actor UUID: 00000000-0000-0000-0000-000000000001, "
                         + "player UUID: 00000000-0000-0000-0000-000000000002, "
                         + "state: unlocked -> locked)",
-                PlainTextComponentSerializer.plainText().serialize(entry.display(MESSAGES)));
+                PlainTextComponentSerializer.plainText().serialize(
+                        HistoryEntryDisplay.display(entry, MESSAGES)));
     }
 
     @Test
@@ -55,6 +57,7 @@ class HistoryEntryDisplayTest {
                 "Bob", null, "UNLOCK", "CONSOLE", null, "RECORDED", null, null);
 
         assertEquals("[2026-10-21 12:34:56 UTC] UNLOCK by Bob (source: CONSOLE, result: RECORDED)",
-                PlainTextComponentSerializer.plainText().serialize(entry.display(MESSAGES)));
+                PlainTextComponentSerializer.plainText().serialize(
+                        HistoryEntryDisplay.display(entry, MESSAGES)));
     }
 }

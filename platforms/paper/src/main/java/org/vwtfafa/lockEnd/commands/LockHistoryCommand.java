@@ -4,6 +4,11 @@ import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.vwtfafa.lockEnd.LockEnd;
+import org.vwtfafa.lockend.core.history.HistoryBuffer;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.history.HistoryExport;
+import org.vwtfafa.lockend.core.history.HistoryFilter;
+import org.vwtfafa.lockend.core.history.HistoryRotation;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,49 +18,37 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Command to view lock history.
  */
 public class LockHistoryCommand {
-    private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER = new java.util.concurrent.atomic.AtomicLong();
-    private static final int PAGE_SIZE = 10;
+    private static final java.util.concurrent.atomic.AtomicLong EXPORT_COUNTER =
+            new java.util.concurrent.atomic.AtomicLong();
     private static final long SAVE_DELAY_TICKS = 20L;
     private static final DateTimeFormatter EXPORT_TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss-SSS").withZone(ZoneOffset.UTC);
     private final LockEnd plugin;
-    private final List<HistoryEntry> history = new ArrayList<>();
     private final HistoryStore historyStore;
-    private final int maxEntries;
-    private final int retentionDays;
+    private final HistoryBuffer historyBuffer;
     private ScheduledTask pendingSave;
-    private boolean saveDirty;
-    private Boolean lastPreviousState;
 
     public LockHistoryCommand(LockEnd plugin) {
         this.plugin = plugin;
-        this.maxEntries = Math.max(1, plugin.getConfig().getInt("history.max-entries", 1000));
-        this.retentionDays = plugin.getConfig().getInt("history.retention-days", 30);
+        int maxEntries = Math.max(1, plugin.getConfig().getInt("history.max-entries", 1000));
+        int retentionDays = plugin.getConfig().getInt("history.retention-days", 30);
         historyStore = new HistoryStore(new File(plugin.getDataFolder(), "history.yml"), plugin.getLogger());
-        loadHistory();
-    }
-
-    /**
-     * Encapsulates a history filter (type + value) with matching logic.
-     */
-    record HistoryFilter(String type, String value) {
-        boolean matches(HistoryEntry entry) {
-            if (type == null || value == null) return true;
-            return switch (type) {
-                case "player" -> entry.actor().equalsIgnoreCase(value);
-                case "action" -> entry.action().equalsIgnoreCase(value);
-                default -> true;
-            };
+        List<HistoryEntry> loaded = historyStore.load();
+        boolean needsRewrite = historyStore.needsRewrite();
+        historyBuffer = new HistoryBuffer(historyStore, loaded, maxEntries, retentionDays);
+        boolean changedByRotation = !loaded.equals(historyBuffer.snapshot());
+        if (historyStore.isWritable() && (needsRewrite || changedByRotation)) {
+            // Schema migration / retention trim must land before the next crash.
+            historyStore.save(historyBuffer.snapshot());
         }
     }
 
@@ -71,7 +64,7 @@ public class LockHistoryCommand {
             return true;
         }
 
-        List<HistoryEntry> snapshot = snapshotHistory();
+        List<HistoryEntry> snapshot = historyBuffer.snapshot();
         if (args.length == 1 && args[0].equalsIgnoreCase("status")) {
             send(sender, plugin.message("history-storage-status", Map.of(
                     "%status%", historyStore.status(),
@@ -94,7 +87,7 @@ public class LockHistoryCommand {
         if (args.length > 0) {
             String arg0 = args[0];
             if (arg0.matches("\\d+")) {
-                page = parsePageNumber(arg0);
+                page = HistoryRotation.parsePageNumber(arg0);
                 index = 1;
             }
         }
@@ -157,8 +150,8 @@ public class LockHistoryCommand {
         }
 
         // Pagination
-        int end = pageEndExclusive(displayedHistory.size(), page);
-        int start = Math.max(0, end - PAGE_SIZE);
+        int end = HistoryRotation.pageEndExclusive(displayedHistory.size(), page);
+        int start = Math.max(0, end - HistoryRotation.PAGE_SIZE);
         if (start >= displayedHistory.size() || end <= 0) {
             send(sender, plugin.message("history-page-empty", Map.of()));
             return true;
@@ -166,7 +159,7 @@ public class LockHistoryCommand {
         send(sender, plugin.message("history-header-page", Map.of("%page%", String.valueOf(page))));
         for (int i = end - 1; i >= start; i--) {
             Component line = Component.text("  ")
-                    .append(displayedHistory.get(i).display(plugin.getMessageService()));
+                    .append(HistoryEntryDisplay.display(displayedHistory.get(i), plugin.getMessageService()));
             send(sender, line);
         }
         return true;
@@ -180,38 +173,6 @@ public class LockHistoryCommand {
         return value.toLowerCase(Locale.ROOT);
     }
 
-    static int parsePageNumber(String value) {
-        try {
-            return Math.max(1, Integer.parseInt(value));
-        } catch (NumberFormatException exception) {
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    static int pageEndExclusive(int historySize, int page) {
-        long pageOffset = Math.max(0L, (long) page - 1L) * PAGE_SIZE;
-        return (int) Math.max(0L, historySize - pageOffset);
-    }
-
-    /**
-     * Trims a history list to the retention window and the maximum size.
-     * A non-positive retentionDays disables age filtering; entries beyond
-     * maxEntries are dropped oldest-first.
-     */
-    static List<HistoryEntry> applyRotation(List<HistoryEntry> entries, int maxEntries, int retentionDays) {
-        List<HistoryEntry> result = entries;
-        if (retentionDays > 0) {
-            Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
-            result = result.stream()
-                    .filter(entry -> !entry.timestamp().isBefore(cutoff))
-                    .toList();
-        }
-        if (maxEntries > 0 && result.size() > maxEntries) {
-            result = result.subList(result.size() - maxEntries, result.size());
-        }
-        return new ArrayList<>(result);
-    }
-
     /**
      * Adds an entry to the history.
      * @param entry The history entry
@@ -220,14 +181,10 @@ public class LockHistoryCommand {
         addEntry(actor, null, action, source, "RECORDED", null, previousState, null);
     }
 
-    public synchronized boolean addEntry(String actor, java.util.UUID actorUuid, String action, String source,
-                                         String result, java.util.UUID subjectUuid, Boolean previousState,
+    public synchronized boolean addEntry(String actor, UUID actorUuid, String action, String source,
+                                         String result, UUID subjectUuid, Boolean previousState,
                                          Boolean newState) {
-        history.add(new HistoryEntry(Instant.now(), actor, actorUuid, action, source, subjectUuid, result,
-                previousState, newState));
-        List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
-        history.clear();
-        history.addAll(rotated);
+        historyBuffer.addEntry(actor, actorUuid, action, source, result, subjectUuid, previousState, newState);
         return scheduleSave();
     }
 
@@ -242,22 +199,13 @@ public class LockHistoryCommand {
             pendingSave.cancel();
             pendingSave = null;
         }
-        if (!saveDirty) {
-            return true;
-        }
-        saveDirty = false;
-        boolean saved = historyStore.save(new ArrayList<>(history));
-        if (!saved) {
-            saveDirty = true;
-        }
-        return saved;
+        return historyBuffer.flush();
     }
 
     private boolean scheduleSave() {
         if (!historyStore.isWritable()) {
             return false;
         }
-        saveDirty = true;
         if (pendingSave != null) {
             return true;
         }
@@ -272,20 +220,10 @@ public class LockHistoryCommand {
 
     private synchronized void flushPendingSave() {
         pendingSave = null;
-        if (!saveDirty) {
-            return;
-        }
-        saveDirty = false;
-        if (!historyStore.save(new ArrayList<>(history))) {
-            saveDirty = true;
-        }
+        historyBuffer.flushIfDirty();
     }
 
-    private synchronized List<HistoryEntry> snapshotHistory() {
-        return new ArrayList<>(history);
-    }
-
-    public boolean recordEvacuationResult(String actor, java.util.UUID actorUuid, java.util.UUID playerUuid,
+    public boolean recordEvacuationResult(String actor, UUID actorUuid, UUID playerUuid,
                                           String source, String result, String targetWorld) {
         return addEntry(actor, actorUuid, "EVACUATE", source + " -> " + targetWorld, result, playerUuid,
                 null, null);
@@ -295,31 +233,7 @@ public class LockHistoryCommand {
         return historyStore.status();
     }
 
-    public void recordPreviousState(boolean previousState) {
-        lastPreviousState = previousState;
-    }
-
-    public Boolean getLastPreviousState() {
-        return lastPreviousState;
-    }
-
-    public void clearLastPreviousState() {
-        lastPreviousState = null;
-    }
-
-    private void loadHistory() {
-        history.addAll(historyStore.load());
-        List<HistoryEntry> rotated = applyRotation(history, maxEntries, retentionDays);
-        boolean changedByRotation = !history.equals(rotated);
-        history.clear();
-        history.addAll(rotated);
-        if (historyStore.isWritable() && (historyStore.needsRewrite() || changedByRotation)) {
-            historyStore.save(history);
-        }
-    }
-
     private File export(String format, HistoryFilter filter, List<HistoryEntry> snapshot) {
-        // Apply filter to export data
         List<HistoryEntry> exportHistory = snapshot;
         if (filter != null && filter.value() != null) {
             exportHistory = snapshot.stream()
@@ -332,45 +246,14 @@ public class LockHistoryCommand {
         File exportFile = new File(plugin.getDataFolder(), "history-" + timestamp + "." + lowerCaseToken(format));
         Path temporaryFile = null;
         try {
-            StringBuilder output = new StringBuilder();
-            if (format.equalsIgnoreCase("json")) {
-                output.append("[\n");
-                for (int i = 0; i < exportHistory.size(); i++) {
-                    HistoryEntry entry = exportHistory.get(i);
-                    output.append("  {\"timestamp\":\"").append(escape(entry.timestamp().toString()))
-                            .append("\",\"actor\":\"").append(escape(entry.actor()))
-                            .append("\",\"actorUuid\":").append(jsonString(entry.actorUuid() == null
-                                    ? null : entry.actorUuid().toString()))
-                            .append(",\"action\":\"").append(escape(entry.action()))
-                            .append("\",\"source\":\"").append(escape(entry.source()))
-                            .append("\",\"subjectUuid\":").append(jsonString(entry.subjectUuid() == null
-                                    ? null : entry.subjectUuid().toString()))
-                            .append(",\"result\":\"").append(escape(entry.result()))
-                            .append("\",\"previousState\":").append(jsonBoolean(entry.previousState()))
-                            .append(",\"newState\":").append(jsonBoolean(entry.newState())).append("}");
-                    if (i < exportHistory.size() - 1) output.append(',');
-                    output.append('\n');
-                }
-                output.append(']');
-            } else {
-                output.append("timestamp,actor,actorUuid,action,source,subjectUuid,result,previousState,newState\n");
-                for (HistoryEntry entry : exportHistory) {
-                    output.append(csv(entry.timestamp().toString())).append(',')
-                            .append(csv(entry.actor())).append(',')
-                            .append(csv(entry.actorUuid() == null ? "" : entry.actorUuid().toString())).append(',')
-                            .append(csv(entry.action())).append(',')
-                            .append(csv(entry.source())).append(',')
-                            .append(csv(entry.subjectUuid() == null ? "" : entry.subjectUuid().toString())).append(',')
-                            .append(csv(entry.result())).append(',')
-                            .append(entry.previousState() == null ? "" : entry.previousState()).append(',')
-                            .append(entry.newState() == null ? "" : entry.newState()).append('\n');
-                }
-            }
+            String output = format.equalsIgnoreCase("json")
+                    ? HistoryExport.buildJson(exportHistory)
+                    : HistoryExport.buildCsv(exportHistory);
             Path exportPath = exportFile.toPath();
             Path parent = exportPath.toAbsolutePath().getParent();
             Files.createDirectories(parent);
             temporaryFile = Files.createTempFile(parent, ".history-export-", ".tmp");
-            Files.writeString(temporaryFile, output.toString(), StandardCharsets.UTF_8);
+            Files.writeString(temporaryFile, output, StandardCharsets.UTF_8);
             HistoryStore.replaceAtomically(temporaryFile, exportPath);
         } catch (IOException exception) {
             plugin.getLogger().warning("Could not export history: " + exception.getMessage());
@@ -386,41 +269,5 @@ public class LockHistoryCommand {
             }
         }
         return exportFile;
-    }
-
-    private String escape(String value) {
-        StringBuilder escaped = new StringBuilder(value.length());
-        for (int index = 0; index < value.length(); index++) {
-            char character = value.charAt(index);
-            switch (character) {
-                case '"' -> escaped.append("\\\"");
-                case '\\' -> escaped.append("\\\\");
-                case '\b' -> escaped.append("\\b");
-                case '\f' -> escaped.append("\\f");
-                case '\n' -> escaped.append("\\n");
-                case '\r' -> escaped.append("\\r");
-                case '\t' -> escaped.append("\\t");
-                default -> {
-                    if (character < 0x20) {
-                        escaped.append(String.format("\\u%04x", (int) character));
-                    } else {
-                        escaped.append(character);
-                    }
-                }
-            }
-        }
-        return escaped.toString();
-    }
-
-    private String jsonString(String value) {
-        return value == null ? "null" : "\"" + escape(value) + "\"";
-    }
-
-    private String jsonBoolean(Boolean value) {
-        return value == null ? "null" : value.toString();
-    }
-
-    private String csv(String value) {
-        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 }

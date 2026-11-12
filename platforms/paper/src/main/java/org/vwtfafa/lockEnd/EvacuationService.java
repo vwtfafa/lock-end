@@ -9,6 +9,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.IllegalPluginAccessException;
+import org.vwtfafa.lockend.core.PlayerEvacuationHandler;
 
 import java.time.Duration;
 import java.util.List;
@@ -23,7 +24,7 @@ import java.util.function.Consumer;
 /**
  * Warns and moves players out of the End after a lock becomes active.
  */
-public class EvacuationService {
+public class EvacuationService implements PlayerEvacuationHandler {
     private static final long PREVIEW_VALIDITY_NANOS = Duration.ofSeconds(30).toNanos();
 
     private final LockEnd plugin;
@@ -33,6 +34,16 @@ public class EvacuationService {
 
     public EvacuationService(LockEnd plugin) {
         this.plugin = plugin;
+    }
+
+    @Override
+    public void evacuatePlayers() {
+        schedule();
+    }
+
+    @Override
+    public void cancelEvacuation() {
+        cancel();
     }
 
     /**

@@ -1,20 +1,25 @@
 package org.vwtfafa.lockEnd;
 
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.vwtfafa.lockend.core.GracePeriod;
+
+import java.time.Clock;
 
 /**
- * Handles the grace period after locking: while it is active the lock is not
- * yet enforced and access attempts are allowed. Once it ends, the existing
- * lock becomes fully enforced - the lock state itself is never changed here.
+ * Paper adapter around the shared {@link GracePeriod}: while it is active the
+ * lock is not yet enforced and access attempts are allowed. Once it ends, the
+ * existing lock becomes fully enforced - the lock state itself is never
+ * changed here.
+ *
+ * <p>Uses wall-clock time like the Fabric/NeoForge adapters (intentional
+ * alignment for 4.1). Restarts clear the window because it is not persisted.</p>
  */
 public class GracePeriodTask {
     private final LockEnd plugin;
-    private volatile boolean active;
-    private ScheduledTask task;
+    private final GracePeriod gracePeriod;
 
     public GracePeriodTask(LockEnd plugin) {
         this.plugin = plugin;
-        this.active = false;
+        this.gracePeriod = new GracePeriod(Clock.systemUTC());
     }
 
     /**
@@ -23,15 +28,11 @@ public class GracePeriodTask {
      * @param durationSeconds Duration of grace period in seconds
      */
     public void startGracePeriod(int durationSeconds) {
-        cancel();
         int safeDuration = Math.max(0, durationSeconds);
-        active = true;
-        task = plugin.getPaperScheduler().runGlobalLater(() -> {
-            task = null;
-            active = false;
-            plugin.getLogger().info("Grace period ended, End lock is now fully enforced.");
-        }, (long) safeDuration * 20L);
-        plugin.getLogger().info("Grace period started for " + safeDuration + " seconds.");
+        gracePeriod.start(safeDuration);
+        if (safeDuration > 0) {
+            plugin.getLogger().info("Grace period started for " + safeDuration + " seconds.");
+        }
     }
 
     /**
@@ -39,14 +40,10 @@ public class GracePeriodTask {
      * @return true if grace period is active
      */
     public boolean isActive() {
-        return active;
+        return gracePeriod.isActive();
     }
 
     public void cancel() {
-        if (task != null) {
-            task.cancel();
-            task = null;
-        }
-        active = false;
+        gracePeriod.cancel();
     }
 }

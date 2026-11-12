@@ -37,6 +37,7 @@ import org.vwtfafa.lockend.core.LockActions;
 import org.vwtfafa.lockend.core.LockStateManager;
 import org.vwtfafa.lockend.core.LockStateRepository;
 import org.vwtfafa.lockend.core.ScheduleSupport;
+import org.vwtfafa.lockend.core.UndoTracker;
 import org.vwtfafa.lockend.core.api.SharedLockEndApiProvider;
 
 import java.io.File;
@@ -107,6 +108,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private volatile WhitelistChecker whitelistChecker;
     private SoundEffectPlayer soundPlayer;
     private LockHistoryCommand historyCommand;
+    private final UndoTracker undoTracker = new UndoTracker();
     private UndoCommand undoCommand;
     private ConfigValidatorCommand configValidatorCommand;
     private volatile AsyncLogger asyncLogger;
@@ -297,7 +299,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // the legacy Bukkit event is still fired last (after side effects).
         lockStateManager.updateLocked(newLocked, triggerAction, actor, actorUuid);
         try {
-            historyCommand.recordPreviousState(previousState);
+            undoTracker.recordPreviousState(previousState);
             recordStateChange(newLocked);
             persistStatsToConfig();
             lockStateRepository.save(lockStateManager.getState());
@@ -340,13 +342,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     public boolean undoLastAction(String actor, UUID actorUuid) {
-        if (historyCommand.getLastPreviousState() == null) {
+        if (undoTracker.getLastPreviousState() == null) {
             return false;
         }
-        boolean restored = historyCommand.getLastPreviousState();
+        boolean restored = undoTracker.getLastPreviousState();
         boolean changed = changeLockState(restored, actor, "UNDO", actorUuid);
         if (changed) {
-            historyCommand.clearLastPreviousState();
+            undoTracker.clearLastPreviousState();
         }
         return changed;
     }
@@ -603,7 +605,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
     public void reloadPlugin() {
         persistStatsToConfig();
         saveConfig();
-        Boolean previousUndoState = historyCommand != null ? historyCommand.getLastPreviousState() : null;
         if (historyCommand != null) {
             historyCommand.flush();
         }
@@ -613,9 +614,6 @@ public final class LockEnd extends JavaPlugin implements Listener {
         lockReasonManager = new LockReasonManager(getConfig());
         whitelistChecker = new WhitelistChecker(getConfig());
         historyCommand = new LockHistoryCommand(this);
-        if (previousUndoState != null) {
-            historyCommand.recordPreviousState(previousUndoState);
-        }
         rateLimitSeconds = getConfig().getInt("logging.rate-limit-seconds", 5);
         refreshCachedConfig();
         configureAsyncLogger();

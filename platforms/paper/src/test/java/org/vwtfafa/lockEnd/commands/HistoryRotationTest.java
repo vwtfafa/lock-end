@@ -1,6 +1,8 @@
 package org.vwtfafa.lockEnd.commands;
 
 import org.junit.jupiter.api.Test;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.history.HistoryRotation;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,7 +29,7 @@ class HistoryRotationTest {
                 entryAt(now.minus(1, ChronoUnit.HOURS)),
                 entryAt(now));
 
-        List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 1000, 30);
+        List<HistoryEntry> rotated = HistoryRotation.applyRotation(entries, 1000, 30);
 
         assertEquals(3, rotated.size());
     }
@@ -40,7 +42,7 @@ class HistoryRotationTest {
                 entryAt(now.minus(31, ChronoUnit.DAYS)),
                 entryAt(now.minus(5, ChronoUnit.DAYS)));
 
-        List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 1000, 30);
+        List<HistoryEntry> rotated = HistoryRotation.applyRotation(entries, 1000, 30);
 
         assertEquals(1, rotated.size());
         assertTrue(rotated.get(0).timestamp().isAfter(now.minus(6, ChronoUnit.DAYS)));
@@ -53,8 +55,8 @@ class HistoryRotationTest {
                 entryAt(now.minus(730, ChronoUnit.DAYS)),
                 entryAt(now));
 
-        assertEquals(2, LockHistoryCommand.applyRotation(entries, 1000, 0).size());
-        assertEquals(2, LockHistoryCommand.applyRotation(entries, 1000, -1).size());
+        assertEquals(2, HistoryRotation.applyRotation(entries, 1000, 0).size());
+        assertEquals(2, HistoryRotation.applyRotation(entries, 1000, -1).size());
     }
 
     @Test
@@ -64,7 +66,7 @@ class HistoryRotationTest {
             entries.add(entryAt(Instant.now().minus(50 - i, ChronoUnit.MINUTES)));
         }
 
-        List<HistoryEntry> rotated = LockHistoryCommand.applyRotation(entries, 10, 0);
+        List<HistoryEntry> rotated = HistoryRotation.applyRotation(entries, 10, 0);
 
         assertEquals(10, rotated.size());
         // The oldest entries are gone; the newest survives.
@@ -74,17 +76,17 @@ class HistoryRotationTest {
 
     @Test
     void paginationHandlesHugeAndOverflowingPageNumbers() {
-        assertEquals(0, LockHistoryCommand.pageEndExclusive(1000, 429496730));
+        assertEquals(0, HistoryRotation.pageEndExclusive(1000, 429496730));
         assertEquals(Integer.MAX_VALUE,
-                LockHistoryCommand.parsePageNumber("999999999999999999999999999999"));
-        assertEquals(0, LockHistoryCommand.pageEndExclusive(1000,
-                LockHistoryCommand.parsePageNumber("999999999999999999999999999999")));
+                HistoryRotation.parsePageNumber("999999999999999999999999999999"));
+        assertEquals(0, HistoryRotation.pageEndExclusive(1000,
+                HistoryRotation.parsePageNumber("999999999999999999999999999999")));
     }
 
     @Test
     void paginationUsesTenEntryPagesWithoutOverflow() {
-        assertEquals(25, LockHistoryCommand.pageEndExclusive(25, 1));
-        assertEquals(15, LockHistoryCommand.pageEndExclusive(25, 2));
-        assertEquals(0, LockHistoryCommand.pageEndExclusive(25, 4));
+        assertEquals(25, HistoryRotation.pageEndExclusive(25, 1));
+        assertEquals(15, HistoryRotation.pageEndExclusive(25, 2));
+        assertEquals(0, HistoryRotation.pageEndExclusive(25, 4));
     }
 }

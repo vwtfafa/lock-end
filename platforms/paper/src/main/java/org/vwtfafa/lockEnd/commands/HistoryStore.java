@@ -2,6 +2,8 @@ package org.vwtfafa.lockEnd.commands;
 
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
+import org.vwtfafa.lockend.core.history.HistoryPersistence;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +21,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-final class HistoryStore {
+final class HistoryStore implements HistoryPersistence {
     private static final int SCHEMA_VERSION = 2;
 
     private final Path historyFile;
@@ -104,7 +106,8 @@ final class HistoryStore {
         return lastWriteFailed ? "WRITE_FAILED" : "AVAILABLE";
     }
 
-    boolean save(List<HistoryEntry> entries) {
+    @Override
+    public boolean save(List<HistoryEntry> entries) {
         if (!writable) {
             return false;
         }

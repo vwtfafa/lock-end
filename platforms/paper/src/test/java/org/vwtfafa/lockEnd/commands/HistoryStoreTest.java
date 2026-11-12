@@ -2,6 +2,7 @@ package org.vwtfafa.lockEnd.commands;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.vwtfafa.lockend.core.history.HistoryEntry;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
