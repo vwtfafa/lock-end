@@ -16,11 +16,32 @@ Paper/Folia plugin, Fabric and NeoForge mods, and a limited vanilla datapack.
 | Paper / Folia | Minecraft 26.3 | `lock-end-<version>.jar` | Production baseline |
 | Fabric | Minecraft 26.3 | `lock-end-fabric-<version>.jar` | Singleplayer verified; CI smoke-tested |
 | NeoForge | Minecraft 26.3 | `lock-end-neoforge-<version>.jar` | Dev-server smoke-tested; in-game verification pending |
-| Vanilla datapack | Vanilla | `lock-end-datapack-<version>.zip` | Limited feature set |
+| Vanilla datapack | Vanilla | `lock-end-datapack-<version>.zip` | Limited feature set; in-game verification pending |
 
 Forge is not currently supported. The datapack cannot prevent travel before it
 happens; use a mod or plugin for stronger enforcement. See the
 [datapack notes](datapack/README.md) for the vanilla limitations.
+
+### Platform limitations (End entry / respawn)
+
+| Capability | Paper / Folia | Fabric | NeoForge |
+|---|---|---|---|
+| End gateway blocking (`end.block-end-gateway`) | Yes | No (Paper-only) | No (Paper-only) |
+| Hard respawn redirect out of the End | Yes | No (Paper-only) | No (Paper-only) |
+| Entry enforcement | Pre-cancel events | Arrival-bounce + tick scan (no pre-cancel API) | `EntityTravelToDimensionEvent` pre-travel veto |
+
+Shared 4.x API access: Paper via Bukkit `ServicesManager`; Fabric via
+`LockEndFabricMod.getApi()`; NeoForge via `LockEndNeoForgeMod.getApi()`
+(see [docs/api/shared-api.md](docs/api/shared-api.md)).
+
+### Verification backlog
+
+Remaining in-game / live checks (do not treat as already verified):
+
+- Folia player-driven paths (travel, respawn, evacuation, join/grace, player
+  commands) with a live player
+- NeoForge in-game play (beyond dedicated-server smoke)
+- Datapack in-game vanilla verification
 
 ## Features
 
@@ -30,6 +51,8 @@ happens; use a mod or plugin for stronger enforcement. See the
 - Set a lock reason and optionally warn or evacuate players already in the End.
 - Paper/Folia adds history, undo, permissions, placeholders, and the public
   read-only plugin API.
+- Fabric and NeoForge expose the shared `LockEndApi`; NeoForge also registers
+  named permission nodes (`lockend.admin|reload|toggle|history|undo`).
 
 Platform commands and capabilities vary. `/endlock lock`, `/endlock unlock`,
 and `/endlock status` are available on the Paper plugin and both mods. The

@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [4.1.0] - Unreleased
 
+### Added
+- Fabric and NeoForge expose the shared 4.x `LockEndApi` through
+  `LockEndFabricMod.getApi()` and `LockEndNeoForgeMod.getApi()` (cleared on
+  server stop); see `docs/api/shared-api.md`.
+- NeoForge named permission nodes under mod id `lockend`
+  (`admin`, `reload`, `toggle`, `history`, `undo`) via PermissionAPI, with
+  admin/op default resolvers and console-allowed command predicates.
+
+### Changed
+- Shared mod JSON persistence and settings (`JsonFileIO`, lock/schedule/
+  history/stats/message stores, `ModEndLockConfig`) and the shared
+  `SharedLockEndApiProvider` / `LockReasonSanitizer` now live in
+  `lock-end-core` so Fabric and NeoForge no longer duplicate them.
+- Both mod evacuation services implement the shared
+  `PlayerEvacuationHandler` contract.
+- Documented that End gateway blocking (`end.block-end-gateway`) and hard
+  respawn redirect out of the End are Paper-only; Fabric uses arrival-bounce
+  plus tick scan, NeoForge uses `EntityTravelToDimensionEvent` pre-travel
+  veto.
+- Shared `reason-usage` default text now documents
+  `/endlock reason set <reason>|clear`.
+- README verification notes call out the remaining Folia player-path,
+  NeoForge in-game, and datapack in-game backlog honestly.
+- Agent docs and local Folia `runFolia` pin aligned with Gradle 9.9.0,
+  JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5, Folia 26.3 Build 6, and
+  the 3.1 contract docs (retired `ROADMAP-3.1.md` links).
+
 ### Fixed
 - Fabric and NeoForge continue the remaining lock-state change or shutdown
   work when saving the lock state fails, while logging the persistence error.

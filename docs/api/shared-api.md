@@ -31,11 +31,61 @@ the Lock-End 4.0 multiplatform migration.
   Paper `EndLockStateChangeEvent` (version 3.1) so both APIs stay aligned.
 - `actorName` / `actorUuid` may be `null` (unknown actor). Never assume they
   are present.
-- Listener dispatch happens in the tick context of the change (Paper:
-  main thread; Folia: global region thread; other platforms document their
-  own context). See the Javadoc of `LockStateChangeListener`.
+- Listener dispatch happens in the tick context of the change. See
+  [Listener dispatch context](#listener-dispatch-context) and the Javadoc of
+  `LockStateChangeListener`.
 
-## Paper compatibility adapter (wired in Phase 4)
+## How to obtain the API
+
+### Paper / Folia
+
+Both the legacy 3.1 `EndLockApi` and the shared 4.x `LockEndApi` are
+registered in the Bukkit `ServicesManager`:
+
+```java
+RegisteredServiceProvider<LockEndApi> registration =
+        Bukkit.getServicesManager().getRegistration(LockEndApi.class);
+if (registration != null) {
+    LockEndApi api = registration.getProvider();
+}
+```
+
+Do not cache the provider across an EndLock disable/reload; look it up again
+per use. See also the legacy lookup for `org.vwtfafa.lockEnd.api.EndLockApi`.
+
+### Fabric
+
+```java
+LockEndApi api = LockEndFabricMod.getApi();
+```
+
+Throws `IllegalStateException` if called before mod init completes or after
+the server has stopped (the static is cleared on `SERVER_STOPPING` and
+re-published on the next server start).
+
+### NeoForge
+
+```java
+LockEndApi api = LockEndNeoForgeMod.getApi();
+```
+
+Same lifecycle rules as Fabric: available after mod construction, cleared on
+`ServerStoppingEvent`, re-published on the next `ServerStartedEvent`.
+
+## Listener dispatch context
+
+| Platform | Shared `LockStateChangeListener` dispatch context |
+|---|---|
+| Paper 26.3 | Server main tick thread |
+| Folia 26.3 | Global-region tick thread (command mutations and scheduled due actions run via `EndLockCommand` / `executeGlobal`) |
+| Fabric | Dedicated/integrated server main thread |
+| NeoForge | Dedicated/integrated server main thread |
+
+Handlers must only read the payload. Schedule world, block, and entity work
+through the platform's appropriate schedulers. Never assume an async or
+arbitrary entity-region thread.
+
+## Paper compatibility adapter (dual APIs)
 
 The existing Paper API (`org.vwtfafa.lockEnd.api.EndLockApi`,
 `EndLockStateChangeEvent`) is the version 3.1 read-only surface of the
@@ -49,19 +99,34 @@ shared `LockEndApi`):
 ```text
 Shared API (lock-end-api)
     |
-    └── SharedEndLockApiProvider (platforms/paper) ──> LockStateManager
+    └── SharedLockEndApiProvider (lock-end-core; Paper ServicesManager,
+        Fabric LockEndFabricMod.getApi(), NeoForge LockEndNeoForgeMod.getApi())
+            └── LockStateManager
     |
-    └── Legacy EndLockApi / EndLockStateChangeEvent (3.1, unchanged)
+    └── Legacy EndLockApi / EndLockStateChangeEvent (3.1, Paper only)
 ```
+
+### Ordering on Paper (dual surface)
+
+On Paper, a completed lock-state transition notifies both APIs in this order:
+
+1. `LockStateManager.updateLocked(...)` flips the shared runtime state.
+2. Shared `LockStateChangeListener`s fire **immediately inside**
+   `LockStateManager`, still before Paper-side side effects (history,
+   persistence, broadcasts, grace period, evacuation, and related work).
+3. Paper then runs those side effects.
+4. The legacy Bukkit `EndLockStateChangeEvent` fires **after** those
+   Paper-side side effects, with the previously documented suppression
+   behavior when dispatch itself fails.
+
+Consumers that need to observe the change before Paper side effects should
+use the shared `LockEndApi` listeners. Consumers that need the post-side-effect
+Paper timing should listen for `EndLockStateChangeEvent`.
 
 Adapter contract:
 
 - `EndLockApi.isLocked()` and the shared `isLocked()` observe the same
   runtime state (the shared `LockStateManager`).
-- A state change flips the shared state and notifies shared
-  `LockStateChangeListener`s immediately in the tick context; the legacy
-  Bukkit event is still fired last, after the Paper-side side effects, with
-  the previously documented suppression behavior.
 - The plain text stripping rule (MiniMessage/section codes) is identical in
   both providers, so both APIs expose identical reason texts.
 - No removal or signature change of the legacy classes; the shared API is an
