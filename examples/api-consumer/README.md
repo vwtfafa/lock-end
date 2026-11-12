@@ -2,8 +2,9 @@
 
 > **Verification:** This project is the live-tested reference consumer for the
 > 3.1 API. Service lookup, event dispatch, and console/undo/scheduled paths
-> were tested on Paper 26.3 and Folia 26.3 Build 5 ALPHA. Player-driven Folia
-> paths still require testing with live players.
+> were tested on Paper 26.3 and Folia 26.3 Build 6 (ALPHA) via CI console
+> smoke and local `runFolia`. Player-driven Folia paths still require testing
+> with live players.
 >
 > **Integration guide:** For dependency setup, service lookup, event
 > observation, Paper/Folia threading, and a complete example, see the
@@ -68,7 +69,7 @@ The standalone JAR is written to
 ## Run
 
 1. Put the consumer JAR and EndLock JAR in the `plugins/` directory of a
-   Paper 26.3 or Folia 26.3 Build 5 server.
+   Paper 26.3 or Folia 26.3 Build 6 (ALPHA) server.
 2. Start the server and inspect the log for startup status, status ticks,
    and event entries after console commands such as `/endlock lock` and
    `/endlock unlock`.
