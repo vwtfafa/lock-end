@@ -16,6 +16,14 @@ All notable changes to this project will be documented in this file.
   `config/lock-end.json` / `/endlock`; Mod Menu is not required).
 - NeoForge Mods-list Config button via `IConfigScreenFactory` opens the same
   style of info screen; logo shown in the mods list (works with Catalogue).
+- Fabric/NeoForge bundled plain-text translations for the same eight
+  languages as Paper (`de`, `en`, `es`, `fr`, `it`, `ja`, `ru`, `zh`) via
+  `lock-end-core` language packs; configure with `language` in
+  `config/lock-end.json`. Resolution: sparse
+  `lock-end-messages.json` overrides → language pack → English defaults →
+  key.
+- Focused unit tests for `UndoTracker`, `JsonStatsStore`, and
+  `JsonMessageOverrides`, plus mod language key parity.
 
 ### Changed
 - Shared mod JSON persistence and settings (`JsonFileIO`, lock/schedule/
@@ -23,7 +31,19 @@ All notable changes to this project will be documented in this file.
   `SharedLockEndApiProvider` / `LockReasonSanitizer` now live in
   `lock-end-core` so Fabric and NeoForge no longer duplicate them.
 - Both mod evacuation services implement the shared
-  `PlayerEvacuationHandler` contract.
+  `PlayerEvacuationHandler` contract; Paper's `EvacuationService` now
+  implements the same contract.
+- Paper undo state uses the shared `UndoTracker` (survives history rebuild
+  on reload without copying through `LockHistoryCommand`).
+- Paper grace period uses the shared wall-clock `GracePeriod` (aligned with
+  Fabric/NeoForge; duration `0` stays inactive).
+- Paper history runtime uses shared `HistoryBuffer` / `HistoryRotation` /
+  `HistoryFilter` / `HistoryExport` with a YAML `HistoryPersistence`
+  adapter; on-disk `history.yml` schema 2 stays unchanged.
+- First-boot `lock-end-messages.json` is seeded as `{}` so bundled language
+  packs are not frozen to a full English override file. Existing files from
+  earlier builds that hold the full English table are ignored for entries
+  that equal the English default, so the configured `language` takes effect.
 - Documented that End gateway blocking (`end.block-end-gateway`) and hard
   respawn redirect out of the End are Paper-only; Fabric uses arrival-bounce
   plus tick scan, NeoForge uses `EntityTravelToDimensionEvent` pre-travel
@@ -35,6 +55,9 @@ All notable changes to this project will be documented in this file.
 - Agent docs and local Folia `runFolia` pin aligned with Gradle 9.9.0,
   JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5, Folia 26.3 Build 6, and
   the 3.1 contract docs (retired `ROADMAP-3.1.md` links).
+- 3.1 API contract / integration guide / api-consumer README now name Folia
+  26.3 Build 6 (ALPHA) for CI console smoke and local `runFolia`; player
+  paths remain unverified.
 
 ### Fixed
 - Fabric and NeoForge continue the remaining lock-state change or shutdown

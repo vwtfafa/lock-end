@@ -143,6 +143,7 @@ public class LockEndFabricMod implements ModInitializer {
         repository = new JsonLockStateRepository(configDirectory);
 
         JsonMessageOverrides.writeDefaultsIfMissing(configDirectory, MESSAGES, LOGGER);
+        MESSAGES.setLanguage(config.language());
         MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory, LOGGER));
 
         state = new LockStateManager(false).loadFromPersistence(repository);
@@ -714,6 +715,7 @@ public class LockEndFabricMod implements ModInitializer {
      * no record is lost by the rebuild.
      */
     private void refreshRuntimeServices() {
+        MESSAGES.setLanguage(config.language());
         MESSAGES.setOverrides(JsonMessageOverrides.load(configDirectory, LOGGER));
         stats.setEnabled(config.statsEnabled());
         attemptRateLimiter.setRateLimitSeconds(config.logRateLimitSeconds());

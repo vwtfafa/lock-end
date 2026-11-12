@@ -12,14 +12,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Loads and stores the shared message overrides file
  * ({@code config/lock-end-messages.json}). The file maps language keys
  * (mirroring the Paper plugin's key names) to plain-text replacements with
- * {@code %placeholder%} tokens. A missing file is seeded once with the
- * built-in English defaults so admins discover the keys; a corrupt file
- * falls back to the defaults with a warning instead of failing the boot.
+ * {@code %placeholder%} tokens. A missing file is seeded once as an empty
+ * object so admins can add sparse overrides without freezing the bundled
+ * language packs to English; a corrupt file falls back to no overrides with
+ * a warning instead of failing the boot.
  */
 public final class JsonMessageOverrides {
 
@@ -36,27 +38,37 @@ public final class JsonMessageOverrides {
     }
 
     /**
-     * Writes the built-in English defaults when the overrides file does not
-     * exist yet. An existing file is never touched, so admin edits survive.
+     * Writes an empty override object when the overrides file does not exist
+     * yet. An existing file is never touched, so admin edits survive. The
+     * empty seed keeps bundled language packs effective until an admin adds
+     * sparse key overrides.
      *
      * @param configDirectory the mod's config directory
-     * @param messages        the renderer providing the default texts
+     * @param messages        retained for call-site compatibility; unused
      * @param logger          log sink for write failures
      */
     public static void writeDefaultsIfMissing(Path configDirectory, ModMessages messages,
                                               Logger logger) {
+        Objects.requireNonNull(messages, "messages");
         Path file = configDirectory.resolve(FILE);
         if (Files.exists(file)) {
             return;
         }
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting().disableHtmlEscaping().create();
-        JsonFileIO.writeAtomically(file, gson.toJson(messages.defaults()), logger);
+        JsonFileIO.writeAtomically(file, gson.toJson(Map.of()), logger);
     }
 
     /**
      * Reads the override table. An empty map means "no overrides" - missing
      * and unreadable files behave identically so rendering keeps working.
+     *
+     * <p>Entries whose value is exactly the built-in English default are
+     * ignored. Earlier versions seeded the whole English table into this
+     * file; without this filter those installs would keep English text and
+     * never show their configured language. A deliberate override that
+     * repeats the English default text therefore has no effect outside
+     * English.</p>
      *
      * @param configDirectory the mod's config directory
      * @param logger          log sink for read failures
@@ -75,7 +87,8 @@ public final class JsonMessageOverrides {
             }
             Map<String, String> overrides = new HashMap<>();
             parsed.forEach((key, value) -> {
-                if (key != null && value != null && !value.isBlank()) {
+                if (key != null && value != null && !value.isBlank()
+                        && !ModMessages.isBuiltInDefault(key, value)) {
                     overrides.put(key, value);
                 }
             });

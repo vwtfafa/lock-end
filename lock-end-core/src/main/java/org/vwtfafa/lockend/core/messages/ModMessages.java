@@ -1,7 +1,18 @@
 package org.vwtfafa.lockend.core.messages;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Message key registry and renderer for the mod adapters. Keys mirror the
@@ -9,15 +20,25 @@ import java.util.Map;
  * overrides can be written against the same names; values are plain text
  * with {@code %placeholder%} tokens (the mods render no MiniMessage).
  *
- * <p>Resolution order: overrides first (platform modules load them from the
- * config directory), then the built-in English defaults, then the key itself
- * so a missing translation can never blank out feedback entirely.</p>
+ * <p>Resolution order: sparse JSON overrides, then the configured language
+ * pack, then the built-in English defaults, then the key itself so a
+ * missing translation can never blank out feedback entirely.</p>
  *
- * <p>This class is stateful-but-simple: one overrides map, replaced on
- * reload. Rendering does pure token replacement - values are never
- * re-parsed, so user-controlled input cannot inject formatting.</p>
+ * <p>This class is stateful-but-simple: one overrides map and one language
+ * pack, replaced on reload. Rendering does pure token replacement - values
+ * are never re-parsed, so user-controlled input cannot inject formatting.</p>
  */
 public final class ModMessages {
+
+    /**
+     * Languages shipped under {@code lang/messages_<code>.json}. Matches the
+     * Paper plugin's bundled set.
+     */
+    public static final Set<String> SUPPORTED_LANGUAGES = Set.of(
+            "de", "en", "es", "fr", "it", "ja", "ru", "zh");
+
+    private static final String DEFAULT_LANGUAGE = "en";
+    private static final Gson GSON = new Gson();
 
     private static final Map<String, String> DEFAULTS = Map.ofEntries(
             // --- access and state --- -----------------------------------
@@ -144,13 +165,49 @@ public final class ModMessages {
     );
 
     private volatile Map<String, String> overrides = Map.of();
+    private volatile Map<String, String> languagePack = Map.of();
+    private volatile String language = DEFAULT_LANGUAGE;
 
     /**
      * @return an immutable copy of the built-in English defaults; platform
-     *         modules use it to seed the writable overrides file
+     *         modules use it when documenting keys or seeding tests
      */
     public Map<String, String> defaults() {
         return Map.copyOf(DEFAULTS);
+    }
+
+    /**
+     * @param key   the message key
+     * @param value a candidate text for the key
+     * @return {@code true} when {@code value} is exactly the built-in English
+     *         default for {@code key}
+     */
+    public static boolean isBuiltInDefault(String key, String value) {
+        return value != null && value.equals(DEFAULTS.get(key));
+    }
+
+    /**
+     * @return the active language code (always one of {@link #SUPPORTED_LANGUAGES})
+     */
+    public String language() {
+        return language;
+    }
+
+    /**
+     * Loads the bundled language pack for {@code languageCode}. Unknown or
+     * blank codes fall back to English. Missing classpath resources also fall
+     * back to English defaults via an empty pack.
+     *
+     * @param languageCode configured language, for example {@code de}
+     */
+    public void setLanguage(String languageCode) {
+        String normalized = normalizeLanguage(languageCode);
+        this.language = normalized;
+        if (DEFAULT_LANGUAGE.equals(normalized)) {
+            languagePack = Map.of();
+            return;
+        }
+        languagePack = loadBundledPack(normalized);
     }
 
     /**
@@ -165,8 +222,8 @@ public final class ModMessages {
     }
 
     /**
-     * Resolves a raw template: override first, then the built-in default,
-     * then the key itself.
+     * Resolves a raw template: override first, then the language pack, then
+     * the built-in English default, then the key itself.
      *
      * @param key the message key
      * @return the raw text; never {@code null}
@@ -176,15 +233,22 @@ public final class ModMessages {
         if (override != null) {
             return override;
         }
+        String translated = languagePack.get(key);
+        if (translated != null && !translated.isBlank()) {
+            return translated;
+        }
         return DEFAULTS.getOrDefault(key, key);
     }
 
     /**
      * @param key the message key
-     * @return {@code true} when an override or a built-in default exists
+     * @return {@code true} when an override, language pack, or built-in
+     *         default exists
      */
     public boolean knows(String key) {
-        return overrides.containsKey(key) || DEFAULTS.containsKey(key);
+        return overrides.containsKey(key)
+                || languagePack.containsKey(key)
+                || DEFAULTS.containsKey(key);
     }
 
     /**
@@ -229,5 +293,47 @@ public final class ModMessages {
         Map<String, String> map = new HashMap<>();
         map.put(key1, value1);
         return map;
+    }
+
+    /**
+     * Normalizes a configured language to a supported code.
+     *
+     * @param languageCode raw config value
+     * @return a supported language code; never {@code null}
+     */
+    public static String normalizeLanguage(String languageCode) {
+        if (languageCode == null || languageCode.isBlank()) {
+            return DEFAULT_LANGUAGE;
+        }
+        String normalized = languageCode.trim().toLowerCase(Locale.ROOT);
+        if (SUPPORTED_LANGUAGES.contains(normalized)) {
+            return normalized;
+        }
+        return DEFAULT_LANGUAGE;
+    }
+
+    private static Map<String, String> loadBundledPack(String languageCode) {
+        String resource = "lang/messages_" + languageCode + ".json";
+        try (InputStream stream = ModMessages.class.getClassLoader().getResourceAsStream(resource)) {
+            if (stream == null) {
+                return Map.of();
+            }
+            try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                Map<String, String> parsed = GSON.fromJson(
+                        reader, new TypeToken<Map<String, String>>() { }.getType());
+                if (parsed == null || parsed.isEmpty()) {
+                    return Map.of();
+                }
+                Map<String, String> pack = new HashMap<>();
+                parsed.forEach((key, value) -> {
+                    if (key != null && value != null && !value.isBlank() && DEFAULTS.containsKey(key)) {
+                        pack.put(key, value);
+                    }
+                });
+                return Map.copyOf(pack);
+            }
+        } catch (IOException | JsonParseException ignored) {
+            return Map.of();
+        }
     }
 }

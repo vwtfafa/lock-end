@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 import org.vwtfafa.lockend.core.EndDimensionScope;
 import org.vwtfafa.lockend.core.LockBypassChecker;
 import org.vwtfafa.lockend.core.json.JsonLockStateRepository;
+import org.vwtfafa.lockend.core.messages.ModMessages;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -30,6 +31,7 @@ public final class ModEndLockConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String DEFAULT_REASON = "Maintenance";
+    private static final String DEFAULT_LANGUAGE = "en";
     private static final String CONFIG_FILE_NAME = "lock-end.json";
     // Countdown and preview defaults mirror the Paper plugin's config.yml so
     // both platforms behave identically on a fresh installation.
@@ -67,6 +69,7 @@ public final class ModEndLockConfig {
 
     private final Path file;
     private String lockReason;
+    private final String language;
     private final LockBypassChecker bypassChecker;
     private final EndDimensionScope endScope;
     private final boolean blockEntities;
@@ -88,6 +91,7 @@ public final class ModEndLockConfig {
     private ModEndLockConfig(
             Path file,
             String lockReason,
+            String language,
             LockBypassChecker bypassChecker,
             EndDimensionScope endScope,
             boolean blockEntities,
@@ -107,6 +111,7 @@ public final class ModEndLockConfig {
             String parseFailure) {
         this.file = file;
         this.lockReason = lockReason;
+        this.language = language;
         this.bypassChecker = bypassChecker;
         this.endScope = endScope;
         this.blockEntities = blockEntities;
@@ -150,6 +155,7 @@ public final class ModEndLockConfig {
             return new ModEndLockConfig(
                     file,
                     stored.reasonOrDefault(),
+                    stored.languageOrDefault(),
                     stored.bypassChecker(),
                     stored.endScopeOrDefault(),
                     stored.blockEntitiesOrDefault(),
@@ -187,7 +193,7 @@ public final class ModEndLockConfig {
 
     private static ModEndLockConfig writeDefaults(Path file, String parseFailure) {
         ModEndLockConfig defaults = new ModEndLockConfig(
-                file, DEFAULT_REASON, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
+                file, DEFAULT_REASON, DEFAULT_LANGUAGE, EMPTY_BYPASS_CHECKER, DEFAULT_SCOPE, true,
                 DEFAULT_COUNTDOWN_ENABLED, DEFAULT_COUNTDOWN_INTERVAL, DEFAULT_COUNTDOWN_START_BEFORE,
                 DEFAULT_PREVIEW_ENABLED, DEFAULT_PREVIEW_SECONDS,
                 DEFAULT_STATS_ENABLED, DEFAULT_HISTORY_MAX_ENTRIES, DEFAULT_HISTORY_RETENTION_DAYS,
@@ -208,6 +214,13 @@ public final class ModEndLockConfig {
      */
     public String lockReason() {
         return lockReason;
+    }
+
+    /**
+     * @return the configured message language code; never {@code null}
+     */
+    public String language() {
+        return language;
     }
 
     /**
@@ -463,6 +476,7 @@ public final class ModEndLockConfig {
     public void save() {
         StoredConfig stored = new StoredConfig();
         stored.lockReason = lockReason;
+        stored.language = language;
         stored.endWorlds = endScope.configuredEnds();
         stored.blockEntities = blockEntities;
         stored.playerWhitelist = bypassChecker.playerNames();
@@ -556,6 +570,7 @@ public final class ModEndLockConfig {
      */
     private static final class StoredConfig {
         String lockReason;
+        String language;
         List<String> endWorlds;
         Boolean blockEntities;
         List<String> playerWhitelist;
@@ -577,6 +592,10 @@ public final class ModEndLockConfig {
                 return DEFAULT_REASON;
             }
             return lockReason;
+        }
+
+        String languageOrDefault() {
+            return ModMessages.normalizeLanguage(language);
         }
 
         LockBypassChecker bypassChecker() {

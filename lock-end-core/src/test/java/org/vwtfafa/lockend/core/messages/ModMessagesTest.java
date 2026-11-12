@@ -45,6 +45,36 @@ class ModMessagesTest {
     }
 
     @Test
+    void languagePackBeatsEnglishDefaults() {
+        ModMessages messages = new ModMessages();
+        messages.setLanguage("de");
+
+        assertEquals("de", messages.language());
+        assertEquals("Das End ist aktuell locked.", messages.text(
+                "status", Map.of("%status%", "locked")));
+    }
+
+    @Test
+    void overridesBeatLanguagePack() {
+        ModMessages messages = new ModMessages();
+        messages.setLanguage("de");
+        messages.setOverrides(Map.of("status", "Override: %status%"));
+
+        assertEquals("Override: locked", messages.text(
+                "status", Map.of("%status%", "locked")));
+    }
+
+    @Test
+    void unknownLanguageFallsBackToEnglish() {
+        ModMessages messages = new ModMessages();
+        messages.setLanguage("xx");
+
+        assertEquals("en", messages.language());
+        assertEquals("The End is currently locked.", messages.text(
+                "status", Map.of("%status%", "locked")));
+    }
+
+    @Test
     void unknownKeysResolveToTheKeyItself() {
         ModMessages messages = new ModMessages();
 

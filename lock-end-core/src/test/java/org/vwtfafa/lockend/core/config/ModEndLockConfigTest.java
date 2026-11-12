@@ -30,9 +30,30 @@ class ModEndLockConfigTest {
         ModEndLockConfig config = ModEndLockConfig.load(tempDir);
 
         assertEquals("Maintenance", config.lockReason());
+        assertEquals("en", config.language());
         assertTrue(config.endScope().configuredEnds().isEmpty());
         assertTrue(config.blockEntities());
         assertTrue(Files.exists(tempDir.resolve("lock-end.json")));
+        assertTrue(Files.readString(tempDir.resolve("lock-end.json")).contains("\"language\""));
+    }
+
+    @Test
+    void languageIsNormalizedAndUnknownFallsBackToEnglish() throws IOException {
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "language": "DE"
+                }
+                """);
+        assertEquals("de", ModEndLockConfig.load(tempDir).language());
+
+        Files.writeString(tempDir.resolve("lock-end.json"), """
+                {
+                  "lockReason": "Maintenance",
+                  "language": "xx"
+                }
+                """);
+        assertEquals("en", ModEndLockConfig.load(tempDir).language());
     }
 
     @Test
