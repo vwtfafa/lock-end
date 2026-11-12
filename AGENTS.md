@@ -19,11 +19,11 @@ authoritative project instruction document.
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
 | Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.242-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
-| Build | Gradle 9.8.2 wrapper, Java toolchain 25 |
+| Build | Gradle 9.9.0 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
 | Platforms | Paper 26.3 and Folia 26.3 Build 6 (ALPHA; `folia-supported: true`) |
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
-| Quality gates | JUnit 5, Checkstyle 10.12.4, SpotBugs 4.10.3 |
+| Quality gates | JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
 | Current direction | Multiplatform monorepo (Lock-End 4.0.0): Paper/Folia plugin as the production baseline, plus Fabric, NeoForge and vanilla-datapack adapters; Forge deliberately deferred |
 
@@ -31,32 +31,34 @@ The versions in `gradle.properties` (`lockEndVersion`, `paperApiVersion`) are
 authoritative. Do not
 "remember" a version from documentation or old notes; read the properties file.
 
-The EndLock 3.1 API and release scope are documented in
-[ROADMAP-3.1.md](ROADMAP-3.1.md). The API is implemented; player-driven Folia
-paths remain subject to the verification limits documented there.
+The EndLock 3.1 API contract and verification limits are documented in
+[docs/3.1-api-contract.md](docs/3.1-api-contract.md) and
+[docs/3.1-integration-guide.md](docs/3.1-integration-guide.md). The API is
+implemented; player-driven Folia paths remain subject to the verification
+limits documented there.
 
 ### Architecture direction
 
 The repository is a multi-platform monorepo as of the 4.0.0 release. `lock-end-api`
 (shared, plain-Java surface) and `lock-end-core` (shared logic: runtime lock
 state via `LockStateManager`, change dispatch, strict schedule helpers,
-platform contracts) exist without platform dependencies, the Paper plugin
+platform contracts) exist without platform dependencies. The Paper plugin
 lives in `platforms/paper/` connected to the shared core (state, persistence
 via `ConfigLockStateRepository`, scheduling helpers, shared 4.x API service
-registration), `platforms/fabric/` is an initial independent Fabric
-mod adapter (Loom 1.19-SNAPSHOT, Mojang-name vanilla for MC 26.3, JSON
-persistence in the config dir, arrival-bounce plus tick-scan End guard,
-`/endlock lock|unlock|status`), `platforms/neoforge/` is the NeoForge
-adapter (NeoForge 26.3.0.101, ModDevGradle 2, mod id `lockend`, pre-travel
-veto via the cancellable `EntityTravelToDimensionEvent`), and `datapack/`
-is a deliberately limited vanilla implementation (op-called `lockend:*`
-functions, persistent `lockend_state` scoreboard, `location_check`
-predicate; see `datapack/README.md` for the feature limits). Legacy
-commands, events, history, messaging
-and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain unchanged. Forge
-is verified compatible but deliberately deferred; the Paper/Folia plugin and
-the Paper behaviors remain the production baseline that all platform
-abstractions preserve.
+registration). `platforms/fabric/` is the Fabric mod adapter (Loom,
+Mojang-name mappings for MC 26.3, JSON persistence in the config dir,
+arrival-bounce plus tick-scan End guard, shared schedule/history/evacuate/
+undo/reason/reload surface under `/endlock`). `platforms/neoforge/` is the
+NeoForge adapter (NeoForge 26.3.0.101, ModDevGradle 2, mod id `lockend`,
+pre-travel veto via the cancellable `EntityTravelToDimensionEvent`, same
+operational command surface as Fabric). `datapack/` is a deliberately
+limited vanilla implementation (op-called `lockend:*` functions, persistent
+`lockend_state` scoreboard, `location_check` predicate; see
+`datapack/README.md` for the feature limits). Legacy Paper commands, events,
+history, messaging and the 3.1 `EndLockApi`/`EndLockStateChangeEvent` remain
+unchanged. Forge is verified compatible but deliberately deferred; the
+Paper/Folia plugin and the Paper behaviors remain the production baseline
+that all platform abstractions preserve.
 
 The original migration plan `feature/multiplatform-core.md` was retired after
 the 4.0.0 migration was completed; this architecture section is the surviving
@@ -188,7 +190,8 @@ document why the deprecated API is the only option.
   stable contracts, not `LockEnd` implementation classes, config objects, or
   mutable internal state. Verify any API changes against Paper 26.3 and Folia.
   The implemented 3.1 surface and its limits are in
-  [ROADMAP-3.1.md](ROADMAP-3.1.md); do not expand it without a concrete need.
+  [docs/3.1-api-contract.md](docs/3.1-api-contract.md); do not expand it
+  without a concrete need.
 - **Config:** every new option needs a default in `config.yml`, a read path in the
   owning service, and validation in the config validator. Preserve backwards
   compatibility and migration behavior (`ConfigMigrator`).
@@ -340,18 +343,18 @@ chore(release): prepare 3.0.1 with Paper 26.3 build 209
 
 ### Working on the 3.1 API
 
-1. Treat [ROADMAP-3.1.md](ROADMAP-3.1.md) and
-   [docs/3.1-api-contract.md](docs/3.1-api-contract.md) as the current
-   implemented contract, not as approval for additional API scope.
+1. Treat [docs/3.1-api-contract.md](docs/3.1-api-contract.md) and
+   [docs/3.1-integration-guide.md](docs/3.1-integration-guide.md) as the
+   current implemented contract, not as approval for additional API scope.
 2. Before changing the API, verify Paper 26.3 service/event behavior and Folia
    threading against the configured API. Do not add speculative signatures.
 3. Keep the surface read-only unless a concrete consumer need justifies a
    separately reviewed change. Do not expose broad settings or internals.
 4. Preserve existing state-change side effects (history, persistence,
    schedules, messages, grace periods, and evacuation).
-5. Keep compatibility claims limited to verified paths. The current open
-   player-path tests and optional-dependency smoke test are listed in the
-   roadmap.
+5. Keep compatibility claims limited to verified paths. Open player-path
+   Folia checks and optional-dependency smoke limits are listed in the
+   3.1 API contract.
 
 ### Changing versions or dependencies
 
@@ -406,8 +409,9 @@ as a "translation" without noting it.
 | `gradle.properties` | Central versions: project version, Java, Paper API, tools |
 | `settings.gradle.kts` | Module includes for the multi-module monorepo |
 | `lock-end-api/` | Shared, platform-independent API module (plain Java) |
-| `lock-end-core/` | Shared core: state management, dispatch, schedule helpers, platform contracts |
-| `docs/api/shared-api.md` | Shared API contract and Paper compatibility rules |
+| `lock-end-core/` | Shared core: state, JSON/mod config, schedule helpers, `SharedLockEndApiProvider`, platform contracts |
+| `docs/api/shared-api.md` | Shared API contract (Paper ServicesManager + Fabric/NeoForge `getApi()`) |
+| `docs/3.1-api-contract.md` | Paper 3.1 read-only API contract and Folia verification limits |
 | `buildSrc/` | Shared `lockend.java-conventions` Gradle plugin |
 | `config/checkstyle/checkstyle.xml` | Checkstyle rules shared by all Java modules |
 | `config/spotbugs/spotbugs.xml` | SpotBugs filter shared by all Java modules |

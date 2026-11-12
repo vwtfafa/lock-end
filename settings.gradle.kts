@@ -21,9 +21,9 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-// Lock-End multi-module monorepo. The migration phases are described in
-// Multiplatform monorepo layout; each platform lives in its own module and
-// no platform module depends on another platform module.
+// Lock-End multi-module monorepo. Each platform lives in its own module and
+// no platform module depends on another platform module. Forge remains
+// deliberately deferred (no platforms/forge module).
 
 // Shared, platform-independent modules.
 include("lock-end-api")
@@ -34,8 +34,5 @@ include("platforms:paper")
 include("platforms:fabric")
 include("platforms:neoforge")
 
-// Limited vanilla implementation (Phase 7).
+// Limited vanilla datapack adapter.
 include("datapack")
-
-// platforms/forge and the datapack: added by
-// their respective migration phases.
