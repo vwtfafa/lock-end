@@ -60,6 +60,8 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Shared `JsonLockStateRepository.save` creates the config parent directory
+  before writing, matching the schedule and message JSON stores.
 - Datapack `set_spawn` rejects non-overworld placement so evacuation can
   find the anchor, and `evacuate_player` no longer chat-spams every tick
   when the spawn marker is missing.

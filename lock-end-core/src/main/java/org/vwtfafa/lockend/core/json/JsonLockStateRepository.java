@@ -51,7 +51,12 @@ public final class JsonLockStateRepository implements LockStateRepository {
         StoredState stored = new StoredState();
         stored.locked = state.isLocked();
         try {
-            Files.writeString(baseConfigDirectory.resolve(STATE_FILE_NAME), GSON.toJson(stored));
+            Path file = baseConfigDirectory.resolve(STATE_FILE_NAME);
+            Path parent = file.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(file, GSON.toJson(stored));
         } catch (IOException exception) {
             throw new UncheckedIOException("Failed to persist the Lock-End lock state", exception);
         }
