@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Datapack `set_spawn` rejects non-overworld placement so evacuation can
+  find the anchor, and `evacuate_player` no longer chat-spams every tick
+  when the spawn marker is missing.
 - Fabric evacuation uses the same bypass check as the End guard
   (`lock-end:whitelist.bypass` / world bypass), and NeoForge registers
   `lockend.whitelist.bypass` for non-op entry and evacuation exclude-bypass.
