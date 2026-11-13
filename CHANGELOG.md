@@ -61,6 +61,8 @@ All notable changes to this project will be documented in this file.
 - Paper default denial sound is `minecraft:block.anvil.land`; enum-style
   names still resolve through the sound registry / key-path translation
   without `Sound.valueOf`.
+- Paper `/endlock reason` matches mods: `reason set <reason>` and
+  `reason clear` (restores the bundled `Maintenance` default).
 
 ### Fixed
 - Shared `JsonLockStateRepository.save` creates the config parent directory

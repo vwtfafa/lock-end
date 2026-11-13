@@ -577,6 +577,15 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * Restores the bundled default lock reason ({@code Maintenance}).
+     */
+    public void clearLockReason() {
+        getConfig().set("lock-reasons.default", "Maintenance");
+        saveConfig();
+        lockReasonManager = new LockReasonManager(getConfig());
+    }
+
+    /**
      * Logs a test command invocation.
      */
     public void logTestAction(String actor) {

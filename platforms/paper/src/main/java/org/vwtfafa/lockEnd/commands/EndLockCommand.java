@@ -105,7 +105,9 @@ public final class EndLockCommand {
                         }))))
                 .then(adminCommand("cancel").executes(global(this::cancelSchedule)))
                 .then(adminCommand("reason")
-                        .then(argument("reason", greedyString()).executes(global(this::setReason))))
+                        .then(literal("set")
+                                .then(argument("reason", greedyString()).executes(global(this::setReason))))
+                        .then(literal("clear").executes(global(this::clearReason))))
                 .then(adminCommand("pause").executes(global(this::pauseSchedule)))
                 .then(adminCommand("resume").executes(global(this::resumeSchedule)))
                 .then(commandWithPermission("reload", "endlock.reload").executes(global(this::reload)))
@@ -339,6 +341,13 @@ public final class EndLockCommand {
         }
         plugin.setLockReason(reason);
         send(sender, "reason-set", "%reason%", reason);
+        return 1;
+    }
+
+    private int clearReason(CommandContext<CommandSourceStack> context) {
+        CommandSender sender = context.getSource().getSender();
+        plugin.clearLockReason();
+        send(sender, "reason-cleared", "%reason%", plugin.getLockReason());
         return 1;
     }
 
