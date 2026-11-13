@@ -19,7 +19,7 @@ authoritative project instruction document.
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
 | Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.242-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
-| Build | Gradle 9.9.0 wrapper, Java toolchain 25 |
+| Build | Gradle 9.9.1 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
 | Platforms | Paper 26.3 and Folia 26.3 Build 6 (ALPHA; `folia-supported: true`) |
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
