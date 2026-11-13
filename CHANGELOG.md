@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Paper discards a pending lock/unlock schedule as soon as the End is
+  already in the scheduled target state (aligned with shared
+  `LockScheduler` on Fabric/NeoForge).
 - Paper defers automatic evacuation warnings until an active grace period
   ends, so residents are not teleported out while grace still allows End
   access.

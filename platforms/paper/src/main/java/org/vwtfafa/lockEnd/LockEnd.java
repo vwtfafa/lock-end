@@ -323,6 +323,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
                 evacuation.cancel();
                 gracePeriodTask.cancel();
             }
+            schedules.discardIfTargetMet();
             messages.broadcastLockState(newLocked, newLocked ? "broadcast-locked" : "broadcast-unlocked", actor);
             logAction(actor, action);
             historyCommand.addEntry(actor, actorUuid, action, action, "SUCCESS", null, previousState, newLocked);

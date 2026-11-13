@@ -361,6 +361,13 @@ public class ScheduleManager {
         if (target == null || schedulePaused) {
             return;
         }
+        // Match LockScheduler.tick: drop a pending action as soon as the
+        // runtime state already matches its target, instead of waiting out
+        // the timer and no-opping at due time.
+        if (isCurrentStateMatchingTarget()) {
+            discardMatchingSchedule();
+            return;
+        }
         long remainingMillis = remainingTime(target).toMillis();
         if (remainingMillis <= 0) {
             executeDueAction();
@@ -373,6 +380,30 @@ public class ScheduleManager {
             checkTask = null;
             scheduleDueCheck();
         }, delay);
+    }
+
+    private boolean isCurrentStateMatchingTarget() {
+        boolean targetLocked = "lock".equals(scheduledAction);
+        return plugin.isLocked() == targetLocked;
+    }
+
+    private void discardMatchingSchedule() {
+        plugin.getLogger().info("Scheduled " + scheduledAction
+                + " discarded because the End is already in the target state.");
+        clear();
+    }
+
+    /**
+     * Clears a pending schedule immediately when a manual lock/unlock already
+     * reached the scheduled target (same contract as shared {@code LockScheduler}).
+     */
+    public void discardIfTargetMet() {
+        if (scheduledUnlockTime == null) {
+            return;
+        }
+        if (isCurrentStateMatchingTarget()) {
+            discardMatchingSchedule();
+        }
     }
 
     private void executeDueAction() {
