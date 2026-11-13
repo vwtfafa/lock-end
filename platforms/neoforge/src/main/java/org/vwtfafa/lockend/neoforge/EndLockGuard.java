@@ -7,6 +7,7 @@ import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
+import net.neoforged.neoforge.server.permission.PermissionAPI;
 import org.vwtfafa.lockend.core.EndDimensionScope;
 import org.vwtfafa.lockend.core.GracePeriod;
 import org.vwtfafa.lockend.core.LockBypassChecker;
@@ -187,12 +188,18 @@ final class EndLockGuard {
         }
     }
 
-    private boolean canBypass(ServerPlayer player, ResourceKey<Level> destination) {
+    /**
+     * Shared bypass check for the guard and evacuation so permission and
+     * list bypass stay consistent with {@code evacuation.exclude-bypass}.
+     */
+    boolean canBypass(ServerPlayer player, ResourceKey<Level> destination) {
         return bypassChecker.canBypass(
                 player.getName().getString(),
                 player.getUUID(),
                 destination.identifier().toString(),
-                () -> player.permissions().hasPermission(Permissions.COMMANDS_ADMIN));
+                () -> player.permissions().hasPermission(Permissions.COMMANDS_ADMIN)
+                        || Boolean.TRUE.equals(PermissionAPI.getPermission(
+                                player, LockEndPermissions.WHITELIST_BYPASS)));
     }
 
     private static String dimensionKey(Level level) {

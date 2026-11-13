@@ -271,7 +271,12 @@ final class EndLockGuard {
         bounceEntity(moved);
     }
 
-    private boolean canBypass(ServerPlayer player, ServerLevel destination) {
+    /**
+     * Shared bypass check for the guard and evacuation so a player who may
+     * enter with {@code lock-end:whitelist.bypass} is not evacuated while
+     * {@code evacuation.exclude-bypass} is true.
+     */
+    boolean canBypass(ServerPlayer player, ServerLevel destination) {
         String worldKey = destination.dimension().identifier().toString();
         Identifier worldPermission = Identifier.fromNamespaceAndPath(
                 "lock-end", "bypass.world." + worldKey.replace(':', '.'));

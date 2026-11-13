@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Fabric evacuation uses the same bypass check as the End guard
+  (`lock-end:whitelist.bypass` / world bypass), and NeoForge registers
+  `lockend.whitelist.bypass` for non-op entry and evacuation exclude-bypass.
 - Fabric and NeoForge allow non-player entities into the End during an
   active grace period (Paper `EndAccessGate` parity).
 - Fabric and NeoForge automatic evacuation no longer warn or count down

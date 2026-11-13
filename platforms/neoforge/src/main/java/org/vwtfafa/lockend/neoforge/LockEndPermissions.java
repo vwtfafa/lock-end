@@ -43,6 +43,10 @@ final class LockEndPermissions {
             "undo",
             "EndLock undo",
             "Undo the last EndLock state change");
+    static final PermissionNode<Boolean> WHITELIST_BYPASS = booleanNode(
+            "whitelist.bypass",
+            "EndLock whitelist bypass",
+            "Bypass the End lock without op (entry and evacuation exclude-bypass)");
 
     private LockEndPermissions() {
     }
@@ -54,7 +58,7 @@ final class LockEndPermissions {
      * @param event the gather-nodes event
      */
     static void registerNodes(PermissionGatherEvent.Nodes event) {
-        event.addNodes(ADMIN, RELOAD, TOGGLE, HISTORY, UNDO);
+        event.addNodes(ADMIN, RELOAD, TOGGLE, HISTORY, UNDO, WHITELIST_BYPASS);
     }
 
     /**

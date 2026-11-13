@@ -11,7 +11,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
@@ -365,14 +364,7 @@ final class EndLockEvacuation implements PlayerEvacuationHandler {
     }
 
     private boolean canBypass(ServerPlayer player, ServerLevel level) {
-        String worldKey = level.dimension().identifier().toString();
-        return mod.currentSettings().bypassChecker().canBypass(
-                player.getName().getString(), player.getUUID(), worldKey,
-                () -> guardPermission(player));
-    }
-
-    private boolean guardPermission(ServerPlayer player) {
-        return player.permissions().hasPermission(Permissions.COMMANDS_ADMIN);
+        return mod.canBypass(player, level);
     }
 
     private ServerLevel resolveTargetWorld(MinecraftServer server) {

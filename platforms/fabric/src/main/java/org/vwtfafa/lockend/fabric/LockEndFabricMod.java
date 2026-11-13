@@ -10,6 +10,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.world.level.Level;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import dev.faststats.ErrorTracker;
@@ -403,6 +404,13 @@ public class LockEndFabricMod implements ModInitializer {
      */
     boolean isGuarded(Level level) {
         return guard.isGuarded(level);
+    }
+
+    /**
+     * @return {@code true} when the player may bypass the End lock for the level
+     */
+    boolean canBypass(ServerPlayer player, ServerLevel level) {
+        return guard.canBypass(player, level);
     }
 
     /**
