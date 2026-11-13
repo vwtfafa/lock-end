@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Fabric and NeoForge automatic evacuation no longer warn or count down
+  when `evacuation.enabled` is false, and wait out an active grace period
+  before starting warnings (Paper parity).
 - Paper discards a pending lock/unlock schedule as soon as the End is
   already in the scheduled target state (aligned with shared
   `LockScheduler` on Fabric/NeoForge).

@@ -44,6 +44,7 @@ final class EndLockEvacuation implements PlayerEvacuationHandler {
     private final LockEndFabricMod mod;
     private final Map<String, PendingPreview> pendingPreviews = new HashMap<>();
     private int pendingEvacuationSeconds = -1;
+    private boolean waitingForGrace;
 
     EndLockEvacuation(LockEndFabricMod mod) {
         this.mod = mod;
@@ -62,28 +63,25 @@ final class EndLockEvacuation implements PlayerEvacuationHandler {
     /**
      * Warns the players a new lock covers and postpones their move by the
      * configured warning time, mirroring the Paper plugin's schedule.
+     * No-ops when evacuation is disabled; waits out an active grace period
+     * before sending warnings.
      */
     void schedule() {
+        if (!mod.currentSettings().evacuationEnabled()) {
+            return;
+        }
         cancel();
         MinecraftServer server = mod.liveServer();
         if (server == null) {
             return;
         }
-        ModEndLockConfig config = mod.currentSettings();
-        long warningSeconds = config.evacuationWarningSeconds();
-        String warning = LockEndFabricMod.messages().text("evacuation-warning", Map.of(
-                "%seconds%", String.valueOf(warningSeconds)));
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            ServerLevel level = player.level();
-            if (isGuarded(level) && (!config.evacuationExcludeBypass()
-                    || !canBypass(player, level))) {
-                player.sendSystemMessage(Component.literal(warning));
-            }
+        long graceRemaining = mod.graceRemainingSeconds();
+        if (graceRemaining > 0L) {
+            waitingForGrace = true;
+            pendingEvacuationSeconds = (int) Math.max(1L, graceRemaining);
+            return;
         }
-        pendingEvacuationSeconds = (int) Math.max(0L, warningSeconds);
-        if (pendingEvacuationSeconds == 0) {
-            evacuateAutomatically();
-        }
+        beginWarningCountdown(server);
     }
 
     /**
@@ -98,8 +96,42 @@ final class EndLockEvacuation implements PlayerEvacuationHandler {
             pendingEvacuationSeconds--;
             return;
         }
+        if (waitingForGrace) {
+            waitingForGrace = false;
+            MinecraftServer server = mod.liveServer();
+            if (server == null || !mod.currentSettings().evacuationEnabled()) {
+                pendingEvacuationSeconds = -1;
+                return;
+            }
+            if (mod.graceRemainingSeconds() > 0L) {
+                waitingForGrace = true;
+                pendingEvacuationSeconds = (int) Math.max(1L, mod.graceRemainingSeconds());
+                return;
+            }
+            beginWarningCountdown(server);
+            return;
+        }
         pendingEvacuationSeconds = -1;
         evacuateAutomatically();
+    }
+
+    private void beginWarningCountdown(MinecraftServer server) {
+        ModEndLockConfig config = mod.currentSettings();
+        long warningSeconds = config.evacuationWarningSeconds();
+        String warning = LockEndFabricMod.messages().text("evacuation-warning", Map.of(
+                "%seconds%", String.valueOf(warningSeconds)));
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            ServerLevel level = player.level();
+            if (isGuarded(level) && (!config.evacuationExcludeBypass()
+                    || !canBypass(player, level))) {
+                player.sendSystemMessage(Component.literal(warning));
+            }
+        }
+        pendingEvacuationSeconds = (int) Math.max(0L, warningSeconds);
+        if (pendingEvacuationSeconds == 0) {
+            pendingEvacuationSeconds = -1;
+            evacuateAutomatically();
+        }
     }
 
     /**
@@ -107,6 +139,7 @@ final class EndLockEvacuation implements PlayerEvacuationHandler {
      */
     void cancel() {
         pendingEvacuationSeconds = -1;
+        waitingForGrace = false;
     }
 
     /**

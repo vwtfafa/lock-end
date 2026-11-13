@@ -689,6 +689,13 @@ public class LockEndFabricMod implements ModInitializer {
     }
 
     /**
+     * @return seconds left in the grace window, or {@code 0} when inactive
+     */
+    long graceRemainingSeconds() {
+        return gracePeriod.remainingSeconds();
+    }
+
+    /**
      * Reloads the settings file and republishes its values to the live
      * consumers: the lock state reason supplier, the guard rules, the
      * schedule notification settings, the message overrides, statistics
