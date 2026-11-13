@@ -119,6 +119,12 @@ On Paper, a completed lock-state transition notifies both APIs in this order:
    Paper-side side effects, with the previously documented suppression
    behavior when dispatch itself fails.
 
+If a shared listener throws after the runtime state has already flipped,
+Paper logs the failure and still runs the side effects and the legacy
+Bukkit event so persistence, history, grace, and evacuation stay consistent.
+Remaining shared listeners after the failing one are still skipped (the
+shared dispatcher does not swallow per-listener failures).
+
 Consumers that need to observe the change before Paper side effects should
 use the shared `LockEndApi` listeners. Consumers that need the post-side-effect
 Paper timing should listen for `EndLockStateChangeEvent`.
@@ -134,5 +140,5 @@ Adapter contract:
 
 ## Testing
 
-Like the shared core later, this module's tests run without a Minecraft
-server (`lock-end-api/src/test/java/org/vwtfafa/lockend/api/`).
+This module's tests run without a Minecraft server
+(`lock-end-api/src/test/java/org/vwtfafa/lockend/api/`).

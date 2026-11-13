@@ -48,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -297,7 +298,19 @@ public final class LockEnd extends JavaPlugin implements Listener {
         // Flip the shared runtime state and notify the shared API listeners
         // in this tick context; the Paper-side side effects run below while
         // the legacy Bukkit event is still fired last (after side effects).
-        lockStateManager.updateLocked(newLocked, triggerAction, actor, actorUuid);
+        // A misbehaving shared listener must not abort persistence, history,
+        // grace, evacuation, or the legacy Bukkit event after the flip.
+        try {
+            lockStateManager.updateLocked(newLocked, triggerAction, actor, actorUuid);
+        } catch (RuntimeException | Error failure) {
+            if (lockStateManager.isLocked() != newLocked) {
+                throw failure;
+            }
+            getLogger().log(Level.SEVERE,
+                    "Shared LockStateChangeListener failed after the lock state flipped; "
+                            + "continuing Paper side effects so persistence and evacuation stay consistent.",
+                    failure);
+        }
         try {
             undoTracker.recordPreviousState(previousState);
             recordStateChange(newLocked);

@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Paper continues persistence, history, grace, evacuation, and the legacy
+  Bukkit state-change event when a shared `LockStateChangeListener` throws
+  after the runtime lock state has already flipped.
 - Fabric and NeoForge continue the remaining lock-state change or shutdown
   work when saving the lock state fails, while logging the persistence error.
 - Fabric's late-arrival safety scan now records blocked attempts in statistics
