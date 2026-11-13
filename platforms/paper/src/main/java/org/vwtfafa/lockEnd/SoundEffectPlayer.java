@@ -3,6 +3,8 @@ package org.vwtfafa.lockEnd;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
@@ -31,7 +33,8 @@ public class SoundEffectPlayer {
     public void loadConfig() {
         var config = plugin.getConfig();
         this.enabled = config.getBoolean("sound-effects.enabled", true);
-        this.denialSound = parseSoundKey(config.getString("sound-effects.sound", "BLOCK_ANVIL_LAND"));
+        this.denialSound = parseSoundKey(config.getString(
+                "sound-effects.sound", "minecraft:block.anvil.land"));
         volume = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.volume", 1.0)));
         pitch = (float) Math.min(2.0f, Math.max(0.0f, config.getDouble("sound-effects.pitch", 1.0)));
     }
@@ -39,17 +42,19 @@ public class SoundEffectPlayer {
     /**
      * Resolves the configured sound name into a namespaced key. Enum style
      * constants (BLOCK_ANVIL_LAND, BLOCK_NOTE_BLOCK_PLING, MUSIC_DISC_CAT)
-     * are resolved through Bukkit's sound registry so underscores that are
-     * part of the vanilla key survive. Raw key paths and namespaced custom
-     * sounds are kept as-is. Invalid values return null.
+     * are translated to vanilla key paths and validated through Paper's
+     * sound registry when a server is present. Raw key paths and namespaced
+     * custom sounds are kept as-is. Invalid values return null.
      */
     static Key resolveSoundKey(String configured) {
         if (configured == null || configured.isBlank()) {
             return DEFAULT_SOUND;
         }
         String trimmed = configured.trim();
-        if (!trimmed.contains(":")) {
-            Key enumKey = resolveEnumKey(trimmed);
+        // Enum-style names are ALL_CAPS with underscores (BLOCK_ANVIL_LAND).
+        // Lowercase raw paths (custom_sound) must keep underscores.
+        if (!trimmed.contains(":") && trimmed.equals(trimmed.toUpperCase(Locale.ROOT))) {
+            Key enumKey = resolveEnumStyleKey(trimmed);
             if (enumKey != null) {
                 return enumKey;
             }
@@ -69,22 +74,27 @@ public class SoundEffectPlayer {
     }
 
     /**
-     * Resolves a Bukkit enum-style name through the sound registry. The
-     * registry is unavailable in unit tests, so callers fall back to a
-     * deterministic name translation.
+     * Resolves a Bukkit enum-style name via the sound registry when
+     * available, otherwise via the deterministic {@link #enumNameToKeyPath}
+     * translation used by unit tests without a live server.
      */
-    @SuppressWarnings("removal")
-    private static Key resolveEnumKey(String name) {
+    private static Key resolveEnumStyleKey(String name) {
+        String upper = name.toUpperCase(Locale.ROOT);
+        String path = enumNameToKeyPath(upper);
         try {
-            org.bukkit.Sound bukkitSound = org.bukkit.Sound.valueOf(name.toUpperCase(Locale.ROOT));
-            if (bukkitSound != null) {
-                org.bukkit.NamespacedKey key = bukkitSound.getKey();
-                return Key.key(key.getNamespace(), key.getKey());
+            NamespacedKey namespacedKey = NamespacedKey.minecraft(path);
+            org.bukkit.Sound registered = Registry.SOUNDS.get(namespacedKey);
+            if (registered != null) {
+                return Key.key(namespacedKey.getNamespace(), namespacedKey.getKey());
             }
         } catch (LinkageError | RuntimeException ignored) {
-            // No server registry (tests) or unknown enum constant.
+            // No server registry (unit tests) or unknown sound.
         }
-        return null;
+        try {
+            return Key.key(Key.MINECRAFT_NAMESPACE, path);
+        } catch (InvalidKeyException exception) {
+            return null;
+        }
     }
 
     /**

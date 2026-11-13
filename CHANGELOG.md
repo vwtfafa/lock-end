@@ -58,6 +58,9 @@ All notable changes to this project will be documented in this file.
 - 3.1 API contract / integration guide / api-consumer README now name Folia
   26.3 Build 6 (ALPHA) for CI console smoke and local `runFolia`; player
   paths remain unverified.
+- Paper default denial sound is `minecraft:block.anvil.land`; enum-style
+  names still resolve through the sound registry / key-path translation
+  without `Sound.valueOf`.
 
 ### Fixed
 - Shared `JsonLockStateRepository.save` creates the config parent directory

@@ -29,7 +29,7 @@ preview-notifications:
 # Sound effects for access denial
 sound-effects:
   enabled: false
-  sound: "BLOCK_ANVIL_LAND"  # Enum style or namespaced key (minecraft:block.anvil.land)
+  sound: "minecraft:block.anvil.land"  # Namespaced key preferred; enum style (BLOCK_ANVIL_LAND) still works
   volume: 1.0
   pitch: 1.0
 
