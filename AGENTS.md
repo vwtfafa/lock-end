@@ -49,7 +49,7 @@ registration). `platforms/fabric/` is the Fabric mod adapter (Loom,
 Mojang-name mappings for MC 26.3, JSON persistence in the config dir,
 arrival-bounce plus tick-scan End guard, shared schedule/history/evacuate/
 undo/reason/reload surface under `/endlock`). `platforms/neoforge/` is the
-NeoForge adapter (NeoForge 26.3.0.101, ModDevGradle 2, mod id `lockend`,
+NeoForge adapter (NeoForge 26.3.0.103, ModDevGradle 2, mod id `lockend`,
 pre-travel veto via the cancellable `EntityTravelToDimensionEvent`, same
 operational command surface as Fabric). `datapack/` is a deliberately
 limited vanilla implementation (op-called `lockend:*` functions, persistent

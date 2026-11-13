@@ -2,7 +2,7 @@
 
 @WARNING@
 
-**Requirements:** Paper or Folia @PAPER@+, Java @JAVA@ — plus Fabric (Loader 0.20.1+, Fabric API) or NeoForge 26.3.0.101+ mods, or a vanilla server for the datapack
+**Requirements:** Paper or Folia @PAPER@+, Java @JAVA@ — plus Fabric (Loader 0.20.1+, Fabric API) or NeoForge 26.3.0.103+ mods, or a vanilla server for the datapack
 
 ### 📋 Changes since @BASE_LABEL@
 
@@ -55,8 +55,8 @@ lockend:lock|unlock|status|evacuate` plus `/function lockend:set_spawn`.
 | **Paper** | @PAPER@+ | ✅ Recommended production baseline |
 | **Purpur** | @PAPER@+ | ✅ Works |
 | **Folia** | @PAPER@+ | ✅ Supported (console-verified on alpha builds) |
-| **Fabric** | Loader 0.20.1+, Minecraft 26.3, Fabric API 0.165.2+ | ✅ Supported (in-game verified) |
-| **NeoForge** | 26.3.0.101+ | ✅ Supported |
+| **Fabric** | Loader 0.20.1+, Minecraft 26.3, Fabric API 0.166.2+ | ✅ Supported (in-game verified) |
+| **NeoForge** | 26.3.0.103+ | ✅ Supported |
 | **Vanilla datapack** | Minecraft 26.3 | ⚠️ Limited subset |
 
 ### 📦 Installation
