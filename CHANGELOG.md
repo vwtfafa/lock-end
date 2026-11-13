@@ -60,6 +60,8 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Fabric and NeoForge allow non-player entities into the End during an
+  active grace period (Paper `EndAccessGate` parity).
 - Fabric and NeoForge automatic evacuation no longer warn or count down
   when `evacuation.enabled` is false, and wait out an active grace period
   before starting warnings (Paper parity).

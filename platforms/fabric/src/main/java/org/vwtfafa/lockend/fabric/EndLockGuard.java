@@ -260,7 +260,10 @@ final class EndLockGuard {
      * @param destination the level the entity arrived in
      */
     void onEntityLevelChange(Entity original, Entity moved, ServerLevel origin, ServerLevel destination) {
-        if (!state.isLocked() || !blockEntities || !isEntryAttempt(origin, destination)) {
+        // Mirror Paper EndAccessGate.checkEntity: allow entities during grace
+        // so mounts, items and projectiles can leave with residents.
+        if (!state.isLocked() || !blockEntities || gracePeriod.isActive()
+                || !isEntryAttempt(origin, destination)) {
             return;
         }
         LockEndFabricMod.LOGGER.info("Bounced entity {} out of the locked End (arrived from {})",

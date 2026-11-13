@@ -168,6 +168,11 @@ final class EndLockGuard {
             LockEndNeoForgeMod.LOGGER.info("Blocked {} from entering the locked End",
                     player.getName().getString());
         } else if (blockEntities) {
+            // Mirror Paper EndAccessGate.checkEntity: allow entities during
+            // grace so mounts, items and projectiles can leave with residents.
+            if (gracePeriod.isActive()) {
+                return;
+            }
             event.setCanceled(true);
             LockEndNeoForgeMod.LOGGER.info("Blocked entity {} from entering the locked End",
                     traveler.getName().getString());
