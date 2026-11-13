@@ -48,12 +48,19 @@ public class EvacuationService implements PlayerEvacuationHandler {
 
     /**
      * Warns players covered by the End lock and schedules their evacuation.
+     * While a grace period is still active the warning countdown waits so
+     * residents can finish and leave before evacuation starts.
      */
     public void schedule() {
         if (!plugin.getConfig().getBoolean("evacuation.enabled", false)) {
             return;
         }
         cancel();
+        long graceRemaining = plugin.getGracePeriodTask().remainingSeconds();
+        if (graceRemaining > 0L) {
+            task = plugin.getPaperScheduler().runGlobalLater(this::schedule, graceRemaining * 20L);
+            return;
+        }
         long warningSeconds = Math.max(0, plugin.getConfig().getLong("evacuation.warning-seconds", 10));
         boolean excludeBypass = plugin.getConfig().getBoolean("evacuation.exclude-bypass", true);
         Component warning = plugin.message("evacuation-warning",
@@ -262,6 +269,10 @@ public class EvacuationService implements PlayerEvacuationHandler {
     private void evacuate() {
         task = null;
         if (!plugin.isLocked() || !plugin.getConfig().getBoolean("evacuation.enabled", false)) {
+            return;
+        }
+        if (plugin.getGracePeriodTask().isActive()) {
+            schedule();
             return;
         }
         World targetWorld = resolveTargetWorld();

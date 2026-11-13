@@ -60,6 +60,9 @@ All notable changes to this project will be documented in this file.
   paths remain unverified.
 
 ### Fixed
+- Paper defers automatic evacuation warnings until an active grace period
+  ends, so residents are not teleported out while grace still allows End
+  access.
 - Paper continues persistence, history, grace, evacuation, and the legacy
   Bukkit state-change event when a shared `LockStateChangeListener` throws
   after the runtime lock state has already flipped.

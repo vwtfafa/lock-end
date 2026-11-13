@@ -43,6 +43,13 @@ public class GracePeriodTask {
         return gracePeriod.isActive();
     }
 
+    /**
+     * @return seconds left in the grace window, or {@code 0} when inactive
+     */
+    public long remainingSeconds() {
+        return gracePeriod.remainingSeconds();
+    }
+
     public void cancel() {
         gracePeriod.cancel();
     }

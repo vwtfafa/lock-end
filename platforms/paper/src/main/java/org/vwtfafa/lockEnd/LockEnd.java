@@ -557,6 +557,13 @@ public final class LockEnd extends JavaPlugin implements Listener {
     }
 
     /**
+     * @return the Paper grace-period adapter used by the access gate and evacuation
+     */
+    public GracePeriodTask getGracePeriodTask() {
+        return gracePeriodTask;
+    }
+
+    /**
      * Updates and persists the default lock reason.
      */
     public void setLockReason(String reason) {

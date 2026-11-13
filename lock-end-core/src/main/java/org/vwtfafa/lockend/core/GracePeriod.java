@@ -43,12 +43,19 @@ public final class GracePeriod {
      * @return {@code true} while the window is running
      */
     public boolean isActive() {
+        return remainingSeconds() > 0;
+    }
+
+    /**
+     * @return seconds left in the window, or {@code 0} when inactive
+     */
+    public long remainingSeconds() {
         Instant started = startsAt;
         if (started == null || durationSeconds <= 0) {
-            return false;
+            return 0L;
         }
         long elapsed = clock.instant().getEpochSecond() - started.getEpochSecond();
-        return elapsed < durationSeconds;
+        return Math.max(0L, durationSeconds - elapsed);
     }
 
     /**

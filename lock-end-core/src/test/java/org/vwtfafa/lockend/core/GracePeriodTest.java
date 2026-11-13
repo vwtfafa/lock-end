@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +69,20 @@ class GracePeriodTest {
 
         grace.start(-5);
         assertFalse(grace.isActive());
+    }
+
+    @Test
+    void remainingSecondsTracksElapsedTime() {
+        MutableClock clock = new MutableClock(START);
+        GracePeriod grace = new GracePeriod(clock);
+
+        assertEquals(0L, grace.remainingSeconds());
+        grace.start(10);
+        assertEquals(10L, grace.remainingSeconds());
+        clock.advanceSeconds(4);
+        assertEquals(6L, grace.remainingSeconds());
+        clock.advanceSeconds(6);
+        assertEquals(0L, grace.remainingSeconds());
     }
 
     /** Clock the test drives directly. */
