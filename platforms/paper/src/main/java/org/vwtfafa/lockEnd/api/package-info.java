@@ -22,8 +22,9 @@
  * actions - never an async thread and not the entity region for player
  * commands). Handlers must only read the payload; any world or player
  * mutation must run through the Region/Entity/Global schedulers. See
- * docs/3.1-api-contract.md (sections 5 and 7) for the authoritative
- * contract.</p>
+ * docs/3.1-api-contract.md (section 4, Folia threading) for the authoritative
+ * contract. The shared 4.x {@code LockEndApi} is documented in
+ * docs/api/shared-api.md.</p>
  */
 @NullMarked
 package org.vwtfafa.lockEnd.api;

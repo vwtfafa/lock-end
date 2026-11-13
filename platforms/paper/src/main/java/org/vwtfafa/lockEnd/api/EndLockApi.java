@@ -21,10 +21,10 @@ public interface EndLockApi {
     /**
      * Returns the current runtime lock state of the End.
      *
-     * <p>The value reflects the active runtime field that also drives the
-     * access gate ({@code volatile boolean locked} in LockEnd), not a
+     * <p>The value reflects the shared runtime lock state in
+     * {@code LockStateManager} that also drives the access gate, not a
      * configuration default or a planned future schedule/undo state. Every
-     * successful state change writes that field synchronously in the tick
+     * successful state change writes that state synchronously in the tick
      * context of the triggering action, so a call observes either the state
      * before or after the last completed change - never an in-between value.</p>
      *

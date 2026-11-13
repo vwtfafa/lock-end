@@ -1,4 +1,4 @@
-# EndLockApiConsumer â€“ 3.1 API Consumer Prototype
+# EndLockApiConsumer – 3.1 API Consumer Prototype
 
 > **Verification:** This project is the live-tested reference consumer for the
 > 3.1 API. Service lookup, event dispatch, and console/undo/scheduled paths
@@ -47,12 +47,13 @@ The prototype also:
 Build the main project first so its 3.1 release JAR is present:
 
 ```powershell
-.\gradlew.bat jar --no-daemon
-# -> build\libs\lock-end-4.0.0.jar
+.\gradlew.bat :platforms:paper:shadowJar --no-daemon
+# -> platforms\paper\build\libs\lock-end-4.0.0.jar
 ```
 
-The consumer uses `..\..\build\libs\lock-end-*.jar` as a `compileOnly`
-dependency. It is not shaded into the consumer.
+The consumer uses `..\..\platforms\paper\build\libs\lock-end-*.jar` as a
+`compileOnly` dependency. It is not shaded into the consumer. For the shared
+4.x `LockEndApi`, see [docs/api/shared-api.md](../../docs/api/shared-api.md).
 
 ## Build
 

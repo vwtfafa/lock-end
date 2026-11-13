@@ -97,6 +97,9 @@ The build produces platform artifacts in the corresponding module's
 
 ## Links
 
+- [Shared 4.x API](docs/api/shared-api.md)
+- [3.1 API contract](docs/3.1-api-contract.md)
+- [3.1 integration guide](docs/3.1-integration-guide.md)
 - [Releases](https://github.com/vwtfafa/lock-end/releases)
 - [Issues and support](https://github.com/vwtfafa/lock-end/issues)
 - [License](LICENSE) (MIT)

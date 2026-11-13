@@ -7,12 +7,13 @@ are the full implementations.
 
 ## Install
 
-1. Copy the zip from the project build (`build/libs/lock-end-datapack-<version>.zip`)
-   into the world's `datapacks` folder (`<world>/datapacks/`), or unpack the
-   zip under a folder of your choice in the same place.
+1. Copy the zip from the datapack module build
+   (`datapack/build/libs/lock-end-datapack-<version>.zip`) into the world's
+   `datapacks` folder (`<world>/datapacks/`), or unpack the zip under a folder
+   of your choice in the same place.
 2. Run `/reload` (or restart the server) to activate the pack.
-3. Once, as an operator, stand at the location that locked-out players should
-   arrive at (typically your world spawn) and run:
+3. Once, as an operator, stand **in the overworld** at the location that
+   locked-out players should arrive at (typically your world spawn) and run:
 
    ```
    /function lockend:set_spawn

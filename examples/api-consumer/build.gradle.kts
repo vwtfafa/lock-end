@@ -25,12 +25,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.3.build.209-stable")
-    // Simulates the 3.1 distribution: the released lock-end-*-3.1 jar placed in
-    // the main project's build/libs provides the org.vwtfafa.lockEnd.api types.
-    // compileOnly only, never shaded - EndLock offers the service at runtime.
+    compileOnly("io.papermc.paper:paper-api:26.3.build.242-stable")
+    // Simulates the Paper distribution: the shaded lock-end jar from the Paper
+    // module provides the org.vwtfafa.lockEnd.api types. compileOnly only,
+    // never shaded - EndLock offers the service at runtime.
     compileOnly(fileTree(mapOf(
-        "dir" to "../../build/libs",
+        "dir" to "../../platforms/paper/build/libs",
         "include" to listOf("lock-end-*.jar"),
     )))
 }
