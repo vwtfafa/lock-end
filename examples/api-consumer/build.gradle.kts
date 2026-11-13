@@ -1,4 +1,4 @@
-// Standalone prototype build - NOT part of the main EndLock build.
+﻿// Standalone prototype build - NOT part of the main EndLock build.
 // Consumers never depend on the EndLock build; they use the released 3.1 jar
 // as a compileOnly dependency (contract docs/3.1-api-contract.md §7).
 plugins {
@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.3.build.242-stable")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.249-stable")
     // Simulates the Paper distribution: the shaded lock-end jar from the Paper
     // module provides the org.vwtfafa.lockEnd.api types. compileOnly only,
     // never shaded - EndLock offers the service at runtime.
