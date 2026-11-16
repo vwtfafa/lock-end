@@ -24,8 +24,12 @@ version="${version}"
 ## A display name for the mod
 displayName="Lock-End (NeoForge)"
 
-## Logo shown in the NeoForge / Catalogue mods list (jar root resource).
+## Icon in the NeoForge mods list (24x24 slot). NeoForge 26.3 reads
+## iconFile for the list; logoFile is only the info-panel banner.
+iconFile="lockend.png"
+iconBlur=false
 logoFile="lockend.png"
+logoBlur=false
 
 ## The authors of the mod
 authors="vwtfafa"
@@ -34,8 +38,9 @@ authors="vwtfafa"
 displayURL="https://github.com/vwtfafa/lock-end"
 
 description='''
-Server-side lock for the End dimension. Lock, unlock and schedule access to
-the End with a shared core across platforms.
+Locks the End dimension on dedicated servers and in singleplayer
+(integrated server). Lock, unlock and schedule access with a shared core
+across platforms.
 '''
 
 ## Lock-End depends on NeoForge 26.3 (the toolchain version we compiled

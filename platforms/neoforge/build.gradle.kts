@@ -61,6 +61,13 @@ tasks {
 
         dependsOn("jar")
         configurations = listOf(sharedModules)
+        // Minecraft / NeoForge already ship SLF4J and Gson on the app
+        // classloader. Bundling a second copy into the mod jar causes
+        // LinkageError / ClassCastException (TRANSFORMER vs app).
+        exclude("org/slf4j/**")
+        exclude("META-INF/maven/org.slf4j/**")
+        exclude("com/google/gson/**")
+        exclude("META-INF/maven/com.google.code.gson/**")
         from({
             zipTree(project.tasks.named("jar").get().outputs.files.singleFile)
         }) {

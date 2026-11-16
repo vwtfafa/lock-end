@@ -25,7 +25,7 @@ authoritative project instruction document.
 | Optional deps | PlaceholderAPI 2.12.3 (`compileOnly` + `softdepend`), bStats 3.2.1 (shaded, relocated) |
 | Quality gates | JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5 |
 | Branch | `beta` is the active branch, remote `origin` = `vwtfafa/lock-end` |
-| Current direction | Multiplatform monorepo (Lock-End 4.0.0): Paper/Folia plugin as the production baseline, plus Fabric, NeoForge and vanilla-datapack adapters; Forge deliberately deferred |
+| Current direction | Multiplatform monorepo (Lock-End 4.1.0): Paper/Folia plugin as the production baseline, plus Fabric, NeoForge and vanilla-datapack adapters; Forge deliberately deferred |
 
 The versions in `gradle.properties` (`lockEndVersion`, `paperApiVersion`) are
 authoritative. Do not

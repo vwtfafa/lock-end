@@ -3,7 +3,7 @@
   "id": "lock-end",
   "version": "${version}",
   "name": "Lock-End (Fabric)",
-  "description": "Server-side lock for the End dimension. Lock, unlock and schedule access to the End with a shared core across platforms.",
+  "description": "Locks the End dimension on dedicated servers and in singleplayer. Lock, unlock and schedule access with a shared core across platforms.",
   "authors": [
     "vwtfafa"
   ],

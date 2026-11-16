@@ -19,10 +19,9 @@ import net.minecraft.network.chat.Component;
 public final class LockEndInfoScreen extends Screen {
 
     private static final Component BODY = Component.literal(
-            "Server-side lock for the End dimension. Settings live in "
+            "Locks the End on dedicated servers and in singleplayer. Settings live in "
                     + "config/lock-end.json. Use /endlock status|lock|unlock|"
-                    + "reload and related subcommands on the server to change "
-                    + "the lock.");
+                    + "reload and related subcommands to change the lock.");
 
     private final Screen parent;
     private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);

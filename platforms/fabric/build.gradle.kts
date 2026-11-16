@@ -64,6 +64,12 @@ tasks {
 
         dependsOn("jar")
         configurations = listOf(sharedModules)
+        // Minecraft / Fabric already ship SLF4J and Gson; do not shade them
+        // into the distributable (LinkageError / ClassCastException risk).
+        exclude("org/slf4j/**")
+        exclude("META-INF/maven/org.slf4j/**")
+        exclude("com/google/gson/**")
+        exclude("META-INF/maven/com.google.code.gson/**")
         filesMatching("fabric.mod.json") {
             filter { line: String ->
                 line.replace(

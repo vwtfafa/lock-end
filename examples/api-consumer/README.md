@@ -48,7 +48,7 @@ Build the main project first so its 3.1 release JAR is present:
 
 ```powershell
 .\gradlew.bat :platforms:paper:shadowJar --no-daemon
-# -> platforms\paper\build\libs\lock-end-4.0.0.jar
+# -> platforms\paper\build\libs\lock-end-4.1.0.jar
 ```
 
 The consumer uses `..\..\platforms\paper\build\libs\lock-end-*.jar` as a

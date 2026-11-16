@@ -31,6 +31,12 @@ public class ScheduleManager {
     private volatile LocalDateTime scheduledUnlockTime;
     private volatile String scheduledAction = "unlock";
     private volatile boolean schedulePaused;
+    /**
+     * True while {@link #executeDueAction()} is applying its own state change.
+     * {@code changeLockState} would otherwise treat that change as an outside
+     * match and clear the action name before the execution log is written.
+     */
+    private boolean executingDue;
     private ScheduledTask checkTask;
     private ScheduledTask countdownTask;
 
@@ -268,6 +274,9 @@ public class ScheduleManager {
      * preview, countdown and due-check tasks cleanly.
      */
     public void handleUnlocked() {
+        if (executingDue) {
+            return;
+        }
         arm();
     }
 
@@ -398,7 +407,7 @@ public class ScheduleManager {
      * reached the scheduled target (same contract as shared {@code LockScheduler}).
      */
     public void discardIfTargetMet() {
-        if (scheduledUnlockTime == null) {
+        if (executingDue || scheduledUnlockTime == null) {
             return;
         }
         if (isCurrentStateMatchingTarget()) {
@@ -407,10 +416,19 @@ public class ScheduleManager {
     }
 
     private void executeDueAction() {
-        boolean targetLocked = scheduledAction.equals("lock");
+        // Keep the name that is actually applied. A nested discard would
+        // reset scheduledAction to "unlock" before this method logs.
+        String action = scheduledAction;
+        boolean targetLocked = "lock".equals(action);
         if (plugin.isLocked() != targetLocked) {
-            plugin.changeLockState(targetLocked, "System", "SCHEDULED_" + scheduledAction.toUpperCase(Locale.ROOT));
-            plugin.getLogger().info("Scheduled " + scheduledAction + " executed.");
+            executingDue = true;
+            try {
+                plugin.changeLockState(targetLocked, "System",
+                        "SCHEDULED_" + action.toUpperCase(Locale.ROOT));
+            } finally {
+                executingDue = false;
+            }
+            plugin.getLogger().info("Scheduled " + action + " executed.");
         }
         scheduledUnlockTime = null;
         scheduledAction = "unlock";

@@ -15,7 +15,7 @@ Paper/Folia plugin, Fabric and NeoForge mods, and a limited vanilla datapack.
 |---|---|---|---|
 | Paper / Folia | Minecraft 26.3 | `lock-end-<version>.jar` | Production baseline |
 | Fabric | Minecraft 26.3 | `lock-end-fabric-<version>.jar` | Singleplayer verified; CI smoke-tested |
-| NeoForge | Minecraft 26.3 | `lock-end-neoforge-<version>.jar` | Dev-server smoke-tested; in-game verification pending |
+| NeoForge | Minecraft 26.3 | `lock-end-neoforge-<version>.jar` | Singleplayer verified; client joined a Paper server |
 | Vanilla datapack | Vanilla | `lock-end-datapack-<version>.zip` | Limited feature set; in-game verification pending |
 
 Forge is not currently supported. The datapack cannot prevent travel before it
@@ -40,7 +40,6 @@ Remaining in-game / live checks (do not treat as already verified):
 
 - Folia player-driven paths (travel, respawn, evacuation, join/grace, player
   commands) with a live player
-- NeoForge in-game play (beyond dedicated-server smoke)
 - Datapack in-game vanilla verification
 
 ## Features
@@ -73,8 +72,9 @@ reload the world/server.
 Paper/Folia targets Minecraft 26.3 and Java 25. Fabric and NeoForge target
 Minecraft 26.3. See the platform notes above for current verification status.
 The client-optional label means clients do not need the mod to join a
-multiplayer server. Fabric is verified in singleplayer; NeoForge client-side
-loading is not yet verified. Multiplayer End locking is enforced server-side.
+multiplayer server. Fabric and NeoForge are verified in singleplayer.
+NeoForge also joined a Paper 26.3 server. Multiplayer End locking is enforced
+server-side.
 
 ## Metrics
 

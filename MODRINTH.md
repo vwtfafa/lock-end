@@ -17,7 +17,7 @@ Fabric, NeoForge, and a limited vanilla datapack.
 |---|---|---|---|
 | Paper / Folia | Minecraft 26.3 | `lock-end-<version>.jar` | Production baseline |
 | Fabric | Minecraft 26.3 | `lock-end-fabric-<version>.jar` | Singleplayer verified; CI smoke-tested |
-| NeoForge | Minecraft 26.3 | `lock-end-neoforge-<version>.jar` | Dev-server smoke-tested; in-game verification pending |
+| NeoForge | Minecraft 26.3 | `lock-end-neoforge-<version>.jar` | Singleplayer verified; client joined a Paper server |
 | Vanilla datapack | Vanilla | `lock-end-datapack-<version>.zip` | Limited feature set |
 
 Forge is not currently supported. The datapack cannot block travel before it
