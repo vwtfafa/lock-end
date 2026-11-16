@@ -1,6 +1,6 @@
 plugins {
     id("lockend.java-conventions")
-    id("net.fabricmc.fabric-loom") version "1.19-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.19.4"
     id("com.gradleup.shadow") version "9.6.1"
 }
 
