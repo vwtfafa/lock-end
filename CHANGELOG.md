@@ -50,8 +50,9 @@ All notable changes to this project will be documented in this file.
   veto.
 - Shared `reason-usage` default text now documents
   `/endlock reason set <reason>|clear`.
-- README verification notes call out the remaining Folia player-path,
-  NeoForge in-game, and datapack in-game backlog honestly.
+- README verification notes call out the remaining Folia player-path
+  and datapack in-game backlog; NeoForge is documented as singleplayer-
+  verified (client also joined a Paper 26.3 server).
 - Agent docs and local Folia `runFolia` pin aligned with Gradle 9.9.1,
   JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5, Folia 26.3 Build 6, and
   the 3.1 contract docs (retired `ROADMAP-3.1.md` links).
@@ -72,6 +73,14 @@ All notable changes to this project will be documented in this file.
   Paper API 253, Folia Build 6, and the dual 3.1 / 4.x API surfaces.
 
 ### Fixed
+- Paper scheduled lock/unlock logging keeps the action that was applied:
+  a nested target-met discard no longer resets `scheduledAction` to
+  `unlock` before the due-execution log, so a completed lock is no longer
+  reported as an unlock.
+- Fabric and NeoForge distributable jars no longer shade a second Gson or
+  SLF4J copy (core marks both `compileOnly`; shadow excludes them) so
+  Minecraft/loader-provided classes are used and ClassCastException /
+  LinkageError from duplicate classloaders is avoided.
 - Shared `JsonLockStateRepository.save` creates the config parent directory
   before writing, matching the schedule and message JSON stores.
 - Datapack `set_spawn` rejects non-overworld placement so evacuation can
