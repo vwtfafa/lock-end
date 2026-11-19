@@ -73,8 +73,8 @@ All notable changes to this project will be documented in this file.
   Paper API 253, Folia Build 6, and the dual 3.1 / 4.x API surfaces.
 
 ### Fixed
-- Fabric no longer crashes with `RejectedExecutionException` when a second
-  world is loaded or joined in the same singleplayer session (issue #40).
+- Fabric and NeoForge no longer crash with `RejectedExecutionException` when a
+  second world is loaded or joined in the same singleplayer session (issue #40).
   FastStats now starts only on dedicated servers; singleplayer no longer sends
   FastStats metrics or error reports.
 - Paper scheduled lock/unlock logging keeps the action that was applied:
