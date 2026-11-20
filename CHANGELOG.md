@@ -56,11 +56,11 @@ All notable changes to this project will be documented in this file.
 - Agent docs and local Folia `runFolia` pin aligned with Gradle 9.9.1,
   JUnit 6.1.3, Checkstyle 14.4.0, SpotBugs 4.10.5, Folia 26.3 Build 6, and
   the 3.1 contract docs (retired `ROADMAP-3.1.md` links).
-- Gradle wrapper bumped to 9.9.1.
+- Gradle wrapper bumped to 9.9.2.
 - Fabric Loom `1.19.4`, Fabric API `0.166.2+26.3`, Mod Menu `21.0.1`,
   NeoForge `26.3.0.103`, and FastStats `0.32.2` (same MC 26.3 line).
-- Paper API and CI smoke pin moved to Paper 26.3 Build 253
-  (`26.3.build.253-stable`).
+- Paper API and CI smoke pin moved to Paper 26.3 Build 256
+  (`26.3.build.256-stable`).
 - 3.1 API contract / integration guide / api-consumer README now name Folia
   26.3 Build 6 (ALPHA) for CI console smoke and local `runFolia`; player
   paths remain unverified.
@@ -70,7 +70,7 @@ All notable changes to this project will be documented in this file.
 - Paper `/endlock reason` matches mods: `reason set <reason>` and
   `reason clear` (restores the bundled `Maintenance` default).
 - Docs and the api-consumer example point at monorepo artifact paths,
-  Paper API 253, Folia Build 6, and the dual 3.1 / 4.x API surfaces.
+  Paper API 256, Folia Build 6, and the dual 3.1 / 4.x API surfaces.
 
 ### Fixed
 - Fabric and NeoForge no longer crash with `RejectedExecutionException` when a

@@ -17,7 +17,7 @@ authoritative project instruction document.
 | Product | EndLock - Paper/Folia plugin that locks access to the End dimension |
 | Main class | `org.vwtfafa.lockEnd.LockEnd` |
 | Language | Java 25 (`targetJavaVersion = 25` in `build.gradle.kts`) |
-| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.253-stable` |
+| Server API | Paper 26.3, `io.papermc.paper:paper-api:26.3.build.256-stable` |
 | Minecraft | 26.3 (`api-version: '26.3'`, `runServer { minecraftVersion("26.3") }`) |
 | Build | Gradle 9.9.1 wrapper, Java toolchain 25 |
 | Text API | Adventure (bundled with `paper-api`), MiniMessage |
@@ -75,7 +75,7 @@ Rules for future architecture work:
 - Do not assume Forge is implemented: its adapter is deliberately deferred
   even though Forge 26.3-66.1.3 compatibility was verified.
 - The previous Paper/Folia pin-alignment follow-up is closed: the compile
-  target and CI smoke now use Paper 26.3 Build 253, and CI pins Folia 26.3
+  target and CI smoke now use Paper 26.3 Build 256, and CI pins Folia 26.3
   Build 6 (ALPHA). README and MODRINTH make no build-specific smoke claims.
 
 ---
@@ -152,8 +152,8 @@ Before writing code that uses an unfamiliar, uncertain, or version-sensitive API
 The resolved dependency in the Gradle cache can be inspected without the website:
 
 ```powershell
-$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.253-stable" `
-    -Recurse -Filter "paper-api-26.3.build.253-stable.jar" | Select-Object -First 1
+$jar = Get-ChildItem "$env:USERPROFILE\.gradle\caches\modules-2\files-2.1\io.papermc.paper\paper-api\26.3.build.256-stable" `
+    -Recurse -Filter "paper-api-26.3.build.256-stable.jar" | Select-Object -First 1
 javap -classpath $jar.FullName org.bukkit.entity.Player
 ```
 
@@ -267,7 +267,7 @@ at minimum:
 - locking and unlocking the End still blocks/permits travel,
 - reload and shutdown complete without exceptions.
 
-CI pins Paper 26.3 Build 253 and Folia 26.3 Build 6 (ALPHA) and runs the same smoke checks.
+CI pins Paper 26.3 Build 256 and Folia 26.3 Build 6 (ALPHA) and runs the same smoke checks.
 Keep both green; Folia support is not theoretical.
 
 ---

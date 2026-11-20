@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.3.build.253-stable")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.256-stable")
     // Simulates the Paper distribution: the shaded lock-end jar from the Paper
     // module provides the org.vwtfafa.lockEnd.api types. compileOnly only,
     // never shaded - EndLock offers the service at runtime.
