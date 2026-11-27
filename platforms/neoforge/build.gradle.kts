@@ -2,7 +2,7 @@ plugins {
     id("lockend.java-conventions")
     // ModDevGradle version must be a constant expression (Gradle restriction);
     // verified against the plugin portal metadata before use.
-    id("net.neoforged.moddev") version "2.0.148"
+    id("net.neoforged.moddev") version "2.0.149"
     id("com.gradleup.shadow") version "9.6.1"
 }
 
