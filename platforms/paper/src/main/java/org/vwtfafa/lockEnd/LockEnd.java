@@ -2,8 +2,9 @@ package org.vwtfafa.lockEnd;
 
 import com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent;
 import dev.faststats.ErrorTracker;
+import dev.faststats.FastStatsContext;
 import dev.faststats.Metrics;
-import dev.faststats.bukkit.BukkitContext;
+import dev.faststats.bukkit.FastStatsBukkit;
 import net.kyori.adventure.text.Component;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.Bukkit;
@@ -96,7 +97,7 @@ public final class LockEnd extends JavaPlugin implements Listener {
     private final AtomicBoolean statsFlushQueued = new AtomicBoolean();
     private volatile boolean shuttingDown;
     private PaperScheduler paperScheduler;
-    private BukkitContext fastStatsContext;
+    private FastStatsContext fastStatsContext;
 
     // Cached chart/report settings so async consumers never touch the config.
     private volatile String languageTag = "en";
@@ -204,10 +205,11 @@ public final class LockEnd extends JavaPlugin implements Listener {
         }
 
         ErrorTracker errorTracker = ErrorTracker.contextAware();
-        fastStatsContext = new BukkitContext.Factory(this, token)
+        fastStatsContext = FastStatsBukkit.builder(this)
+                .token(token)
                 .errorTrackerService(errorTracker)
                 .metrics(Metrics.Factory::create)
-                .create();
+                .build();
         fastStatsContext.ready();
         getLogger().info("FastStats metrics and error tracking enabled.");
     }

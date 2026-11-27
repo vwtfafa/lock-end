@@ -13,12 +13,12 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import dev.faststats.ErrorTracker;
+import dev.faststats.FastStatsContext;
 import dev.faststats.Metrics;
-import dev.faststats.neoforge.NeoForgeContext;
+import dev.faststats.neoforge.FastStatsNeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
@@ -124,7 +124,7 @@ public class LockEndNeoForgeMod {
     private EndLockGuard guard;
     private JsonScheduleRepository scheduleRepository;
     private LockScheduler scheduler;
-    private NeoForgeContext fastStatsContext;
+    private FastStatsContext fastStatsContext;
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
 
@@ -187,11 +187,11 @@ public class LockEndNeoForgeMod {
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onTravelToDimension);
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
-        NeoForge.EVENT_BUS.addListener(this::onServerStarting);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(LockEndPermissions::registerNodes);
+        configureFastStats();
         publishSharedApi();
 
         LOGGER.info("EndLock (NeoForge) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
@@ -220,31 +220,19 @@ public class LockEndNeoForgeMod {
         sharedApi = null;
     }
 
-    /**
-     * Creates the FastStats context on dedicated servers only. FastStats'
-     * {@link NeoForgeContext} shuts its executor down for good on
-     * {@link ServerStoppingEvent} and cannot be restarted, so creating it in an
-     * integrated (singleplayer) server would crash the next world load in the
-     * same JVM with a {@code RejectedExecutionException} (issue #40 on Fabric).
-     * The context registers its own server-started/stopping listeners, so no
-     * explicit {@code ready()}/{@code shutdown()} calls are needed here.
-     *
-     * @param event the server starting event
-     */
-    private void onServerStarting(ServerStartingEvent event) {
-        if (fastStatsContext != null || !event.getServer().isDedicatedServer()) {
-            return;
-        }
+    /** Creates the client- or dedicated-server-managed FastStats context. */
+    private void configureFastStats() {
         String token = System.getenv(FASTSTATS_TOKEN_ENV);
         if (token == null || token.isBlank()) {
             token = FASTSTATS_PUBLIC_TOKEN;
         }
 
         ErrorTracker errorTracker = ErrorTracker.contextAware();
-        fastStatsContext = new NeoForgeContext.Factory("lockend", token)
+        fastStatsContext = FastStatsNeoForge.builder("lockend")
+                .token(token)
                 .errorTrackerService(errorTracker)
                 .metrics(Metrics.Factory::create)
-                .create();
+                .build();
         LOGGER.info("FastStats metrics and error tracking enabled.");
     }
 

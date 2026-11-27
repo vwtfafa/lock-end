@@ -58,7 +58,7 @@ All notable changes to this project will be documented in this file.
   the 3.1 contract docs (retired `ROADMAP-3.1.md` links).
 - Gradle wrapper bumped to 9.9.3.
 - Fabric Loom `1.19.6`, Fabric API `0.166.2+26.3`, Mod Menu `21.0.1`,
-  NeoForge `26.3.0.103`, and FastStats `0.32.2` (same MC 26.3 line).
+  NeoForge `26.3.0.103`, and FastStats `0.33.0` (same MC 26.3 line).
 - NeoForge ModDevGradle updated to `2.0.149` and the SpotBugs Gradle plugin
   to `6.5.15`.
 - Paper API and CI smoke pin moved to Paper 26.3 Build 263
@@ -75,10 +75,9 @@ All notable changes to this project will be documented in this file.
   Paper API 263, Folia Build 6, and the dual 3.1 / 4.x API surfaces.
 
 ### Fixed
-- Fabric and NeoForge no longer crash with `RejectedExecutionException` when a
-  second world is loaded or joined in the same singleplayer session (issue #40).
-  FastStats now starts only on dedicated servers; singleplayer no longer sends
-  FastStats metrics or error reports.
+- Fabric and NeoForge use FastStats 0.33.0's managed client/server lifecycles,
+  so leaving an integrated world does not reuse a terminated executor (issue
+  #40). Singleplayer now sends client-side FastStats metrics and error reports.
 - Paper scheduled lock/unlock logging keeps the action that was applied:
   a nested target-met discard no longer resets `scheduledAction` to
   `unlock` before the due-execution log, so a completed lock is no longer

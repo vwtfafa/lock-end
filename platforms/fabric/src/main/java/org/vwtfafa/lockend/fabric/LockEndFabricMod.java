@@ -14,8 +14,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import dev.faststats.ErrorTracker;
+import dev.faststats.FastStatsContext;
 import dev.faststats.Metrics;
-import dev.faststats.fabric.FabricContext;
+import dev.faststats.fabric.FastStatsFabric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vwtfafa.lockend.api.LockAction;
@@ -120,7 +121,7 @@ public class LockEndFabricMod implements ModInitializer {
     private EndLockGuard guard;
     private JsonScheduleRepository scheduleRepository;
     private LockScheduler scheduler;
-    private FabricContext fastStatsContext;
+    private FastStatsContext fastStatsContext;
     private volatile MinecraftServer liveServer;
     private int scheduleTickOffset;
 
@@ -181,6 +182,7 @@ public class LockEndFabricMod implements ModInitializer {
         registerJoinHook();
         registerCommands();
         publishSharedApi();
+        configureFastStats();
 
         LOGGER.info("EndLock (Fabric) initialized; End is {}", state.isLocked() ? "LOCKED" : "unlocked");
     }
@@ -244,31 +246,19 @@ public class LockEndFabricMod implements ModInitializer {
         audit.initialize(config.loggingEnabled() ? logFile : null);
     }
 
-    /**
-     * Creates the FastStats context on dedicated servers only. FastStats'
-     * {@link FabricContext} shuts its executor down for good on
-     * {@code SERVER_STOPPING} and cannot be restarted, so creating it in an
-     * integrated (singleplayer) server would crash the next world load in the
-     * same JVM with a {@code RejectedExecutionException}. The context registers
-     * its own {@code SERVER_STARTED}/{@code SERVER_STOPPING} listeners, so no
-     * explicit {@code ready()}/{@code shutdown()} calls are needed here.
-     *
-     * @param server the server that is about to start
-     */
-    private void configureFastStats(MinecraftServer server) {
-        if (fastStatsContext != null || !server.isDedicatedServer()) {
-            return;
-        }
+    /** Creates the client- or dedicated-server-managed FastStats context. */
+    private void configureFastStats() {
         String token = System.getenv(FASTSTATS_TOKEN_ENV);
         if (token == null || token.isBlank()) {
             token = FASTSTATS_PUBLIC_TOKEN;
         }
 
         ErrorTracker errorTracker = ErrorTracker.contextAware();
-        fastStatsContext = new FabricContext.Factory("lock-end", token)
+        fastStatsContext = FastStatsFabric.builder("lock-end")
+                .token(token)
                 .errorTrackerService(errorTracker)
                 .metrics(Metrics.Factory::create)
-                .create();
+                .build();
         LOGGER.info("FastStats metrics and error tracking enabled.");
     }
 
@@ -277,7 +267,6 @@ public class LockEndFabricMod implements ModInitializer {
      * world is live, and the final persistence writes on shutdown.
      */
     private void registerLifecycleHooks() {
-        ServerLifecycleEvents.SERVER_STARTING.register(this::configureFastStats);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             liveServer = server;
             guard.attachServer(server);
